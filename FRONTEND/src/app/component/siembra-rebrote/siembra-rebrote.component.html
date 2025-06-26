@@ -1,0 +1,348 @@
+<h4 style="color: rgb(1, 1, 199);">Listado de Siembra-Rebrote</h4>
+
+<!-- Fila de filtros -->
+<table class="table table-striped table-hover table-sm" style="width: 1100px; margin-top: 30px;">
+    <tr>
+        <div class="input-contenedor">
+            <th style="width: 100px;">
+                <label for="bosque">Bosque:</label>
+                <select class="form-select form-select-sm" [(ngModel)]="filtroBosque">
+                    <option [ngValue]="null">Todo</option>
+                    <option *ngFor="let b of bosques" [ngValue]="b.id">
+                        {{ b.nombre }}
+                    </option>
+                </select>
+            </th>
+            <th style="width: 100px;">
+                <label for="tipos">Tipos:</label>
+                <select class="form-select form-select-sm" [(ngModel)]="filtroTipo">
+                    <option [ngValue]="null">Todo</option>
+                    <option *ngFor="let t of tipos" [ngValue]="t.id">
+                        {{ t.nombre }}
+                    </option>
+                </select>
+            </th>
+            <th style="width: 90px;">
+                <label for="tipo">Tipo Arbol:</label>
+                <select class="form-select form-select-sm" [(ngModel)]="filtroTipoArbol">
+                    <option [ngValue]="null">Todo</option>
+                    <option *ngFor="let t of tipoArbol" [ngValue]="t.id">
+                        {{ t.nombre }}
+                    </option>
+                </select>
+            </th>
+            <th>
+                <label for="Fecha">Fecha:</label>
+                <input type="date" class="form-control form-control-sm" placeholder="Filtrar Fecha"
+                    [(ngModel)]="filtroFecha">
+            </th>
+            <th style="width: 110px;">
+                <label for="anio">Año:</label>
+                <input type="number" min="0" step="1" class="form-control form-control-sm" placeholder="Filtrar Año"
+                    [(ngModel)]="filtroAnio">
+            </th>
+            <th style="width: 180px;">
+                <label for="hectareaUs">Has Usada:</label>
+                <input type="number" min="0" class="form-control form-control-sm" placeholder="Filtrar Hectarea Usada"
+                    [(ngModel)]="filtroHectareaUs">
+            </th>
+            <th style="width: 180px;">
+                <label for="arabolesIniciales">Arboles iniciales:</label>
+                <input type="number" min="0" class="form-control form-control-sm"
+                    placeholder="Filtrar Arboles Iniciales" [(ngModel)]="filtroArbIniciales">
+            </th>
+            <th style="width: 180px;">
+                <label for="arbolesCortados">Arboles Cortados:</label>
+                <input type="number" min="0" class="form-control form-control-sm" placeholder="Filtrar Arboles cortados"
+                    [(ngModel)]="filtroArbCortados">
+            </th>
+            <th style="width: 180px;">
+                <label for="distanciaSiembra">Distancia Siembra</label>
+                <input type="text" class="form-control form-control-sm" placeholder="Filtrar Distancia Siembra"
+                    [(ngModel)]="filtroDistSiembra">
+            </th>
+            <th style="width: 180px;">
+                <label for="saldo">Saldo:</label>
+                <input type="number" min="0" class="form-control form-control-sm" placeholder="Filtrar Saldo"
+                    [(ngModel)]="filtroSaldo">
+            </th>
+            <th>
+                <button (click)="getSiembraRebFiltrados()" style="border:none; background:none">
+                    <img src="/assets/images/filtrar.png" width="22" height="26" ata-bs-toggle="tooltip"
+                        title="Filtrar registro">
+                </button>
+            </th>
+        </div>
+    </tr>
+</table>
+
+<div style="display: flex; align-items: start; gap: 15px;">
+
+    <table class="table table-striped table-bordered table-hover table-sm" style="min-width: 1000px; margin-left:30px">
+        <thead class="table-success" style="text-align: center;">
+            <tr>
+                <th>Bosque</th>
+                <th>Tipo</th>
+                <th>Tipo Arbol</th>
+                <th>Fecha</th>
+                <th>Año</th>
+                <th>Has Usada</th>
+                <th>Arb. Iniciales</th>
+                <th>Arb. Cortados</th>
+                <th>Dist. Siembra</th>
+                <th>Saldo</th>
+                <th>Corte</th>
+                <th>...</th>
+            </tr>
+
+        </thead>
+        <!-- Visualizar -->
+        <tbody>
+            <tr *ngFor="let siembraRebrote of siembRebFiltrados| paginate: { itemsPerPage: itemsPorPagina, currentPage: paginaActual }
+">
+                <!-- Columna Bosque-->
+                <td>
+                    {{ getBosqueNombre(siembraRebrote.bosque_id) }}
+                </td>
+                <!-- Columna Tipo -->
+                <td>
+                    {{ getTipoNombre(siembraRebrote.tipo_id)}}
+                </td>
+                <!-- Columna Tipo Arbol -->
+                <td>
+                    {{ getTipoArbolNombre(siembraRebrote.tipo_arbol_id)}}
+                </td>
+                <!-- Columna Fecha -->
+                <td>
+                    {{ siembraRebrote.fecha | date: 'dd/MM/yyyy' }}
+                </td>
+                <!-- Columna Año -->
+                <td>
+                    {{ siembraRebrote.anio}}
+                </td>
+                <!-- Columna Hectarea Usada -->
+                <td>
+                    {{ siembraRebrote.hectarea_usada }}
+                </td>
+                <!-- Columna Arboles Iniciales -->
+                <td>
+                    {{ siembraRebrote.arb_iniciales }}
+                </td>
+                <!-- Columna Arboles Cortados -->
+                <td>
+                    {{ siembraRebrote.arb_cortados }}
+                </td>
+                <!-- Columna distancia siembra -->
+                <td>
+                    <span>{{ siembraRebrote.dist_siembra }}</span>
+                </td>
+                <!-- Columna Saldo -->
+                <td>
+                    {{ siembraRebrote.saldo }}
+                </td>
+
+                <!-- Columna Ver -->
+                <td class="text-center">
+                    <a class="btnSiembra-Rebrote" [routerLink]="['/contrato', siembraRebrote.id]">
+                        <img src="/assets/images/corteWhite.png" width="24" height="24">
+                    </a>
+                </td>
+                <!-- Acciones -->
+                <td class="d-flex justify-content-center align-items-center">
+                    <button class="btn btnAngosto" ata-bs-toggle="tooltip" title="Editar registro"
+                        style="background-color:#e7bd35 ;" (click)="startEdit(siembraRebrote.id)">
+                        <i class="bi bi-pencil"></i>
+                    </button>
+                    <button class="btn btnAngosto " ata-bs-toggle="tooltip" title="Eliminar registro"
+                        style="background-color:#e7354d ;" (click)="eliminarSiembraReb(siembraRebrote.id)">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                </td>
+            </tr>
+        </tbody>
+        <tfoot>
+            <tr>
+                <!-- Ajusta el colspan al número de columnas de tu tabla -->
+                <td [attr.colspan]="12" class="text-center">
+                    <pagination-controls (pageChange)="paginaActual = $event" [autoHide]="true" [maxSize]="15"
+                        previousLabel="«" nextLabel="»">
+                    </pagination-controls>
+                </td>
+            </tr>
+        </tfoot>
+    </table>
+
+    <button data-bs-toggle="modal" data-bs-target="#miModal" ata-bs-toggle="tooltip"
+        style="border:none; background:none; " title="Agregar registro"> <img src="/assets/images/nuevo.png" width="29"
+            height="29" ata-bs-toggle="tooltip" title="Agregar registro"></button>
+</div>
+
+<!-- Modal para registrar un nuevo bosque -->
+<div class="modal fade" id="miModal" tabindex="-1" aria-labelledby="miModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title" id="miModalLabel">Registro de Siembra-Rebrote</h4>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <form #fForm="ngForm" class="modal-body">
+                Nombre del Bosque
+                <div style="margin-bottom: 15px;">
+                    <select class="form-select form-select-sm" [(ngModel)]="nuevaSiembraRebrote.bosque_id" name="bosque_id" required
+                        (ngModelChange)="onBosqueChange()" class="form-select form-select-sm">
+                        <option [ngValue]="null">-- Seleccione --</option>
+                        <option *ngFor="let b of bosques" [ngValue]="b.id">
+                            {{ b.nombre }}
+                        </option>
+                    </select>
+                </div>
+                <div class="d-flex flex-wrap gap-2" style="margin-top: 15px; margin-bottom: 15px;">
+                    <div>
+                        Tipo
+                        <div style="margin-bottom: 15px;">
+                            <select class="form-select form-select-sm" [(ngModel)]="nuevaSiembraRebrote.tipo_id" name="tipo_id" required>
+                                <option [ngValue]="null">-- Seleccione --</option>
+                                <option *ngFor="let t of tipos" [ngValue]="t.id">
+                                    {{ t.nombre }}
+                                </option>
+                            </select>
+                        </div>
+                    </div>
+                    <div>
+                        <label>Tipo de árbol</label>
+                        <select class="form-select form-select-sm" [(ngModel)]="nuevaSiembraRebrote!.tipo_arbol_id" name="tipo_arbol_id" required>
+                            <option [ngValue]="null">-- Seleccione --</option>
+                            <option *ngFor="let t of tipoArbol" [ngValue]="t.id">
+                                {{ t.nombre }}
+                            </option>
+                        </select>
+                    </div>
+                    <div>
+                        Fecha
+                        <input type="date" class="form-control form-control-sm" [(ngModel)]="nuevaSiembraRebrote.fecha" (ngModelChange)="onFechaChange($event)" name="fecha"
+                            required>
+                    </div>
+                </div>
+                <div class="d-flex flex-wrap gap-4" style="margin-top: 15px; margin-bottom: 15px;">
+                    <div>
+                        Has Usada
+                        <input type="number" min="0" class="form-control form-control-sm " style="width: 130px;"
+                            [(ngModel)]="nuevaSiembraRebrote.hectarea_usada" name="hectarea_usada" required>
+                        <small *ngIf="hectareaDisponible" class="text-muted">
+                            Disponibles: {{ (hectareaDisponible - hectareaUsadaAntes) | number:'1.2-2' }} ha
+                        </small>
+                    </div>
+                    <div>
+                        Arb. iniciales
+                        <input type="number" min="0" class="form-control form-control-sm" style="width: 130px;"
+                            [(ngModel)]="nuevaSiembraRebrote.arb_iniciales" name="arb_iniciales" required>
+                    </div>
+                    <!-- <div>
+                        Arboles Cortados
+                        <input type="text" class="form-control form-control-sm" style="width: 130px;"
+                            [(ngModel)]="nuevaSiembraRebrote.arb_cortados">
+                    </div> -->
+                    <div>
+                        Dist. Siembra
+                        <input type="text" class="form-control form-control-sm" style="width: 130px;"
+                            [(ngModel)]="nuevaSiembraRebrote.dist_siembra" name="dist_siembra" required>
+                    </div>
+                </div>
+            </form>
+
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary" (click)="onSave()"
+                    [disabled]="fForm.form.invalid || hectareaUsadaAntes + (nuevaSiembraRebrote.hectarea_usada||0) > hectareaDisponible" >Guardar</button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"
+                    (click)="cancelEdit()">Cerrar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Editar -->
+<!-- Modal para edición -->
+<div class="modal fade" id="editarModal" tabindex="-1" aria-labelledby="editarModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content" *ngIf="siembraRebroteEditando">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Editar Siembra-Rebrote</h5>
+                </div>
+                <div class="modal-body">
+                    <form>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <label>Nombre del Bosque</label>
+                                <select class="form-select form-select-sm"
+                                    [(ngModel)]="siembraRebroteEditando!.bosque_id" name="bosque_id">
+                                    <option [ngValue]="null">-- Seleccione --</option>
+                                    <option *ngFor="let b of bosques" [ngValue]="b.id">
+                                        {{ b.nombre }}
+                                    </option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label>Tipo</label>
+                                <select class="form-select form-select-sm" [(ngModel)]="siembraRebroteEditando!.tipo_id"
+                                    name="tipo_id">
+                                    <option [ngValue]="null">-- Seleccione --</option>
+                                    <option *ngFor="let t of tipos" [ngValue]="t.id">
+                                        {{ t.nombre }}
+                                    </option>
+                                </select>
+                            </div>
+                            <div class="col-md-6 mt-2">
+                                <label>Tipo de árbol</label>
+                                <select class="form-select form-select-sm"
+                                    [(ngModel)]="siembraRebroteEditando!.tipo_arbol_id" name="tipo_arbol_id">
+                                    <option [ngValue]="null">-- Seleccione --</option>
+                                    <option *ngFor="let t of tipoArbol" [ngValue]="t.id">
+                                        {{ t.nombre }}
+                                    </option>
+                                </select>
+                            </div>
+                            <div class="col-md-6 mt-2">
+                                <label>Fecha</label>
+                                <input type="date" class="form-control form-control-sm"
+                                    [(ngModel)]="siembraRebroteEditando!.fecha" name="fecha">
+                            </div>
+                            <!-- <div class="col-md-6 mt-2">
+                                <label>Año</label>
+                                <input type="number" class="form-control form-control-sm"
+                                    [(ngModel)]="siembraRebroteEditando!.anio" name="anio">
+                            </div> -->
+                            <div class="col-md-6 mt-2">
+                                <label>Has usada</label>
+                                <input type="number" class="form-control form-control-sm"
+                                    [(ngModel)]="siembraRebroteEditando!.hectarea_usada" name="hectarea_usada">
+                            </div>
+                            <div class="col-md-6 mt-2">
+                                <label>Árb. iniciales</label>
+                                <input type="number" class="form-control form-control-sm"
+                                    [(ngModel)]="siembraRebroteEditando!.arb_iniciales" name="arb_iniciales">
+                            </div>
+                            <!-- <div class="col-md-6 mt-2">
+                                <label>Árb. cortados</label>
+                                <input type="number" class="form-control form-control-sm"
+                                    [(ngModel)]="siembraRebroteEditando!.arb_cortados" name="arb_cortados">
+                            </div> -->
+                            <div class="col-md-6 mt-2">
+                                <label>Dist. de siembra</label>
+                                <input type="text" class="form-control form-control-sm"
+                                    [(ngModel)]="siembraRebroteEditando!.dist_siembra" name="dist_siembra">
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button class="btnSaveEdit" (click)="saveEdit()" >
+                        <i class="bi bi-check-lg"></i>Guardar
+                    </button>
+                    <button type="button" class="btnCancelEdit" data-bs-dismiss="modal"><i
+                            class="bi bi-x-lg"></i>Cancelar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

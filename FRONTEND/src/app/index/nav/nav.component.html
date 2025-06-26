@@ -1,0 +1,49 @@
+<!-- Sidebar wrapper start -->
+<nav class="sidebar-wrapper">
+
+  <!-- Sidebar brand starts -->
+  <div class="sidebar-menu">
+    <div class="sidebarMenuScroll">
+      <ul>
+        <li *ngFor="let item of filteredMenu" class="sidebar-dropdown" [class.active]="item.active">
+
+          <!-- Si el ítem tiene una ruta, usar routerLink -->
+          <a *ngIf="item.route" [routerLink]="item.route" routerLinkActive="current-page">
+            <img *ngIf="item.img" [src]="item.img" width="40" height="40" alt="{{ item.title }}" />
+            <i *ngIf="item.icon" [class]="item.icon"></i>
+            <span class="menu-text">{{ item.title }}</span>
+          </a>
+
+          <!-- Si el ítem tiene submenús, mostrarlo como desplegable -->
+          <a *ngIf="!item.route" href="#" (click)="toggleDropdown(item)">
+            <img *ngIf="item.img" [src]="item.img" width="40" height="40" alt="{{ item.title }}" />
+            <i *ngIf="item.icon" [class]="item.icon"></i>
+            <span class="menu-text">{{ item.title }}</span>
+          </a>
+
+          <div class="sidebar-submenu" *ngIf="item.submenus && item.submenus.length > 0">
+            <ul>
+              <li *ngFor="let submenu of item.submenus">
+                <a [routerLink]="submenu.route" routerLinkActive="current-page">
+                  <img *ngIf="submenu.img" [src]="submenu.img" width="20" height="20" class="me-2" alt="{{ submenu.title }}"> 
+                  <i *ngIf="submenu.icon" [class]="submenu.icon" ></i>
+                  {{ submenu.title }}</a>
+              </li>
+            </ul>
+          </div>
+        </li>
+
+      </ul>
+    </div>
+  </div>
+
+
+  <!-- Sidebar brand starts -->
+  <!-- Sidebar menu starts -->
+  <!-- Sidebar menu ends -->
+  <!-- nav.component.html -->
+
+
+
+</nav>
+<!-- Sidebar wrapper end -->

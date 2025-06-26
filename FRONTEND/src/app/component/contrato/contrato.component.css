@@ -1,0 +1,81 @@
+.btnAngosto {
+    border: none;
+    color: white;
+    padding: 1px 2px;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+    font-size: 16px;
+    margin: 3px 4px;
+    cursor: pointer;
+    border-radius: 4px;
+}
+
+.btnSaveEdit {
+    background-color: #33b444;
+    border: none;
+    color: white;
+    padding: 1px 2px;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+    font-size: 16px;
+    margin: 3px 4px;
+    cursor: pointer;
+    border-radius: 4px;
+    width: 70px;
+}
+
+.btnCancelEdit {
+    background-color: #706e6f;
+    border: none;
+    color: white;
+    padding: 1px 2px;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+    font-size: 16px;
+    margin: 3px 4px;
+    cursor: pointer;
+    border-radius: 4px;
+    width: 70px;
+}
+
+
+.btnSiembra-Rebrote {
+    border: none;
+    color: rgb(0, 0, 0);
+    padding: 1px 2px;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+    font-size: 16px;
+    margin: 3px 4px;
+    cursor: pointer;
+    border-radius: 4px;
+}
+
+
+/* .BtnFiltro {
+    background-color: #33b444;
+    margin-left: 10px;
+    width: 100px;
+    height: 40px;
+} */
+
+.input-contenedor {
+  position: relative;
+  border: 1px solid #ced4da;
+  border-radius: 5px;
+  padding: 20px 8px 3px 8px;
+  margin-bottom: 6px;
+ 
+}
+
+.input-contenedor label {
+  font-size: 12px;
+  color: #6c757d;
+  position: absolute;
+  top: -1px;
+  padding: 0 4px;
+}

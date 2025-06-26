@@ -1,0 +1,14 @@
+.input-error {
+  border: 1px solid #dc3545; /* rojo */
+  background-color: #f8d7da; /* rosa claro */
+}
+
+.error-message {
+  color: #dc3545;
+  font-weight: 500;
+  margin-top: 10px;
+  background-color: #f8d7da;
+  border: 1px solid #dc3545;
+  padding: 8px;
+  border-radius: 4px;
+}

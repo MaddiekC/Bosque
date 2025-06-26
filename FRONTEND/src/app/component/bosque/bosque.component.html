@@ -1,0 +1,187 @@
+<h4 style="color: rgb(1, 1, 199);">Listado de Bosque</h4>
+
+<!-- Fila de filtros -->
+<table class="table table-striped table-hover table-sm" style="width: 530px; margin-top: 30px">
+    <tr>
+        <div class="input-contenedor">
+            <th style="width: 120px;">
+                <label for="nombre">Nombre:</label>
+                <input type="text" class="form-control form-control-sm" [(ngModel)]="filtroNombre"
+                    placeholder="Filtrar nombre">
+            </th>
+            <th style="width: 140px;">
+                <label for="hectarea">Has:</label>
+                <input type="number" min="0" class="form-control form-control-sm" placeholder="Filtrar hectarea"
+                    [(ngModel)]="filtroHectarea">
+            </th>
+            <th style="width: 90px;">
+                <label for="secciones">Secciones:</label>
+                <select class="form-select form-select-sm" [(ngModel)]="filtroSeccion">
+                    <option [ngValue]="null">Todo</option>
+                    <option *ngFor="let s of secciones" [ngValue]="s.id">
+                        {{ s.nombre }}
+                    </option>
+                </select>
+            </th>
+            <!-- Cabeceras sin filtro: deja vacío el <th> -->
+            <th>
+                <button (click)="getbosquesFiltrados()" style="border:none; background:none">
+                    <img src="/assets/images/filtrar.png" width="22" height="26" ata-bs-toggle="tooltip"
+                        title="Filtrar registro">
+                </button>
+            </th>
+        </div>
+    </tr>
+</table>
+
+<div style="display: flex; align-items: start; margin-right: 780px;">
+    <!-- Tabla para mostrar los bosques -->
+    <table class="table table-striped table-bordered table-hover table-sm" style="width: 800px; margin-left:30px ">
+        <thead class="table-success" style="text-align: center;">
+            <tr>
+                <th>Nombre</th>
+                <th>Has</th>
+                <th>Sección</th>
+                <th>Siembra-Rebrote</th>
+                <th>...</th>
+            </tr>
+        </thead>
+
+        <!-- Editar -->
+        <tbody>
+            <tr *ngFor="let bosque of bosquesFiltrados| paginate: { itemsPerPage: itemsPorPagina, currentPage: paginaActual }
+">
+                <!-- Columna Nombre -->
+                <td>
+                    {{ bosque.nombre }}
+                </td>
+
+                <!-- Columna Hectárea -->
+                <td>
+                    {{ bosque.hectarea }}
+                </td>
+
+                <!-- Columna Sección -->
+                <td>
+                    {{getSeccionNombre(bosque.seccion_id) }}
+                </td>
+                <td class="text-center">
+                    <a class="btnSiembra-Rebrote" [routerLink]="['/siembra-rebrote', bosque.id]">
+                        <img src="/assets/images/siembraReb.png" width="20" height="20">
+                    </a>
+                </td>
+                <!-- Acciones -->
+                <td class="d-flex justify-content-center align-items-center">
+                    <button class="btn btnAngosto " ata-bs-toggle="tooltip" title="Editar registro"
+                        style="background-color:#e7bd35 ;" (click)="startEdit(bosque.id)">
+                        <i class="bi bi-pencil"></i>
+                    </button>
+                    <button class="btn btnAngosto " ata-bs-toggle="tooltip" title="Eliminar registro"
+                        style="background-color:#e7354d ;" (click)="eliminarBosque(bosque.id)">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                </td>
+            </tr>
+        </tbody>
+        <tfoot>
+            <tr>
+                <!-- Ajusta el colspan al número de columnas de tu tabla -->
+                <td [attr.colspan]="5" class="text-center">
+                    <pagination-controls (pageChange)="paginaActual = $event" [autoHide]="true" [maxSize]="15"
+                        previousLabel="«" nextLabel="»">
+                    </pagination-controls>
+                </td>
+            </tr>
+        </tfoot>
+    </table>
+
+    <button data-bs-toggle="modal" data-bs-target="#miModal" ata-bs-toggle="tooltip"
+        style="border:none; background:none; padding-left:30px; margin-bottom:-10px" title="Agregar registro">
+        <img src="/assets/images/nuevo.png" width="29" height="29" ata-bs-toggle="tooltip"
+            title="Agregar registro"></button>
+</div>
+
+<!-- Editar -->
+<!-- Modal para edición -->
+<div class="modal fade" id="editarModal" tabindex="-1" aria-labelledby="editarModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content" *ngIf="bosqueEditando">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Editar Bosque</h5>
+                </div>
+                <div class="modal-body">
+                    <form>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <label>Nombre del bosque</label>
+                                <input type="text" class="form-control form-control-sm"
+                                    [(ngModel)]="bosqueEditando!.nombre" name="nombre">
+                            </div>
+                            <div class="col-md-6 mt-2">
+                                <label>Has del bosque</label>
+                                <input type="number" class="form-control form-control-sm"
+                                    [(ngModel)]="bosqueEditando!.hectarea" name="hectarea">
+                            </div>
+                            <div class="col-md-6 mt-2">
+                                <label>Sección del bosque</label>
+                                <select class="form-select form-select-sm" [(ngModel)]="bosqueEditando!.seccion_id"
+                                    name="seccion_id">
+                                    <option [ngValue]="null">-- Seleccione --</option>
+                                    <option *ngFor="let s of secciones" [ngValue]="s.id">
+                                        {{ s.nombre }}
+                                    </option>
+                                </select>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button class="btnSaveEdit" (click)="saveEdit()" data-bs-dismiss="modal">
+                        <i class="bi bi-check-lg"></i>Guardar
+                    </button>
+                    <button type="button" class="btnCancelEdit" data-bs-dismiss="modal"><i
+                            class="bi bi-x-lg"></i>Cancelar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para registrar un nuevo bosque -->
+<div class="modal fade" id="miModal" tabindex="-1" aria-labelledby="miModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title" id="miModalLabel">Registro de bosque</h4>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <form #fForm="ngForm" class="modal-body">
+                Nombre del bosque
+                <input type="text" class="form-control mb-3 form-control-sm" placeholder="Nombre del bosque"
+                    [(ngModel)]="nuevoBosque.nombre" name="nombre" required>
+                <div style="margin-bottom: 15px;">
+                    Has del bosque
+                    <input type="number" min="0" class="form-control mb-3 form-control-sm" style="width: 100px;"
+                        [(ngModel)]="nuevoBosque.hectarea" name="hectarea" required>
+                </div>
+                <div style="margin-bottom: 15px;">
+                    Sección del bosque
+                    <select class="form-select form-select-sm" [(ngModel)]="nuevoBosque.seccion_id" name="seccion_id" required>
+                        <option [ngValue]="null">-- Seleccione --</option>
+                        <option *ngFor="let s of secciones" [ngValue]="s.id">
+                            {{ s.nombre }}
+                        </option>
+                    </select>
+                </div>
+
+            </form>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary" (click)="onSave()"[disabled]="fForm.form.invalid"
+                    data-bs-dismiss="modal">Guardar</button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+            </div>
+
+        </div>
+    </div>
+</div>

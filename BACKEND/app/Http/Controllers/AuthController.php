@@ -26,21 +26,20 @@ class AuthController extends Controller
             return response()->json(['error' => 'Credenciales inválidas'], 401);
         }
 
-        // Crea manualmente un "user-like" array para JWT
-        $customUser = [
-            'id' => $user->id,
-            'username' => $user->username,
-            'email' => $user->email ?? null,
-            'password' => $user->password,
-        ];
+        // en tu login controller:
+        $credentials = $request->only('username', 'password');
 
-        $token = JWTAuth::fromUser(new \App\Models\FakeUser($customUser));
-
+        if (! $token = JWTAuth::attempt($credentials)) {
+            return response()->json(['error' => 'Credenciales inválidas'], 401);
+        }
+        // TTL en minutos (por defecto 60)
+        $ttl = JWTAuth::factory()->getTTL();
         return response()->json([
-           /* 'access_token' => $token,
+            /* 'access_token' => $token,
             'token_type' => 'bearer',*/
-            'token' => $token, // para que puedas probarlo
+            'access_token' => $token, // para que puedas probarlo
             'message' => 'Login exitoso',
+            'expires_in'   => $ttl * 60,
             'username' => $user->username,
             'email' => $user->email
         ]);
