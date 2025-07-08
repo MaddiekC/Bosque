@@ -44,15 +44,20 @@ class ParametroController extends Controller
         if (!$parametro) {
             return response()->json(['message' => 'Parametro no encontrado'], 404);
         }
-
+        $user = $request->user();
         $request->validate([
             'categoria' => 'required|string|max:50',
             'nombre' => 'required|string|max:100',
-            'descripcion' => 'nullable|string|max:255',
-            'usuario_creacion' => 'required|string|max:200',
+            'descripcion' => 'nullable|string|max:255'
         ]);
 
-        $parametro->update($request->all());
+        $parametro->fill($request->only([
+            'categoria',
+            'nombre',
+            'descripcion']
+        ));
+        $parametro->updated_by = $user->username; // Asignar el usuario que hizo la edición
+        $parametro->save(); // Guardar cambios
         return response()->json($parametro);
     }
     public function destroy($id)

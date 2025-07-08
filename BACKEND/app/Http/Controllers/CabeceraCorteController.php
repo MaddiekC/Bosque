@@ -73,6 +73,7 @@ class CabeceraCorteController extends Controller
             return response()->json(['message' => 'Cabecera de corte no encontrada'], 404);
         }
 
+        $user = $request->user();
         $validator = Validator::make($request->all(), [
             'bosque_id' => 'nullable|integer|exists:bosque,id',
             'contrato_id' => 'nullable|integer|exists:contrato,id',
@@ -85,15 +86,14 @@ class CabeceraCorteController extends Controller
             'placa_carro' => 'nullable|string|max:50',
             'contenedor' => 'nullable|string|max:50',
             'conductor' => 'nullable|string|max:200',
-            'supervisor' => 'nullable|string|max:200',
-            'usuario_creacion' => 'nullable|string|max:200',
+            'supervisor' => 'nullable|string|max:200'
         ]);
 
         if ($validator->fails()) {
             return response()->json(['errors' => $validator->errors()], 422);
         }
 
-        $cabeceraCorte->update($request->only([
+        $cabeceraCorte->fill($request->only([
             'bosque_id',
             'contrato_id',
             'raleo_tipo_id',
@@ -105,9 +105,10 @@ class CabeceraCorteController extends Controller
             'placa_carro',
             'contenedor',
             'conductor',
-            'supervisor',
-            'usuario_creacion'
+            'supervisor'
         ]));
+        $cabeceraCorte->updated_by = $user->username; // Asignar el usuario que hizo la edición
+        $cabeceraCorte->save(); // Guardar cambios
 
         return response()->json($cabeceraCorte);
     }

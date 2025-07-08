@@ -20,8 +20,7 @@ export const MENU_CONFIG = [
     title: 'Contrato',
     icon: '	bi bi-file-earmark-text ',
     route: '/contrato',
-    roles: [1],
-    grupos: [1, 20],
+    roles: [1]
   },
   {
     title: 'Corte',

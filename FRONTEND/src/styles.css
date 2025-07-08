@@ -1,1 +1,22 @@
 /* You can add global styles to this file, and also import other style files */
+/* Chrome, Safari, Edge */
+input.form-control:-webkit-autofill {
+  /* rellena todo el padding con el color que tú quieras */
+  -webkit-box-shadow: inset 0 0 0 1000px white !important;
+  box-shadow: inset 0 0 0 1000px white !important;
+
+  /* opcional: asegurar que el texto siga siendo legible */
+  -webkit-text-fill-color: #212529 !important;
+}
+
+/* Firefox */
+input.form-control:-moz-autofill {
+  box-shadow: inset 0 0 0 1000px white !important;
+  -moz-text-fill-color: #212529 !important;
+}
+
+/* Para evitar transiciones extrañas */
+input.form-control:-webkit-autofill,
+input.form-control:-webkit-autofill:focus {
+  transition: background-color 5000s ease-in-out 0s;
+}

@@ -91,7 +91,6 @@ class SiembraRebroteController extends Controller
             'arb_cortados' => 'required|integer|min:0',
             'dist_siembra' => 'required|string|max:30',
             //'saldo' => 'required|integer|min:1',
-            'usuario_creacion' => 'required|string|max:200',
         ]);
 
         // Recalcula el saldo
@@ -119,7 +118,10 @@ class SiembraRebroteController extends Controller
         }
 
         // 4) Actualizar
-        $siembraRebrote->update($data);
+        $siembraRebrote->fill($data);
+        $user = $request->user();
+        $siembraRebrote->updated_by = $user()->username; // Asignar el usuario que hizo la edición
+        $siembraRebrote->save();
         return response()->json($siembraRebrote);
     }
     public function destroy($id)

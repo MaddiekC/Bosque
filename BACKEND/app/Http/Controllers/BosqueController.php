@@ -33,7 +33,6 @@ class BosqueController extends Controller
             'seccion_id' => 'required|integer|exists:parametro,id',
             'nombre' => 'required|string|max:500',
             'hectarea' => 'required|numeric',
-            // 'usuario_creacion' => 'required|string|max:200',
         ]);
 
         if ($validator->fails()) {
@@ -61,24 +60,26 @@ class BosqueController extends Controller
             return response()->json(['message' => 'Bosque no encontrado'], 404);
         }
 
+        $user = $request->user();
         $validator = Validator::make($request->all(), [
             'seccion_id' => 'nullable|integer|exists:parametro,id',
             'nombre' => 'nullable|string|max:500',
             'hectarea' => 'nullable|numeric',
-            'usuario_creacion' => 'nullable|string|max:200',
         ]);
 
         if ($validator->fails()) {
             return response()->json(['errors' => $validator->errors()], 422);
         }
 
-        $bosque->update($request->only([
+        $bosque->fill($request->only([
             'seccion_id',
             'nombre',
             'hectarea',
             'usuario_creacion'
         ]));
 
+        $bosque->updated_by = $user->username; // Asignar el usuario que hizo la edición
+        $bosque->save(); // Guardar cambios
         return response()->json($bosque);
     }
 

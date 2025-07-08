@@ -1,22 +1,24 @@
 <?php
-namespace App\Models;
-use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Factories\HasFactory;          
 
-class DetalleContrato extends Model
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+
+class Anticipo extends Model
 {
     use HasFactory;
-    protected $table = 'detalle_contrato';
-    protected $primaryKey = 'id';   
+    protected $table = 'anticipo';
+    protected $primaryKey = 'id';
     public $timestamps = true;
     protected $dates = ['created_at', 'updated_at'];
+
     protected $fillable = [
         'contrato_id',
-        'circunferencia',
-        'precioM3',
-        'largo', 
-        'caracteristica',
-        'estado', 
+        'factura',
+        'fecha',
+        'cantidad',
+        'estado',
         'usuario_creacion'
     ];
 
@@ -24,6 +26,4 @@ class DetalleContrato extends Model
     {
         return $this->belongsTo(Contrato::class, 'contrato_id');
     }
-
-
 }

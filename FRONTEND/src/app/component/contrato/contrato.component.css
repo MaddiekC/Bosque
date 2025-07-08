@@ -79,3 +79,8 @@
   top: -1px;
   padding: 0 4px;
 }
+
+/* en contrato.component.css */
+.tr-estado-c {
+  background-color: rgb(235, 212, 169) !important;
+}

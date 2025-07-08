@@ -1,4 +1,4 @@
-<h4 style="color: rgb(1, 1, 199);">Contrato</h4>
+<h4 style="color: rgb(1, 1, 199);">Listado de Acuerdos</h4>
 <!-- Fila de filtros -->
 <table class="table table-striped table-hover table-sm" style="width: 1100px; margin-top: 30px;">
     <tr>
@@ -7,8 +7,8 @@
                 <label for="cliente">Cliente:</label>
                 <select class="form-select form-select-sm" [(ngModel)]="filtroCliente">
                     <option [ngValue]="null">Todo</option>
-                    <option *ngFor="let b of clientes" [ngValue]="b.id">
-                        {{ b.nombre }}
+                    <option *ngFor="let b of clientes" [ngValue]="b.idcliente">
+                        {{ b.NombreComercial }}
                     </option>
                 </select>
             </th>
@@ -21,6 +21,15 @@
                 <label for="Fecha">Fecha:</label>
                 <input type="date" class="form-control form-control-sm" placeholder="Filtrar Fecha"
                     [(ngModel)]="filtroFecha">
+            </th>
+            <th>
+                <label for="estado">Estado:</label>
+                <select class="form-select form-select-sm" [(ngModel)]="filtroEstado">
+                    <option [ngValue]="null">Todo</option>
+                    <option *ngFor="let e of estados" [ngValue]="e.value">
+                        {{ e.label }}
+                    </option>
+                </select>
             </th>
             <th>
                 <button (click)="getContratosFiltrados()" style="border:none; background:none">
@@ -40,6 +49,8 @@
                 <th>Cliente</th>
                 <th>Año</th>
                 <th>Fecha</th>
+                <th>Anticipo</th>
+                <th>Saldo</th>
                 <th>Detalles</th>
                 <th>...</th>
             </tr>
@@ -47,8 +58,8 @@
         </thead>
         <!-- Visualizar -->
         <tbody>
-            <tr *ngFor="let contrato of contratosFiltrados| paginate: { itemsPerPage: itemsPorPagina, currentPage: paginaActual }
-">
+            <tr *ngFor="let contrato of contratosFiltrados| paginate: { itemsPerPage: itemsPorPagina, currentPage: paginaActual } "
+                [ngClass]="{'table-warning': contrato.estado === 'C'}">
                 <!-- Columna Cliente-->
                 <td>
                     {{ getClienteId(contrato.cliente_id) }}
@@ -61,14 +72,32 @@
                 <td>
                     {{ contrato.fecha | date: 'dd/MM/yyyy' }}
                 </td>
+                <td class="text-center">
+                    <a class="btnSiembra-Rebrote" title="Anticipo" (click)="openAnticipoModal(contrato.id)">
+                        <span class="badge bg-info" style="background-color: #357ce7 !important; min-width: 70px; ">
+                            {{ ultimoAnticipo[contrato.id] || 0 | currency }}
+                        </span></a>
+                </td>
+                <td>
+
+                </td>
                 <!-- Columna Ver -->
                 <td class="text-center">
-                    <a class="btnSiembra-Rebrote" [routerLink]="['/contrato', contrato.id]">
+                    <a *ngIf="contrato.detalles_count == 0" class="btnSiembra-Rebrote" title="Agregar detalles"
+                        (click)="openDetailModal2(contrato.id)">
+                        <img src="/assets/images/agregarArchivo.png" width="24" height="24">
+                    </a>
+                    <a *ngIf="contrato.detalles_count > 0" class="btnSiembra-Rebrote" title="Ver detalles"
+                        (click)="openDetailModal(contrato.id)">
                         <img src="/assets/images/archivoDetalles.png" width="24" height="24">
                     </a>
                 </td>
                 <!-- Acciones -->
-                <td class="d-flex justify-content-center align-items-center">
+                <td class="d-flex justify-content-center align-items-center" *ngIf="contrato.estado === 'A'">
+                    <button class="btn btnAngosto " ata-bs-toggle="tooltip" title="Cerrar contrato"
+                        style="background-color:#35e782 ;" (click)="closeAgreement(contrato.id)">
+                        <i class="bi bi-check-circle"></i>
+                    </button>
                     <button class="btn btnAngosto" ata-bs-toggle="tooltip" title="Editar registro"
                         style="background-color:#e7bd35 ;" (click)="startEdit(contrato.id)">
                         <i class="bi bi-pencil"></i>
@@ -83,7 +112,7 @@
         <tfoot>
             <tr>
                 <!-- Ajusta el colspan al número de columnas de tu tabla -->
-                <td [attr.colspan]="5" class="text-center">
+                <td [attr.colspan]="7" class="text-center">
                     <pagination-controls (pageChange)="paginaActual = $event" [autoHide]="true" [maxSize]="15"
                         previousLabel="«" nextLabel="»">
                     </pagination-controls>
@@ -95,83 +124,258 @@
     <button data-bs-toggle="modal" data-bs-target="#miModal" ata-bs-toggle="tooltip"
         style="border:none; background:none; " title="Agregar registro"> <img src="/assets/images/nuevo.png" width="29"
             height="29" ata-bs-toggle="tooltip" title="Agregar registro"></button>
-</div>
 
-<!-- Modal para registrar un nuevo contrato -->
-<div class="modal fade" id="miModal" tabindex="-1" aria-labelledby="miModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h4 class="modal-title" id="miModalLabel">Registro de Contrato</h4>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
-            </div>
-            <form #fForm="ngForm" class="modal-body">
-                <label>Nombre del Cliente</label>
-                <div style="margin-bottom: 15px;">
-                    <select class="form-select form-select-sm" [(ngModel)]="nuevoContrato.cliente_id" name="cliente_id"
-                        required class="form-select form-select-sm">
-                        <option [ngValue]="null">-- Seleccione --</option>
-                        <option *ngFor="let b of clientes" [ngValue]="b.id">
-                            {{ b.nombre }}
-                        </option>
-                    </select>
-                </div>
-                <div class="d-flex flex-wrap gap-2" style="margin-top: 15px; margin-bottom: 15px;">
-                    <div>
-                        <label>Fecha</label>
-                        <input type="date" class="form-control form-control-sm" [(ngModel)]="nuevoContrato.fecha" (ngModelChange)="onFechaChange($event)"
-                            name="fecha" required>
-                    </div>
-                </div>
-            </form>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-primary" (click)="onSave()"
-                    [disabled]="fForm.form.invalid">Guardar</button>
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"
-                    (click)="cancelEdit()">Cerrar</button>
-            </div>
-        </div>
-    </div>
-</div>
 
-<!-- Editar -->
-<!-- Modal para edición -->
-<div class="modal fade" id="editarModal" tabindex="-1" aria-labelledby="editarModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content" *ngIf="contratoEditando">
+    <!-- Modal para registrar un nuevo contrato -->
+    <div class="modal fade" id="miModal" tabindex="-1" aria-labelledby="miModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title">Editar Contrato</h5>
+                    <h4 class="modal-title" id="miModalLabel">Registro de Contrato</h4>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
                 </div>
-                <div class="modal-body">
-                    <form>
-                        <div class="row">
-                            <div class="col-md-6">
-                                <label>Nombre del Cliente</label>
-                                <select class="form-select form-select-sm" [(ngModel)]="contratoEditando!.cliente_id"
-                                    name="cliente_id">
-                                    <option [ngValue]="null">-- Seleccione --</option>
-                                    <option *ngFor="let b of clientes" [ngValue]="b.id">
-                                        {{ b.nombre }}
-                                    </option>
-                                </select>
-                            </div>
-                            <div class="col-md-6 mt-2">
-                                <label>Fecha</label>
-                                <input type="date" class="form-control form-control-sm"
-                                    [(ngModel)]="contratoEditando!.fecha" name="fecha">
-                            </div>
+                <form #fForm="ngForm" class="modal-body">
+                    <label>Nombre del Cliente</label>
+                    <div style="margin-bottom: 15px;">
+                        <select class="form-select form-select-sm" [(ngModel)]="nuevoContrato.cliente_id"
+                            name="cliente_id" required class="form-select form-select-sm">
+                            <option [ngValue]="null">-- Seleccione --</option>
+                            <option *ngFor="let b of clientes" [ngValue]="b.idcliente">
+                                {{ b.NombreComercial }}
+                            </option>
+                        </select>
+                    </div>
+                    <div class="d-flex flex-wrap gap-2" style="margin-top: 15px; margin-bottom: 15px;">
+                        <div>
+                            <label>Fecha</label>
+                            <input type="date" class="form-control form-control-sm" [(ngModel)]="nuevoContrato.fecha"
+                                (ngModelChange)="onFechaChange($event)" name="fecha" required>
                         </div>
-                    </form>
-                </div>
+                    </div>
+                </form>
                 <div class="modal-footer">
-                    <button class="btnSaveEdit" (click)="saveEdit()">
-                        <i class="bi bi-check-lg"></i>Guardar
-                    </button>
-                    <button type="button" class="btnCancelEdit" data-bs-dismiss="modal"><i
-                            class="bi bi-x-lg"></i>Cancelar</button>
+                    <button type="button" class="btn btn-primary" (click)="onSave()"
+                        [disabled]="fForm.form.invalid">Guardar</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"
+                        (click)="cancelEdit()">Cerrar</button>
                 </div>
             </div>
         </div>
     </div>
-</div>
+
+    <!-- Editar -->
+    <!-- Modal para edición -->
+    <div class="modal fade" id="editarModal" tabindex="-1" aria-labelledby="editarModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content" *ngIf="contratoEditando">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Editar Contrato</h5>
+                    </div>
+                    <div class="modal-body">
+                        <form>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <label>Nombre del Cliente</label>
+                                    <select class="form-select form-select-sm"
+                                        [(ngModel)]="contratoEditando!.cliente_id" name="cliente_id">
+                                        <option [ngValue]="null">-- Seleccione --</option>
+                                        <option *ngFor="let b of clientes" [ngValue]="b.idcliente">
+                                            {{ b.NombreComercial }}
+                                        </option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6 mt-2">
+                                    <label>Fecha</label>
+                                    <input type="date" class="form-control form-control-sm"
+                                        [(ngModel)]="contratoEditando!.fecha" name="fecha">
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btnSaveEdit" (click)="saveEdit()">
+                            <i class="bi bi-check-lg"></i>Guardar
+                        </button>
+                        <button type="button" class="btnCancelEdit" data-bs-dismiss="modal"><i
+                                class="bi bi-x-lg"></i>Cancelar</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+
+    <div class="modal fade" id="verdetModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Detalles del Contrato</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+
+                    <!-- Tu tabla de detalle -->
+                    <table class="table table-bordered table-sm">
+                        <thead class="table-light">
+                            <tr>
+                                <th>CIRCUNFERENCIA</th>
+                                <th>PRECIO / m³</th>
+                                <th>LARGO (m)</th>
+                                <th>CARACTERÍSTICA</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr *ngFor="let d of listDetContrato">
+                                <td>
+                                    {{d.circunferencia}}
+                                </td>
+                                <td>
+                                    {{d.precioM3}}
+                                </td>
+                                <td>
+                                    {{d.largo}}
+                                </td>
+                                <td>
+                                    {{d.caracteristica}}
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" data-bs-dismiss="modal"
+                        (click)="closeDetailModal()">Cerrar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- 
+ -->
+    <div class="modal fade" id="detModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Agregar detalles del Contrato</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+
+                    <!-- Tu tabla de detalle -->
+                    <table class="table table-bordered table-sm">
+                        <thead class="table-light">
+                            <tr>
+                                <th>CIRCUNFERENCIA</th>
+                                <th>PRECIO / m³</th>
+                                <th>LARGO (m)</th>
+                                <th>CARACTERÍSTICA</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr *ngFor="let d of nuevoDetContrato; let i = index">
+                                <td>
+                                    <input class="form-control form-control-sm" [(ngModel)]="d.circunferencia"
+                                        name="circunferencia" required>
+                                </td>
+                                <td>
+                                    <input type="number" class="form-control form-control-sm" [(ngModel)]="d.precioM3"
+                                        name="precioM3" required>
+                                </td>
+                                <td>
+                                    <input type="number" class="form-control form-control-sm" [(ngModel)]="d.largo"
+                                        name="largo" required>
+                                </td>
+                                <td>
+                                    <input class="form-control form-control-sm" [(ngModel)]="d.caracteristica"
+                                        name="caracteristica" required>
+                                </td>
+                                <td class="text-center">
+                                    <button class="btn btn-sm btn-danger" (click)="removeRow(i)">
+                                        &times;
+                                    </button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    <div class="text-center">
+                        <button class="btn btn-outline-primary btn-sm " (click)="addRow()">
+                            + Agregar fila
+                        </button>
+                    </div>
+
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button class="btn btn-primary" (click)="onSaveDet()" data-bs-dismiss="modal">
+                        Aceptar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Anticipo -->
+    <div class="modal fade" id="anticipoModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Historial de Anticipos</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <!-- Tabla historial -->
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Factura</th>
+                                <th>Fecha</th>
+                                <th>Monto</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr *ngFor="let a of listAnticipo">
+                                <td>{{ a.factura }}</td>
+                                <td>{{ a.fecha | date:'dd/MM/yyyy' }}</td>
+                                <td>{{ a.cantidad| currency }}</td>
+                            </tr>
+                        </tbody>
+                        <tfoot>
+                            <tr>
+                                <td colspan="2" ><strong>Total:</strong></td>
+                                <td><strong>{{ totalAnticipos | currency }}</strong></td>
+                            </tr>
+                        </tfoot>
+                    </table>
+
+                    <!-- Formulario rápido -->
+                    <div class="row g-2 align-items-end">
+                        <div class="col-auto">
+                            <label>Factura</label>
+                            <input type="text" class="form-control form-control-sm" [(ngModel)]="nuevoAnticipo.factura"
+                                name="factura">
+                        </div>
+                        <div class="col-auto">
+                            <label>Fecha</label>
+                            <input type="date" class="form-control form-control-sm" [(ngModel)]="nuevoAnticipo.fecha"
+                                name="fecha">
+                        </div>
+                        <div class="col-auto">
+                            <label>Monto</label>
+                            <input type="number" min="0.01" step="0.01" class="form-control form-control-sm"
+                                [(ngModel)]="nuevoAnticipo.cantidad" name="monto">
+                        </div>
+                        <div class="col-auto d-flex align-items-center gap-2" style="margin-left: 25px;">
+                            <button class="btn btn-primary btn-sm" (click)="addAnticipo()">
+                                Agregar
+                            </button>
+                            <button class="btn btn-secondary" data-bs-dismiss="modal"
+                                (click)="cancelEdit()">Cerrar</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>

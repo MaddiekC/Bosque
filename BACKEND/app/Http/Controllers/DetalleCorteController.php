@@ -63,6 +63,7 @@ class DetalleCorteController extends Controller
             return response()->json(['message' => 'Detalle de corte no encontrado'], 404);
         }
 
+        $user = $request->user();
         $request->validate([
             'cabecera_corte_id' => 'nullable|integer|exists:cabecera_corte,id',
             'trozas' => 'nullable|integer|min:1',
@@ -72,11 +73,10 @@ class DetalleCorteController extends Controller
             'largo_neto' => 'nullable|numeric|min:0',
             'm_cubica' => 'nullable|numeric|min:0',
             'valror_mcubico' => 'nullable|numeric|min:0',
-            'valor_troza' => 'nullable|numeric|min:0',
-            'usuario_creacion' => 'required|string|max:200',
+            'valor_troza' => 'nullable|numeric|min:0'
         ]);
 
-        $detalleCorte->update($request->only([
+        $detalleCorte->fill($request->only([
             'cabecera_corte_id', 
             'trozas', 
             'circ_bruta', 
@@ -85,9 +85,10 @@ class DetalleCorteController extends Controller
             'largo_neto', 
             'm_cubica', 
             'valror_mcubico', 
-            'valor_troza', 
-            'usuario_creacion'
+            'valor_troza'
         ]));
+        $detalleCorte->updated_by = $user->username; // Asignar el usuario que hizo la edición
+        $detalleCorte->save(); // Guardar cambios
 
         return response()->json($detalleCorte);
     }

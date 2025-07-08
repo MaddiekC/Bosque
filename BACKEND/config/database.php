@@ -93,6 +93,18 @@ return [
             // 'trust_server_certificate' => env('DB_TRUST_SERVER_CERTIFICATE', 'false'),
         ],
 
+        'sqlsrv_remote' => [
+            'driver' => 'sqlsrv',
+            'host' => env('DB_SECOND_HOST', '192.168.0.105'),
+            'port' => env('DB_SECOND_PORT', '1433'),
+            'database' => env('DB_SECOND_DATABASE','LASVILLAS'),
+            'username' => env('DB_SECOND_USERNAME','sa'),
+            'password' => env('DB_SECOND_PASSWORD','Alfa2020'),
+            'charset' => 'utf8',
+            'prefix' => '',
+            'prefix_indexes' => true,
+        ],
+
     ],
 
     /*
@@ -125,7 +137,7 @@ return [
 
         'options' => [
             'cluster' => env('REDIS_CLUSTER', 'redis'),
-            'prefix' => env('REDIS_PREFIX', Str::slug(env('APP_NAME', 'laravel'), '_').'_database_'),
+            'prefix' => env('REDIS_PREFIX', Str::slug(env('APP_NAME', 'laravel'), '_') . '_database_'),
         ],
 
         'default' => [

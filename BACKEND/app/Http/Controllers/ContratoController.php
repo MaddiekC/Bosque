@@ -11,7 +11,8 @@ class ContratoController extends Controller
     public function index()
     {
         $Contratos = Contrato::with(['cliente'])
-            ->where('estado', 'A')
+            ->withCount('detalles')
+            ->whereIn('estado', ['A', 'C'])
             ->get();
         return response()->json($Contratos);
     }
@@ -29,7 +30,7 @@ class ContratoController extends Controller
     public function store(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'cliente_id' => 'required|integer|exists:cliente,id',
+            'cliente_id' => 'required|string|size:36',
             'anio' => 'required|integer|min:1000|max:2100',
             'fecha' => 'required|date'
         ]);
@@ -40,9 +41,9 @@ class ContratoController extends Controller
 
         $user = $request->user();
         $Contrato = Contrato::create([
-            'cliente_id' => $request->cliente_id, 
-            'anio' => $request->anio, 
-            'fecha' => $request->fecha, 
+            'cliente_id' => $request->cliente_id,
+            'anio' => $request->anio,
+            'fecha' => $request->fecha,
             'usuario_creacion' =>  $user->username,
             'estado' => 'A',
         ]);
@@ -56,19 +57,26 @@ class ContratoController extends Controller
         if (!$Contrato || $Contrato->estado !== 'A') {
             return response()->json(['message' => 'Contrato no encontrado'], 404);
         }
-
+        $user = $request->user();
         $validator = Validator::make($request->all(), [
-            'cliente_id' => 'nullable|integer|exists:cliente,id',
+            'cliente_id' => 'nullable|string|size:36',
             'anio' => 'nullable|integer|min:2000|max:2100',
-            'fecha' => 'nullable|date',
-            'usuario_creacion' => 'nullable|string|max:200',
+            'fecha' => 'nullable|date'
         ]);
 
         if ($validator->fails()) {
             return response()->json(['errors' => $validator->errors()], 422);
         }
 
-        $Contrato->update($request->only(['cliente_id', 'anio', 'fecha', 'usuario_creacion']));
+        // Asignar campos válidos
+        $Contrato->fill($request->only(['cliente_id', 'anio', 'fecha']));
+
+        // Asignar el usuario que hizo la edición
+        $Contrato->updated_by = $user->username;
+
+        // Guardar cambios
+        $Contrato->save();
+
 
         return response()->json($Contrato);
     }
@@ -84,4 +92,18 @@ class ContratoController extends Controller
 
         return response()->json(['message' => 'Marcado como inactivo']);
     }
+
+    public function closeAgreement($id)
+    {
+        $Contrato = Contrato::find($id);
+        if (!$Contrato || $Contrato->estado !== 'A') {
+            return response()->json(['message' => 'Contrato no encontrado'], 404);
+        }
+
+        $Contrato->update(['estado' => 'C']);
+
+        return response()->json(['message' => 'Contrato cerrado correctamente']);
+    }
+
+    
 }

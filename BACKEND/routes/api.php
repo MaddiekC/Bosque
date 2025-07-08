@@ -9,6 +9,7 @@ use App\Http\Controllers\DetalleContratoController;
 use App\Http\Controllers\DetalleCorteController;
 use App\Http\Controllers\ParametroController;
 use App\Http\Controllers\SiembraRebroteController;
+use App\Http\Controllers\AnticipoController;
 
 use Illuminate\Support\Facades\Route;
 
@@ -69,9 +70,7 @@ Route::group(
 
         Route::get('/clientes', [ClienteController::class, 'index']); // Listar todos los clientes
         Route::get('/clientes/{id}', [ClienteController::class, 'show']); // Ver un cliente por ID
-        Route::post('/clientes', [ClienteController::class, 'store']); // Crear un cliente
-        Route::put('/clientes/{id}', [ClienteController::class, 'update']); // Actualizar un cliente (PUT)
-        Route::put('/clientes/{id}/inactive', [ClienteController::class, 'destroy']); // Marcar un cliente como inactivo2
+
 
         Route::get('siembra-rebrote/sum-hectarea/{bosque}', [SiembraRebroteController::class, 'sumHectarea']);
         Route::get('/siembra-rebrotes', [SiembraRebroteController::class, 'index']); // Listar todas las siembras/rebrotes
@@ -85,12 +84,21 @@ Route::group(
         Route::post('/contratos', [ContratoController::class, 'store']); // Crear un contrato
         Route::put('/contratos/{id}', [ContratoController::class, 'update']); // Actualizar un contrato (PUT)
         Route::put('/contratos/{id}/inactive', [ContratoController::class, 'destroy']); // Marcar un contrato como inactivo
+        Route::put('/contratos/{id}/close', [ContratoController::class, 'closeAgreement']); // Marcar un contrato como cerrado
 
         Route::get('/detalle-contratos', [DetalleContratoController::class, 'index']); // Listar todos los detalles de contrato
-        Route::get('/detalle-contratos/{id}', [DetalleContratoController::class, 'show']); // Ver un detalle de contrato por ID
+        Route::get('/detalle-contratos/{contrato_id}', [DetalleContratoController::class, 'show']); // Ver un detalle de contrato por ID
         Route::post('/detalle-contratos', [DetalleContratoController::class, 'store']); // Crear un detalle de contrato
         Route::put('/detalle-contratos/{id}', [DetalleContratoController::class, 'update']); // Actualizar un detalle de contrato (PUT)
         Route::put('/detalle-contratos/{id}/inactive', [DetalleContratoController::class, 'destroy']); // Marcar un detalle de contrato como inactivo
+
+        Route::get('/anticipos', [AnticipoController::class, 'index']); // Listar todos los anticipos
+        Route::get('/anticipos/ultimos', [AnticipoController::class, 'ultimosPorContrato']);
+        Route::get('/anticipos/ultimo/{contratoId}', [AnticipoController::class, 'ultimoPorContrato']);
+        Route::get('/anticipos/{id}', [AnticipoController::class, 'show']); // Ver un anticipo por ID
+        Route::post('/anticipos/{id}', [AnticipoController::class, 'store']); // Crear un anticipo
+        Route::put('/anticipos/{id}', [AnticipoController::class, 'update']); // Actualizar un anticipo (PUT)
+        Route::put('/anticipos/{id}/inactive', [AnticipoController::class, 'destroy']); // Marcar un anticipo como inactivo
 
         Route::get('/parametros', [ParametroController::class, 'index']); // Listar todos los parámetros
         Route::get('/parametros/{id}', [ParametroController::class, 'show']); // Ver un parámetro por ID

@@ -10,9 +10,17 @@ declare const bootstrap: any;
 
 interface Contrato {
   id: number;
-  cliente_id: number;
+  cliente_id: string;
   anio: number;
   fecha: Date;
+}
+interface detContrato {
+  id: number;
+  contrato_id: number;
+  circunferencia: string;
+  precioM3: number;
+  largo: number;
+  caracteristica: string;
 }
 
 @Component({
@@ -23,12 +31,41 @@ interface Contrato {
   styleUrl: './contrato.component.css'
 })
 export class ContratoComponent implements AfterViewInit {
+  //ANTICIPO
+  nuevoAnticipo: any = {
+    cantidad: 0,
+    factura: '',
+    fecha: '',
+  }
+
+  /// DETALLES
+  nuevoDetContrato: detContrato[] = [{
+    contrato_id: 0,
+    circunferencia: '',
+    precioM3: 0,
+    largo: 0,
+    caracteristica: '',
+    id: 0
+  }];
+
+  // DETALLES CONTRATO
+  listDetContrato: any[] = [];
+  selectedContratoId: number | null = null;
+
+  //ANTICPOS
+  listAnticipo: any[] = [];
+  ultimoAnticipo: Record<string, number> = {};
+  totalAnticipos: number = 0;
+
+  // CONTRATOS
   listContrato: any[] = [];
   contratosFiltrados: any[] = [];
+
   // valores de filtro
   filtroCliente: number | null = null;
   filtroAnio: number | null = null;
   filtroFecha: Date | null = null;
+  filtroEstado: string | null = null;
 
   // paginación
   paginaActual: number = 1;
@@ -36,25 +73,33 @@ export class ContratoComponent implements AfterViewInit {
 
   // listas de opciones para los selects
   clientes: any[] = [];
+  estados = [
+    { value: 'A', label: 'Activo' },
+    { value: 'C', label: 'Cerrado' },
+  ];
 
   nuevoContrato: any = {
-    cliente_id: null,
+    cliente_id: '',
     anio: new Date().getFullYear(),
     fecha: null
   };
 
   //Edicion 
-  contratoEditando: any = null;
+  contratoEditando: Contrato | null = null;
 
   constructor(private contratoService: ApiService, private route: ActivatedRoute) { }
 
-    ngOnInit(): void {
+  ngOnInit(): void {
 
     this.contratoService.getContratos().subscribe(
       exito => {
-        console.log(exito);
+        console.log('contrato', exito);
         this.listContrato = exito
         this.getContratosFiltrados();
+        this.contratoService.getUltimosAnticipos()
+          .subscribe((mapeo: Record<number, number>) => {
+            this.ultimoAnticipo = mapeo;
+          });
       },
       error => {
         console.log(error);
@@ -62,7 +107,6 @@ export class ContratoComponent implements AfterViewInit {
     );
     this.contratoService.getClientes().subscribe(
       exito => {
-        console.log(exito);
         this.clientes = exito;
       },
       error => {
@@ -78,22 +122,42 @@ export class ContratoComponent implements AfterViewInit {
     });
   }
 
-  getClienteId(clienteId: number) {
-    const client = this.clientes?.find((b: any) => b.id == clienteId);
-    return client? client.nombre : '';
+  getClienteId(clienteId: string) {
+    const client = this.clientes?.find((b: any) => b.idcliente == clienteId);
+    return client ? client.NombreComercial : '';
   }
 
-  
+
   getContratosFiltrados() {
     return this.contratosFiltrados = this.listContrato.filter(b =>
       (!this.filtroCliente || b.cliente_id == this.filtroCliente)
       && (!this.filtroAnio || b.anio == this.filtroAnio)
       && (!this.filtroFecha || new Date(b.fecha).toDateString() === new Date(this.filtroFecha).toDateString())
+      && (!this.filtroEstado || b.estado == this.filtroEstado)
     );
   }
 
   eliminarContrato(id: number): void {
     this.contratoService.putContratoInactive(id).subscribe(
+      exito => {
+        console.log(exito);
+        this.listContrato = this.listContrato.filter(contrato => contrato.id !== id);
+        this.getContratosFiltrados();
+
+        const totalItems = this.contratosFiltrados.length;
+        const totalPages = Math.ceil(totalItems / this.itemsPorPagina);
+        if (this.paginaActual > totalPages) {
+          this.paginaActual = totalPages || 1;
+        }
+      },
+      error => {
+        console.log(error);
+      }
+    );
+  }
+
+  closeAgreement(id: number): void {
+    this.contratoService.putContratoClose(id).subscribe(
       exito => {
         console.log(exito);
         this.listContrato = this.listContrato.filter(contrato => contrato.id !== id);
@@ -150,7 +214,6 @@ export class ContratoComponent implements AfterViewInit {
       },
       err => {
         console.error('Error al editar:', err);
-        alert('Se ha sobrepasado las has.');
       }
     );
   }
@@ -178,7 +241,7 @@ export class ContratoComponent implements AfterViewInit {
       });
   }
 
-    onFechaChange(fechaISO: string) {
+  onFechaChange(fechaISO: string) {
     if (fechaISO) {
       const año = new Date(fechaISO).getFullYear();
       this.nuevoContrato.anio = año;
@@ -188,4 +251,124 @@ export class ContratoComponent implements AfterViewInit {
     }
   }
 
+  //--------------DETALLE CONTRATO---------------------
+
+  openDetailModal(contratoId: number) {
+    this.selectedContratoId = contratoId;
+    console.log('Contrato ID seleccionado:', this.selectedContratoId);
+    // 1) pido al backend los detalles de ese contrato
+    this.contratoService.getDetContratoByContratoId(contratoId)
+      .subscribe(response => {
+        this.listDetContrato = Array.isArray(response) ? response : [response];
+        // 2) abro el modal
+        const modalEl = document.getElementById('verdetModal')!;
+        const modal = new bootstrap.Modal(modalEl);
+        modal.show();
+      });
+  }
+  closeDetailModal() {
+    const modalEl = document.getElementById('verdetModal')!;
+    const modal = new bootstrap.Modal(modalEl);
+    modal.hide();
+    this.selectedContratoId = null; // Limpiar el ID del contrato seleccionado
+  }
+
+  openDetailModal2(contratoId: number) {
+    this.selectedContratoId = contratoId;
+    console.log('Contrato ID seleccionado:', this.selectedContratoId);
+    // Inicializar la primera fila con el contrato actual
+    this.nuevoDetContrato = [{
+      contrato_id: contratoId,
+      circunferencia: '',
+      precioM3: 0,
+      largo: 0,
+      caracteristica: '',
+      id: 0
+    }];
+
+    const modalEl = document.getElementById('detModal')!;
+    const modal = new bootstrap.Modal(modalEl);
+    modal.show();
+  }
+
+  addRow() {
+    this.nuevoDetContrato.push({
+      contrato_id: this.selectedContratoId!,
+      circunferencia: '',
+      precioM3: 0,
+      largo: 0,
+      caracteristica: '',
+      id: 0,
+    });
+  }
+
+  removeRow(i: number) {
+    this.nuevoDetContrato.splice(i, 1);
+  }
+
+  onSaveDet() {
+    // aquí envías this.detalles junto al contrato
+    console.log('Guardando detalles:', this.nuevoDetContrato);
+    this.contratoService.postDetContrato({ detalles: this.nuevoDetContrato }).subscribe(
+      response => {
+        console.log('Detalles guardados:', response);
+        // Aquí puedes manejar la respuesta después de guardar
+      },
+      error => {
+        console.error('Error al guardar los detalles:', error);
+      }
+    );
+  }
+
+  //--------------ANTICIPO---------------------
+  openAnticipoModal(contratoId: number) {
+    this.selectedContratoId = contratoId;
+    console.log('Contrato ID seleccionado para anticipo:', this.selectedContratoId);
+    this.contratoService.getAnticipo(contratoId)
+      .subscribe({
+        next: list => {
+          this.listAnticipo = Array.isArray(list) ? list : [list];
+          this.totalAnticipos = this.listAnticipo.reduce((acc, curr) => acc + (Number(curr.cantidad) || 0), 0);
+          this.contratoService.getUltimoAnticipo(contratoId).subscribe(
+            ultimo => {
+              this.ultimoAnticipo[contratoId] = ultimo?.cantidad || 0;
+              this.showAnticipoModal();
+            },
+            error => {
+              console.error('No se pudo obtener el último anticipo:', error);
+              this.ultimoAnticipo[contratoId] = 0;
+              this.showAnticipoModal();
+            }
+          );
+        },
+        error: error => {
+          console.error('No se pudieron obtener los anticipos:', error);
+          this.listAnticipo = [];
+          this.ultimoAnticipo[contratoId] = 0;
+          this.showAnticipoModal();
+        }
+      });
+  }
+
+  private showAnticipoModal() {
+    const modalEl = document.getElementById('anticipoModal')!;
+    new bootstrap.Modal(modalEl).show();
+  }
+  addAnticipo() {
+    if (this.selectedContratoId === null) return;
+
+    this.contratoService.postAnticipo(this.selectedContratoId, this.nuevoAnticipo)
+      .subscribe(
+        response => {
+          console.log('Guardado:', response);
+          this.ultimoAnticipo[this.selectedContratoId!] = response.cantidad
+          this.nuevoAnticipo = { cantidad: 0, fecha: '', factura: '' };
+          const modalEl = document.getElementById('anticipoModal')!;
+          bootstrap.Modal.getInstance(modalEl)?.hide();
+        },
+        error => {
+          console.error('Error al guardar :', error);
+        }
+      );
+  }
 }
