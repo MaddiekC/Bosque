@@ -94,6 +94,7 @@ Route::group(
 
         Route::get('/anticipos', [AnticipoController::class, 'index']); // Listar todos los anticipos
         Route::get('/anticipos/ultimos', [AnticipoController::class, 'ultimosPorContrato']);
+        Route::get('/anticipos/totales', [AnticipoController::class, 'totalesPorContrato']);
         Route::get('/anticipos/ultimo/{contratoId}', [AnticipoController::class, 'ultimoPorContrato']);
         Route::get('/anticipos/{id}', [AnticipoController::class, 'show']); // Ver un anticipo por ID
         Route::post('/anticipos/{id}', [AnticipoController::class, 'store']); // Crear un anticipo

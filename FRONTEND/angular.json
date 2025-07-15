@@ -29,6 +29,11 @@
               }
             ],
             "styles": [
+              "src/assets/css/animate.css",
+              "src/assets/fonts/bootstrap/bootstrap-icons.css",
+              "src/assets/css/main.min.css",
+              "src/assets/vendor/overlay-scroll/OverlayScrollbars.min.css",
+              "src/assets/vendor/particles/particles.css",
               "src/styles.css"
             ],
             "scripts": []
@@ -38,8 +43,8 @@
               "budgets": [
                 {
                   "type": "initial",
-                  "maximumWarning": "500kB",
-                  "maximumError": "1MB"
+                  "maximumWarning": "1MB",
+                  "maximumError": "2MB"
                 },
                 {
                   "type": "anyComponentStyle",
@@ -89,6 +94,11 @@
               }
             ],
             "styles": [
+              "src/assets/css/animate.css",
+              "src/assets/fonts/bootstrap/bootstrap-icons.css",
+              "src/assets/css/main.min.css",
+              "src/assets/vendor/overlay-scroll/OverlayScrollbars.min.css",
+              "src/assets/vendor/particles/particles.css",
               "src/styles.css"
             ],
             "scripts": []

@@ -56,6 +56,8 @@ export class ContratoComponent implements AfterViewInit {
   listAnticipo: any[] = [];
   ultimoAnticipo: Record<string, number> = {};
   totalAnticipos: number = 0;
+  totalAnticipo: Record<number, number> = {};
+
 
   // CONTRATOS
   listContrato: any[] = [];
@@ -113,6 +115,15 @@ export class ContratoComponent implements AfterViewInit {
         console.log(error);
       }
     );
+    this.contratoService.getContratos().subscribe(contratos => {
+      this.listContrato = contratos;
+      this.getContratosFiltrados();
+      // luego traigo los totales
+      this.contratoService.getTotalesAnticipos()
+        .subscribe(totales => {
+          this.totalAnticipo = totales; // será un objeto { [contratoId]: total }
+        });
+    });
   }
 
   ngAfterViewInit(): void {
@@ -324,6 +335,7 @@ export class ContratoComponent implements AfterViewInit {
   openAnticipoModal(contratoId: number) {
     this.selectedContratoId = contratoId;
     console.log('Contrato ID seleccionado para anticipo:', this.selectedContratoId);
+    
     this.contratoService.getAnticipo(contratoId)
       .subscribe({
         next: list => {
@@ -345,6 +357,7 @@ export class ContratoComponent implements AfterViewInit {
           console.error('No se pudieron obtener los anticipos:', error);
           this.listAnticipo = [];
           this.ultimoAnticipo[contratoId] = 0;
+          this.totalAnticipos = 0;
           this.showAnticipoModal();
         }
       });

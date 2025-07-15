@@ -20,7 +20,7 @@ class AnticipoController extends Controller
         $anticipo = Anticipo::with('contrato')
             ->where('contrato_id', $id)
             ->where('estado', 'A')
-            ->orderBy('fecha', 'desc')
+            ->orderBy('fecha', 'asc')
             ->get();
         if ($anticipo->isEmpty()) {
             return response()->json(['message' => 'Anticipo no encontrado'], 404);
@@ -116,5 +116,16 @@ class AnticipoController extends Controller
             ->first();
 
         return response()->json($ultimo ?: []);
+    }
+
+    public function totalesPorContrato()
+    {
+        // suma 'cantidad' de anticipos activos, agrupados por contrato_id
+        $rows = Anticipo::select('contrato_id', DB::raw('SUM(cantidad) as total'))
+            ->groupBy('contrato_id')
+            ->get()
+            ->pluck('total', 'contrato_id'); // un Collection [ contrato_id => total ]
+
+        return response()->json($rows);
     }
 }

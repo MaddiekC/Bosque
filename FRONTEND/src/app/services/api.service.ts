@@ -148,6 +148,9 @@ export class ApiService {
   getUltimosAnticipos(): Observable<any> {
     return this.http.get(`${this.baseUrl}/anticipos/ultimos`);
   }
+  getTotalesAnticipos(): Observable<any> {
+    return this.http.get(`${this.baseUrl}/anticipos/totales`);
+  }
   getUltimoAnticipo(id: number): Observable<any> {
     return this.http.get(`${this.baseUrl}/anticipos/ultimo/${id}`);
   }
