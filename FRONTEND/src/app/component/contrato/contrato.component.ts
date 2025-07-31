@@ -1,10 +1,13 @@
-import { Component } from '@angular/core';
+import { Component, ElementRef, ViewChild } from '@angular/core';
 import { ApiService } from '../../services/api.service';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, RouterModule } from '@angular/router';
 import { NgxPaginationModule } from 'ngx-pagination';
 import { FormsModule } from '@angular/forms';
 import { AfterViewInit } from '@angular/core';
+import { HasPermissionDirective } from '../../services/has-permission.directive';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 declare const bootstrap: any;
 
@@ -26,11 +29,15 @@ interface detContrato {
 @Component({
   selector: 'app-contrato',
   standalone: true,
-  imports: [CommonModule, RouterModule, NgxPaginationModule, FormsModule],
+  imports: [CommonModule, RouterModule, NgxPaginationModule, FormsModule, HasPermissionDirective],
   templateUrl: './contrato.component.html',
   styleUrl: './contrato.component.css'
 })
 export class ContratoComponent implements AfterViewInit {
+  @ViewChild('confirmModal') confirmModal!: ElementRef;
+  private modalInstance: any;
+  private pendingDeleteId!: number;
+
   //ANTICIPO
   nuevoAnticipo: any = {
     cantidad: 0,
@@ -127,6 +134,7 @@ export class ContratoComponent implements AfterViewInit {
   }
 
   ngAfterViewInit(): void {
+    this.modalInstance = new bootstrap.Modal(this.confirmModal.nativeElement);
     const tooltipTriggerList = Array.from(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
     tooltipTriggerList.forEach((tooltipTriggerEl: Element) => {
       new bootstrap.Tooltip(tooltipTriggerEl);
@@ -146,6 +154,24 @@ export class ContratoComponent implements AfterViewInit {
       && (!this.filtroFecha || new Date(b.fecha).toDateString() === new Date(this.filtroFecha).toDateString())
       && (!this.filtroEstado || b.estado == this.filtroEstado)
     );
+  }
+
+
+  // 1) Se llama al hacer clic en el icono de papelera
+  openConfirmModal(id: number) {
+    this.pendingDeleteId = id;
+    this.modalInstance.show();
+  }
+
+  // 2) Si el usuario pulsa “Sí”
+  confirmDelete() {
+    this.eliminarContrato(this.pendingDeleteId);
+    this.modalInstance.hide();
+  }
+
+  // 3) Si pulsa “No” o cierra el modal
+  cancelDelete() {
+    this.modalInstance.hide();
   }
 
   eliminarContrato(id: number): void {
@@ -335,7 +361,7 @@ export class ContratoComponent implements AfterViewInit {
   openAnticipoModal(contratoId: number) {
     this.selectedContratoId = contratoId;
     console.log('Contrato ID seleccionado para anticipo:', this.selectedContratoId);
-    
+
     this.contratoService.getAnticipo(contratoId)
       .subscribe({
         next: list => {
@@ -383,5 +409,36 @@ export class ContratoComponent implements AfterViewInit {
           console.error('Error al guardar :', error);
         }
       );
+  }
+  exportToPDF() {
+    const doc = new jsPDF();
+    const columns = [
+      { header: 'Cliente', dataKey: 'cliente_id' },
+      { header: 'Año', dataKey: 'anio' }, 
+      { header: 'Fecha', dataKey: 'fecha' },
+      { header: 'Estado', dataKey: 'estado' }
+    ];
+    const rows = this.contratosFiltrados.map(item => ({
+      cliente_id: this.getClienteId(item.cliente_id),
+      anio: item.anio,
+      fecha: new Date(item.fecha).toLocaleDateString(),
+      estado: item.estado === 'A'
+          ? 'Activo'
+          : item.estado === 'C'
+            ? 'Cerrado'
+            : ''
+    }));
+    doc.text('Reporte de Contratos', 14, 10);
+    doc.setFontSize(10);
+    autoTable(doc, {
+      columns,  
+      body: rows,
+      headStyles: {
+        fillColor: [0, 127, 0],    
+        textColor: 255
+      },
+      showHead: 'everyPage'
+    });
+    doc.save('reporte_contratos.pdf');
   }
 }

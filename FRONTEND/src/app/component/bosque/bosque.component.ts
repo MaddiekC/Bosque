@@ -1,11 +1,12 @@
-import { Component } from '@angular/core';
+import { Component, ElementRef, ViewChild } from '@angular/core';
 import { ApiService } from '../../services/api.service';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { NgxPaginationModule } from 'ngx-pagination';
 import { FormsModule } from '@angular/forms';
 import { AfterViewInit } from '@angular/core';
-
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 declare const bootstrap: any;
 interface Bosque {
@@ -23,6 +24,10 @@ interface Bosque {
   styleUrl: './bosque.component.css'
 })
 export class BosqueComponent implements AfterViewInit {
+  @ViewChild('confirmModal') confirmModal!: ElementRef;
+  private modalInstance: any;
+  private pendingDeleteId!: number;
+
   listaBosques: any[] = [];
   bosquesFiltrados: any[] = [];
   // valores de filtro
@@ -43,8 +48,22 @@ export class BosqueComponent implements AfterViewInit {
     seccion_id: null,
     hectarea: null
   };
+  nuevoNombre: string = '';
 
   bosqueEditando: Bosque | null = null;
+
+  errorMensajeNuevo: string = '';
+  clearError() {
+    this.errorMensajeNuevo = '';
+  }
+
+  @ViewChild('miModal') miModalEl!: ElementRef<HTMLDivElement>;
+
+  // Auxiliar para saber si el nombre ya existe
+  nombreDuplicado(nombre: string): boolean {
+    const nom = nombre.trim().toLowerCase();
+    return this.listaBosques.some(b => b.nombre.trim().toLowerCase() === nom);
+  }
 
   constructor(private bosqueService: ApiService) { }
 
@@ -57,7 +76,7 @@ export class BosqueComponent implements AfterViewInit {
         this.listaBosques = exito.map((item: { hectarea: any }) => ({
           ...item,
           // si viene como string o number, lo convertimos a number y a string con dos decimales
-          hectarea: Number(item.hectarea).toFixed(3),
+          hectarea: Number(item.hectarea).toFixed(2),
         }));
         this.getbosquesFiltrados();
         console.log(this.bosquesFiltrados)
@@ -66,7 +85,7 @@ export class BosqueComponent implements AfterViewInit {
         console.log(error);
       }
     );
-    this.bosqueService.getSecciones('seccion').subscribe(
+    this.bosqueService.getSecciones().subscribe(
       exito => {
         console.log(exito);
         this.secciones = exito;
@@ -78,6 +97,7 @@ export class BosqueComponent implements AfterViewInit {
   }
 
   ngAfterViewInit(): void {
+    this.modalInstance = new bootstrap.Modal(this.confirmModal.nativeElement);
     const tooltipTriggerList = Array.from(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
     tooltipTriggerList.forEach((tooltipTriggerEl: Element) => {
       new bootstrap.Tooltip(tooltipTriggerEl);
@@ -99,12 +119,30 @@ export class BosqueComponent implements AfterViewInit {
     );
   }
 
+
+  // 1) Se llama al hacer clic en el icono de papelera
+  openConfirmModal(id: number) {
+    this.pendingDeleteId = id;
+    this.modalInstance.show();
+  }
+
+  // 2) Si el usuario pulsa “Sí”
+  confirmDelete() {
+    this.eliminarBosque(this.pendingDeleteId);
+    this.modalInstance.hide();
+  }
+
+  // 3) Si pulsa “No” o cierra el modal
+  cancelDelete() {
+    this.modalInstance.hide();
+  }
+
   eliminarBosque(id: number): void {
-      this.bosqueService.countSiembrasByBosque(id).subscribe(count => {
-    if (count > 0) {
-      alert('Este bosque tiene ' + count + ' siembras-rebrotres y no se puede eliminar.');
-      return;
-    }
+    this.bosqueService.countSiembrasByBosque(id).subscribe(count => {
+      if (count > 0) {
+        alert('Este bosque tiene ' + count + ' siembra-rebrotre y no se puede eliminar.');
+        return;
+      }
 
       this.bosqueService.putBosqueInactive(id).subscribe(
         exito => {
@@ -154,19 +192,63 @@ export class BosqueComponent implements AfterViewInit {
   }
 
   onSave() {
+    this.errorMensajeNuevo = '';
     this.bosqueService.postBosque(this.nuevoBosque).subscribe(
       exito => {
         console.log(exito);
         const nuevo = {
           ...exito,
-          hectarea: Number(exito.hectarea).toFixed(3), // aseguramos que hectarea sea un número con 3 decimales
+          hectarea: Number(exito.hectarea).toFixed(2), // aseguramos que hectarea sea un número con 2 decimales
         };
         this.listaBosques.push(nuevo);
         this.getbosquesFiltrados();
+        this.nuevoBosque = {
+          nombre: '',
+          seccion_id: null,
+          hectarea: null
+        };
+        const modalEl = document.getElementById('miModal');
+        // obtener la instancia de Bootstrap (o crearla)
+        const modal = modalEl
+          ? (bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl))
+          : null;
+        modal?.hide();
       },
       error => {
         console.log(error);
+        if (error.status === 422 && error.error.errors?.nombre) {
+          // Laravel devuelve aquí un array errors con la clave 'nombre'
+          this.errorMensajeNuevo = 'No se pudo crear: el nombre ya existe en la tabla.';
+        }
       }
     );
+  }
+
+  exportToPDF() {
+    const doc = new jsPDF();
+    const columns = [
+      { header: 'Nombre', dataKey: 'nombre' },
+      { header: 'Sección', dataKey: 'seccion_id' },
+      { header: 'Hectáreas', dataKey: 'hectarea' }
+    ];
+
+    const rows = this.bosquesFiltrados.map(item => ({
+      nombre: item.nombre,
+      seccion_id: this.getSeccionNombre(item.seccion_id),
+      hectarea: item.hectarea
+    }));
+
+    doc.text('Reporte de Bosques', 14, 10);
+    doc.setFontSize(10);
+    autoTable(doc, {
+      columns,
+      body: rows,
+      headStyles: {
+        fillColor: [0, 127, 0],    
+        textColor: 255
+      },
+      showHead: 'everyPage'
+    });
+    doc.save('reporte_bosques.pdf');
   }
 }

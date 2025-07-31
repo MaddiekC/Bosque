@@ -33,40 +33,45 @@ export class ApiService {
     return this.http.put(`${this.baseUrl}/bosques/${id}/inactive`, {});
   }
   countSiembrasByBosque(id: number): Observable<number> {
-    return this.http.get<number>(`${this.baseUrl}/siembras-rebrote/count-by-bosque/${id}`);
+    return this.http.get<number>(`${this.baseUrl}/siembra-rebrote/count-by-bosque/${id}`);
+  }
+  getSecciones(): Observable<any> {
+    return this.http.get(`${this.baseUrl}/secciones`);
   }
   //-----CABECERA CORTE-------//
   getCabeceraCortes(): Observable<any> {
-    return this.http.get(`${this.baseUrl}/cabecera_cortes`);
+    return this.http.get(`${this.baseUrl}/cabecera-cortes`);
   }
   getCabeceraCorte(id: number): Observable<any> {
-    return this.http.get(`${this.baseUrl}/cabecera_cortes/${id}`);
+    return this.http.get(`${this.baseUrl}/cabecera-cortes/${id}`);
   }
   postCabeceraCorte(cabeceraCorte: any): Observable<any> {
-    return this.http.post(`${this.baseUrl}/cabecera_cortes`, cabeceraCorte);
+    return this.http.post(`${this.baseUrl}/cabecera-cortes`, cabeceraCorte);
   }
   putCabeceraCorte(id: number, cabeceraCorte: any): Observable<any> {
-    return this.http.put(`${this.baseUrl}/cabecera_cortes/${id}`, cabeceraCorte);
+    return this.http.put(`${this.baseUrl}/cabecera-cortes/${id}`, cabeceraCorte);
   }
   putCabeceraCorteInactive(id: number): Observable<any> {
-    return this.http.put(`${this.baseUrl}/cabecera_cortes/${id}/inactive`, {});
+    return this.http.put(`${this.baseUrl}/cabecera-cortes/${id}/inactive`, {});
   }
-
+  countCorteBySR(id: number): Observable<number> {
+    return this.http.get<number>(`${this.baseUrl}/corte/count-by-SR/${id}`);
+  }
   //-----DETALLE CORTE-------//
   getDetalleCortes(): Observable<any> {
-    return this.http.get(`${this.baseUrl}/detalle_cortes`);
+    return this.http.get(`${this.baseUrl}/detalle-cortes`);
   }
   getDetalleCorte(id: number): Observable<any> {
-    return this.http.get(`${this.baseUrl}/detalle_cortes/${id}`);
+    return this.http.get(`${this.baseUrl}/detalle-cortes/${id}`);
   }
   postDetalleCorte(detalleCorte: any): Observable<any> {
-    return this.http.post(`${this.baseUrl}/detalle_cortes`, detalleCorte);
+    return this.http.post(`${this.baseUrl}/detalle-cortes`, detalleCorte);
   }
   putDetalleCorte(id: number, detalleCorte: any): Observable<any> {
-    return this.http.put(`${this.baseUrl}/detalle_cortes/${id}`, detalleCorte);
+    return this.http.put(`${this.baseUrl}/detalle-cortes/${id}`, detalleCorte);
   }
   putDetalleCorteInactive(id: number): Observable<any> {
-    return this.http.put(`${this.baseUrl}/detalle_cortes/${id}/inactive`, {});
+    return this.http.put(`${this.baseUrl}/detalle-cortes/${id}/inactive`, {});
   }
 
   //-----CLIENTE-------//
@@ -183,10 +188,10 @@ export class ApiService {
   getTipoArbol(categoria: string): Observable<any> {
     return this.http.get(`${this.baseUrl}/parametros/categoria/${categoria}`);
   }
-  getSecciones(categoria: string): Observable<any> {
+  getTipoSR(categoria: string): Observable<any> {
     return this.http.get(`${this.baseUrl}/parametros/categoria/${categoria}`);
   }
-  getTipoSR(categoria: string): Observable<any> {
+  getSelloTipo(categoria: string): Observable<any> {
     return this.http.get(`${this.baseUrl}/parametros/categoria/${categoria}`);
   }
 }

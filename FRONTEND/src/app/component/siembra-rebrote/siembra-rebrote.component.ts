@@ -1,10 +1,12 @@
-import { Component } from '@angular/core';
+import { Component, ElementRef, ViewChild } from '@angular/core';
 import { ApiService } from '../../services/api.service';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, RouterModule } from '@angular/router';
 import { NgxPaginationModule } from 'ngx-pagination';
 import { FormsModule } from '@angular/forms';
 import { AfterViewInit } from '@angular/core';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 declare const bootstrap: any;
 
@@ -30,6 +32,10 @@ interface SiembraRebrote {
   styleUrl: './siembra-rebrote.component.css'
 })
 export class SiembraRebroteComponent implements AfterViewInit {
+  @ViewChild('confirmModal') confirmModal!: ElementRef;
+  private modalInstance: any;
+  private pendingDeleteId!: number;
+
   listSiemReb: any[] = [];
   siembRebFiltrados: any[] = [];
   // valores de filtro
@@ -89,8 +95,8 @@ export class SiembraRebroteComponent implements AfterViewInit {
         this.listSiemReb = exito.map((item: { hectarea_usada: any; saldo: any; }) => ({
           ...item,
           // si viene como string o number, lo convertimos a number y a string con dos decimales
-          hectarea_usada: Number(item.hectarea_usada).toFixed(3),
-          saldo: Number(item.saldo).toFixed(3),
+          hectarea_usada: Number(item.hectarea_usada).toFixed(2),
+          saldo: Number(item.saldo).toFixed(2),
         }));
         this.getSiembraRebFiltrados();
       },
@@ -128,6 +134,7 @@ export class SiembraRebroteComponent implements AfterViewInit {
   }
 
   ngAfterViewInit(): void {
+    this.modalInstance = new bootstrap.Modal(this.confirmModal.nativeElement);
     const tooltipTriggerList = Array.from(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
     tooltipTriggerList.forEach((tooltipTriggerEl: Element) => {
       new bootstrap.Tooltip(tooltipTriggerEl);
@@ -150,7 +157,7 @@ export class SiembraRebroteComponent implements AfterViewInit {
   // método que devuelve los bosques ya filtrados
   getSiembraRebFiltrados() {
     const normalizar = (texto: string) =>
-      texto.toLowerCase().trim().replace(/\s+/g, ' ');
+      texto.toLowerCase().trim().replace(/\s+/g, ' ').replace(/\s*[x×]\s*/g, 'x');;
     return this.siembRebFiltrados = this.listSiemReb.filter(b =>
       (!this.filtroBosque || b.bosque_id == this.filtroBosque)
       && (!this.filtroTipo || b.tipo_id == this.filtroTipo)
@@ -165,24 +172,47 @@ export class SiembraRebroteComponent implements AfterViewInit {
     );
   }
 
-  eliminarSiembraReb(id: number): void {
-    this.SiembraRebService.putSiembraRebroteInactive(id).subscribe(
-      exito => {
-        console.log(exito);
-        this.listSiemReb = this.listSiemReb.filter(siembraRebrote => siembraRebrote.id !== id);
-        this.getSiembraRebFiltrados();
-
-        const totalItems = this.siembRebFiltrados.length;
-        const totalPages = Math.ceil(totalItems / this.itemsPorPagina);
-        if (this.paginaActual > totalPages) {
-          this.paginaActual = totalPages || 1;
-        }
-      },
-      error => {
-        console.log(error);
-      }
-    );
+  // 1) Se llama al hacer clic en el icono de papelera
+  openConfirmModal(id: number) {
+    this.pendingDeleteId = id;
+    this.modalInstance.show();
   }
+
+  // 2) Si el usuario pulsa “Sí”
+  confirmDelete() {
+    this.eliminarSiembraReb(this.pendingDeleteId);
+    this.modalInstance.hide();
+  }
+
+  // 3) Si pulsa “No” o cierra el modal
+  cancelDelete() {
+    this.modalInstance.hide();
+  }
+  eliminarSiembraReb(id: number): void {
+    this.SiembraRebService.countCorteBySR(id).subscribe(count => {
+      if (count > 0) {
+        alert('Esta Siembra-Rebrote tiene ' + count + ' corte y no se puede eliminar.');
+        return;
+      }
+      this.SiembraRebService.putSiembraRebroteInactive(id).subscribe(
+        exito => {
+          console.log(exito);
+          this.listSiemReb = this.listSiemReb.filter(siembraRebrote => siembraRebrote.id !== id);
+          this.getSiembraRebFiltrados();
+
+          const totalItems = this.siembRebFiltrados.length;
+          const totalPages = Math.ceil(totalItems / this.itemsPorPagina);
+          if (this.paginaActual > totalPages) {
+            this.paginaActual = totalPages || 1;
+          }
+        },
+        error => {
+          console.log(error);
+        }
+      );
+    });
+  }
+
 
   // Editar
   startEdit(id: number) {
@@ -276,7 +306,7 @@ export class SiembraRebroteComponent implements AfterViewInit {
           // formatear y añadir a la lista
           const nuevo = {
             ...exito,
-            hectarea_usada: Number(exito.hectarea_usada).toFixed(3),
+            hectarea_usada: Number(exito.hectarea_usada).toFixed(2),
             arb_iniciales: Number(exito.arb_iniciales),
             arb_cortados: Number(exito.arb_cortados),
             saldo: Number(exito.arb_iniciales) - Number(exito.arb_cortados),
@@ -305,5 +335,47 @@ export class SiembraRebroteComponent implements AfterViewInit {
       // si limpian la fecha, opcionalmente vacías el año:
       this.nuevaSiembraRebrote.anio = null;
     }
+  }
+
+  exportToPDF() {
+    const doc = new jsPDF();
+    const columns = [
+      { header: 'Bosque', dataKey: 'bosque_id' },
+      { header: 'Tipo', dataKey: 'tipo_id' },
+      { header: 'Tipo Árbol', dataKey: 'tipo_arbol_id' },
+      { header: 'Fecha', dataKey: 'fecha' },
+      { header: 'Año', dataKey: 'anio' },
+      { header: 'Hectárea Usada', dataKey: 'hectarea_usada' },
+      { header: 'Árboles Iniciales', dataKey: 'arb_iniciales' },
+      { header: 'Árboles Cortados', dataKey: 'arb_cortados' },
+      { header: 'Distancia Siembra', dataKey: 'dist_siembra' },
+      { header: 'Saldo', dataKey: 'saldo' }
+    ];
+
+    const rows = this.siembRebFiltrados.map(item => ({
+      bosque_id: this.getBosqueNombre(item.bosque_id),
+      tipo_id: this.getTipoNombre(item.tipo_id),
+      tipo_arbol_id: this.getTipoArbolNombre(item.tipo_arbol_id),
+      fecha: new Date(item.fecha).toLocaleDateString(),
+      anio: item.anio,
+      hectarea_usada: item.hectarea_usada,
+      arb_iniciales: item.arb_iniciales,
+      arb_cortados: item.arb_cortados,
+      dist_siembra: item.dist_siembra,
+      saldo: item.saldo
+    }));
+
+    doc.text('Reporte de Siembras/Rebrotes', 14, 10);
+    doc.setFontSize(10);
+    autoTable(doc, {
+      columns,
+      body: rows,
+      headStyles: {
+        fillColor: [0, 127, 0],    
+        textColor: 255
+      },
+      showHead: 'everyPage'
+    });
+    doc.save('siembra-rebrote.pdf');
   }
 }

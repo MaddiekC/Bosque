@@ -3,8 +3,10 @@ import { Injectable } from '@angular/core';
 
 export interface User {
   username: string;
-  rol_id: number;
-  group_id: number;
+
+  id: number,
+  //rol_id: number;
+  //group_id: number;
   // otros campos si quieres
 }
 
@@ -17,11 +19,10 @@ export class UserService {
   setUserFromToken(token: string) {
     const payload = JSON.parse(atob(token.split('.')[1]));
     this.user = {
-
       username: payload.username,
-    
-      rol_id: payload.rol_id,
-      group_id: payload.group_id
+      id : payload.id,
+      //rol_id: payload.rol_id,
+      //group_id: payload.group_id
     };
   }
 
@@ -36,13 +37,19 @@ export class UserService {
   getUsername(): string | null {
     return this.user?.username ?? 'Invitado';
   }
-  getRolId(): number {
-    return this.user?.rol_id ?? 0;
-  }
 
-  getGroupId(): number {
-    return this.user?.group_id ?? 0;
-  }
+
+
+  getUserId(): number {
+    return this.user?.id ?? 0;
+  }  
+  // getRolId(): number {
+  //   return this.user?.rol_id ?? 0;
+  // }
+
+  // getGroupId(): number {
+  //   return this.user?.group_id ?? 0;
+  // }
 
   clearUser() {
     this.user = null;

@@ -1,0 +1,540 @@
+<h4 style="color: rgb(1, 1, 199);">Listado de Cortes</h4>
+<div style="display: flex; align-items: start; gap: 15px;">
+    <div style="white-space: nowrap;">
+        <!-- Fila de filtros -->
+        <table class="table table-striped table-hover table-sm w-100%">
+            <colgroup>
+                <col> <!-- Cerrar -->
+                <col> <!-- Cliente -->
+                <col> <!-- Año -->
+                <col> <!-- Fecha -->
+            </colgroup>
+            <tr>
+                <th class="p-1 flex-fill">
+                    <label for="bosques" style="background-color: transparent">Bosques:</label>
+                    <select class="form-select form-select-sm" [(ngModel)]="filtroBosque"
+                        (ngModelChange)="getCortesFiltrados()">
+                        <option [ngValue]="null">Todo</option>
+                        <option *ngFor="let b of bosques" [ngValue]="b.idbosques">
+                            {{ b.nombre }}
+                        </option>
+                    </select>
+                </th>
+                <th class="p-1 flex-fill">
+                    <label for="contrato" style="background-color: transparent">Contrato:</label>
+                    <select class="form-select form-select-sm" [(ngModel)]="filtroContrato"
+                        (ngModelChange)="getCortesFiltrados()">
+                        <option [ngValue]="null">Todo</option>
+                        <option *ngFor="let e of cliente" [ngValue]="e.idcontrato">
+                            {{ e.NombreComercial }}
+                        </option>
+                    </select>
+                </th>
+                <th class="p-1 flex-fill">
+                    <label for="Fecha" style="background-color: transparent">Fecha:</label>
+                    <input type="date" class="form-control form-control-sm" placeholder="Filtrar Fecha"
+                        [(ngModel)]="filtroFecha" (ngModelChange)="getCortesFiltrados()">
+                </th>
+                <th class="p-1 flex-fill">
+                    <label for="NumeroViaje" style="background-color: transparent">NumeroViaje:</label>
+                    <input type="number" min="0" step="1" class="form-control form-control-sm" placeholder="Filtrar"
+                        [(ngModel)]="filtroNumeroViaje" (ngModelChange)="getCortesFiltrados()">
+                </th>
+            </tr>
+        </table>
+
+        <div style="display: flex; align-items: start; gap: 15px;">
+
+            <table class="table table-striped table-bordered table-hover table-sm w-100">
+                <colgroup>
+                    <col> <!--  -->
+                    <col> <!--  -->
+                    <col> <!--  -->
+                    <col> <!--  -->
+                    <col> <!--  -->
+                    <col> <!--  -->
+                    <col> <!--  -->
+                    <col> <!--  -->
+                    <col> <!--  -->
+                    <col> <!--  -->
+                    <col> <!--  -->
+                    <col> <!--  -->
+                    <col> <!--  -->
+                    <col>
+                </colgroup>
+                <thead class="table-success" style="text-align: center;">
+                    <tr>
+                        <th>Bosque</th>
+                        <th>Contrato</th>
+                        <th>Tipo de raleo</th>
+                        <th>Siembra Rebrote</th>
+                        <th>Sello</th>
+                        <th>Fecha Embarque</th>
+                        <th>Cantidad de arboles</th>
+                        <th>N. viaje</th>
+                        <th>Placa Carro</th>
+                        <th>Contenedor</th>
+                        <th>Conductor</th>
+                        <th>Supervisor</th>
+                        <th>Detalles</th>
+                        <th>...</th>
+                    </tr>
+                </thead>
+                <!-- Visualizar -->
+                <tbody>
+                    <tr
+                        *ngFor="let corte of cortesFiltrados| paginate: { itemsPerPage: itemsPorPagina, currentPage: paginaActual }; let i = index">
+                        <!-- Columna Bosque-->
+                        <td class="text-center">
+                            {{ getBosqueId(corte.bosque_id) }}
+                        </td>
+                        <!-- Columna Contrato -->
+                        <td class="text-center">
+                            {{ getContratoId(corte.contrato_id) }}
+                        </td>
+                        <!-- Columna Tipo de raleo -->
+                        <td class="text-center">
+                            {{ getRaleoId(corte.raleo_tipo_id) }}
+                        </td>
+                        <!-- Columna Siembra rebrote -->
+                        <td class="text-center">
+                            {{ getSiemRebId(corte.siembra_rebrote_id) }}
+                        </td>
+                        <!-- Columna Siembra rebrote -->
+                        <td class="text-center">
+                            {{ getSelloTipoId(corte.sello_id) }}
+                        </td>
+                        <!-- Columna Fecha -->
+                        <td class="text-center">
+                            {{ corte.fecha_embarque | date: 'dd/MM/yyyy' }}
+                        </td>
+                        <!-- Columna Cant -->
+                        <td class="text-center">
+                            {{ corte.cant_arboles }}
+                        </td>
+                        <!-- Columna N. viaje -->
+                        <td class="text-center">
+                            {{ corte.numero_viaje }}
+                        </td>
+                        <!-- Columna Placa carro -->
+                        <td class="text-center">
+                            {{ corte.placa_carro }}
+                        </td>
+                        <!-- Columna Contenedor -->
+                        <td class="text-center">
+                            {{ corte.contenedor }}
+                        </td>
+                        <!-- Columna Conductor -->
+                        <td class="text-center">
+                            {{ corte.conductor }}
+                        </td>
+                        <!-- Columna Supervisor -->
+                        <td class="text-center">
+                            {{ corte.supervisor }}
+                        </td>
+                        <!-- Columna Detalles -->
+                        <td class="text-center">
+                            <a *ngIf="corte.detalle_cortes_count == 0" class="btnSiembra-Rebrote"
+                                title="Agregar detalles" (click)="openDetailModal2(corte.id)">
+                                <img src="/assets/images/agregarArchivo.png" width="24" height="24">
+                            </a>
+                            <a *ngIf="corte.detalle_cortes_count > 0" class="btnSiembra-Rebrote" title="Ver detalles"
+                                (click)="openDetailModal(corte.id)">
+                                <img src="/assets/images/archivoDetalles.png" width="24" height="24">
+                            </a>
+                        </td>
+                        <!-- Acciones -->
+                        <td class="d-flex justify-content-center align-items-center" *ngIf="corte.estado === 'A'">
+                            <button class="btn btnAngosto" ata-bs-toggle="tooltip" title="Editar registro"
+                                style="background-color:#e7bd35 ;" (click)="startEdit(corte.id)">
+                                <i class="bi bi-pencil"></i>
+                            </button>
+                            <button class="btn btnAngosto " ata-bs-toggle="tooltip" title="Eliminar registro"
+                                style="background-color:#e7354d ;" (click)="openConfirmModal(corte.id)">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </td>
+                    </tr>
+                </tbody>
+                <tfoot>
+                    <tr>
+                        <!-- Ajusta el colspan al número de columnas de tu tabla -->
+                        <td [attr.colspan]="14" class="text-center">
+                            <pagination-controls (pageChange)="paginaActual = $event" [autoHide]="true" [maxSize]="15"
+                                previousLabel="«" nextLabel="»">
+                            </pagination-controls>
+                        </td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+    <div class="d-flex align-items-center ">
+        <div style="margin-bottom: 14px;">
+            <button data-bs-toggle="modal" data-bs-target="#miModal" ata-bs-toggle="tooltip"
+                style="border:none; background:none; " title="Agregar registro"> <img src="/assets/images/nuevo.png"
+                    width="30" height="31" ata-bs-toggle="tooltip" title="Agregar registro"></button>
+        </div>
+        <div>
+            <button class="btn btn-success mb-3" style="background: none; color: green; border: none;"
+                (click)="exportToPDF()" title="Descargar registro">
+                <i class="bi bi-file-earmark-pdf-fill fs-4"></i>
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Confirm Modal -->
+<div class="modal fade" tabindex="-1" aria-labelledby="confirmModalLabel" #confirmModal>
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="confirmModalLabel">Confirmar eliminación</h5>
+                <button type="button" class="btn-close" aria-label="Cerrar" (click)="cancelDelete()"></button>
+            </div>
+            <div class="modal-body">
+                ¿Estás seguro de que deseas eliminar este registro?
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-danger" (click)="confirmDelete()">Sí</button>
+                <button type="button" class="btn btn-secondary" (click)="cancelDelete()">No</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para registrar  -->
+<div class="modal fade" id="miModal" tabindex="-1" aria-labelledby="miModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title" id="miModalLabel">Registro de Corte</h4>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <form #fForm="ngForm" class="modal-body">
+                <div class="d-flex flex-wrap gap-2" style="margin-top: 15px; margin-bottom: 15px;">
+                    <div>
+                        <label>Nombre del Bosque</label>
+                        <select class="form-select form-select-sm" [(ngModel)]="nuevoCorte.bosque_id" name="bosque_id"
+                            required class="form-select form-select-sm">
+                            <option [ngValue]="null">-- Seleccione --</option>
+                            <option *ngFor="let b of bosques" [ngValue]="b.id">
+                                {{ b.nombre }}
+                            </option>
+                        </select>
+                    </div>
+                    <div>
+                        <label>Nombre del Contrato</label>
+                        <select class="form-select form-select-sm" [(ngModel)]="nuevoCorte.contrato_id"
+                            name="contrato_id" required class="form-select form-select-sm">
+                            <option [ngValue]="null">-- Seleccione --</option>
+                            <option *ngFor="let b of cliente" [ngValue]="b.id">
+                                {{ b.NombreComercial }}
+                            </option>
+                        </select>
+                    </div>
+                </div>
+                <div class="d-flex flex-wrap gap-2" style="margin-top: 15px; margin-bottom: 15px;">
+                    <div style="margin-bottom: 15px;">
+                        <label>Tipo de raleo</label>
+                        <select class="form-select form-select-sm" [(ngModel)]="nuevoCorte.raleo_tipo_id"
+                            name="raleo_tipo_id" required class="form-select form-select-sm">
+                            <option [ngValue]="null">-- Seleccione --</option>
+                            <option *ngFor="let b of raleoTipo" [ngValue]="b.id">
+                                {{ b.nombre }}
+                            </option>
+                        </select>
+                    </div>
+                    <div style="margin-bottom: 15px;">
+                        <label>Siembra Rebrote</label>
+                        <select class="form-select form-select-sm" [(ngModel)]="nuevoCorte.siembra_rebrote_id"
+                            name="siembra_rebrote_id" required class="form-select form-select-sm">
+                            <option [ngValue]="null">-- Seleccione --</option>
+                            <option *ngFor="let b of siemReb" [ngValue]="b.id">
+                                {{ b.id }}
+                            </option>
+                        </select>
+                    </div>
+                    <div style="margin-bottom: 15px;">
+                        <label>Sello</label>
+                        <select class="form-select form-select-sm" [(ngModel)]="nuevoCorte.sello_id" name="sello_id"
+                            required class="form-select form-select-sm">
+                            <option [ngValue]="null">-- Seleccione --</option>
+                            <option *ngFor="let b of selloTipo" [ngValue]="b.id">
+                                {{ b.nombre }}
+                            </option>
+                        </select>
+                    </div>
+                </div>
+                <div class="d-flex flex-wrap gap-2" style="margin-top: 15px; margin-bottom: 15px;">
+                    <div>
+                        <label>Fecha</label>
+                        <input type="date" class="form-control form-control-sm" [(ngModel)]="nuevoCorte.fecha_embarque"
+                            name="fecha" required>
+                    </div>
+                    <div>
+                        <label>N. viaje</label>
+                        <input type="number" class="form-control form-control-sm" [(ngModel)]="nuevoCorte.numero_viaje"
+                            name="numero_viaje" required>
+                    </div>
+                </div>
+                <div class="d-flex flex-wrap gap-2" style="margin-top: 15px; margin-bottom: 15px;">
+                    <div>
+                        <label>Placa de carro</label>
+                        <input type="text" class="form-control form-control-sm" [(ngModel)]="nuevoCorte.placa_carro"
+                            name="placa_carro" required>
+                    </div>
+                    <div>
+                        <label>Contenedor</label>
+                        <input type="text" class="form-control form-control-sm" [(ngModel)]="nuevoCorte.contenedor"
+                            name="contenedor" required>
+                    </div>
+                </div>
+                <div class="d-flex flex-wrap gap-2" style="margin-top: 15px; margin-bottom: 15px;">
+                    <div>
+                        <label>Conductor</label>
+                        <input type="text" class="form-control form-control-sm" [(ngModel)]="nuevoCorte.conductor"
+                            name="conductor" required>
+                    </div>
+                    <div>
+                        <label>Supervisor</label>
+                        <input type="text" class="form-control form-control-sm" [(ngModel)]="nuevoCorte.supervisor"
+                            name="supervisor" required>
+                    </div>
+                </div>
+            </form>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary" (click)="onSave()">Guardar</button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"
+                    (click)="cancelEdit()">Cerrar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Editar -->
+<!-- Modal para edición -->
+<div class="modal fade" id="editarModal" tabindex="-1" aria-labelledby="editarModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content" *ngIf="corteEditando">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Editar Corte</h5>
+                </div>
+                <div class="modal-body">
+                    <form>
+                        <div class="d-flex flex-wrap gap-2" style="margin-top: 15px; margin-bottom: 15px;">
+                            <div>
+                                <label>Nombre del Bosque</label>
+                                <select class="form-select form-select-sm" [(ngModel)]="corteEditando!.bosque_id"
+                                    name="bosque_id" required class="form-select form-select-sm">
+                                    <option [ngValue]="null">-- Seleccione --</option>
+                                    <option *ngFor="let b of bosques" [value]="b.id.toString()">
+                                        {{ b.nombre }}
+                                    </option>
+                                </select>
+                            </div>
+                            <div>
+                                <label>Nombre del Contrato</label>
+                                <select class="form-select form-select-sm" [(ngModel)]="corteEditando!.contrato_id"
+                                    name="contrato_id" required class="form-select form-select-sm">
+                                    <option [ngValue]="null">-- Seleccione --</option>
+                                    <option *ngFor="let b of cliente" [ngValue]="b.id">
+                                        {{ b.NombreComercial }}
+                                    </option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="d-flex flex-wrap gap-2" style="margin-top: 15px; margin-bottom: 15px;">
+                            <div style="margin-bottom: 15px;">
+                                <label>Tipo de raleo</label>
+                                <select class="form-select form-select-sm" [(ngModel)]="corteEditando!.raleo_tipo_id"
+                                    name="raleo_tipo_id" required class="form-select form-select-sm">
+                                    <option [ngValue]="null">-- Seleccione --</option>
+                                    <option *ngFor="let b of raleoTipo" [value]="b.id.toString()">
+                                        {{ b.nombre }}
+                                    </option>
+                                </select>
+                            </div>
+                            <div style="margin-bottom: 15px;">
+                                <label>Siembra Rebrote</label>
+                                <select class="form-select form-select-sm"
+                                    [(ngModel)]="corteEditando!.siembra_rebrote_id" name="siembra_rebrote_id" required
+                                    class="form-select form-select-sm">
+                                    <option [ngValue]="null">-- Seleccione --</option>
+                                    <option *ngFor="let b of siemReb" [value]="b.id.toString()">
+                                        {{ b.id }}
+                                    </option>
+                                </select>
+                            </div>
+                            <div style="margin-bottom: 15px;">
+                                <label>Sello</label>
+                                <select class="form-select form-select-sm" [(ngModel)]="corteEditando!.sello_id"
+                                    name="sello_id" required class="form-select form-select-sm">
+                                    <option [ngValue]="null">-- Seleccione --</option>
+                                    <option *ngFor="let b of selloTipo" [value]="b.id.toString()">
+                                        {{ b.nombre }}
+                                    </option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="d-flex flex-wrap gap-2" style="margin-top: 15px; margin-bottom: 15px;">
+                            <div>
+                                <label>Fecha</label>
+                                <input type="date" class="form-control form-control-sm"
+                                    [(ngModel)]="corteEditando!.fecha_embarque" name="fecha" required>
+                            </div>
+                            <div>
+                                <label>N. viaje</label>
+                                <input type="number" class="form-control form-control-sm"
+                                    [(ngModel)]="corteEditando!.numero_viaje" name="numero_viaje" required>
+                            </div>
+                        </div>
+                        <div class="d-flex flex-wrap gap-2" style="margin-top: 15px; margin-bottom: 15px;">
+                            <div>
+                                <label>Placa de carro</label>
+                                <input type="text" class="form-control form-control-sm"
+                                    [(ngModel)]="corteEditando!.placa_carro" name="placa_carro" required>
+                            </div>
+                            <div>
+                                <label>Contenedor</label>
+                                <input type="text" class="form-control form-control-sm"
+                                    [(ngModel)]="corteEditando!.contenedor" name="contenedor" required>
+                            </div>
+                        </div>
+                        <div class="d-flex flex-wrap gap-2" style="margin-top: 15px; margin-bottom: 15px;">
+                            <div>
+                                <label>Conductor</label>
+                                <input type="text" class="form-control form-control-sm"
+                                    [(ngModel)]="corteEditando!.conductor" name="conductor" required>
+                            </div>
+                            <div>
+                                <label>Supervisor</label>
+                                <input type="text" class="form-control form-control-sm"
+                                    [(ngModel)]="corteEditando!.supervisor" name="supervisor" required>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button class="btnSaveEdit" (click)="saveEdit()">
+                        <i class="bi bi-save2"></i>Guardar
+                    </button>
+                    <button type="button" class="btnCancelEdit" data-bs-dismiss="modal"><i
+                            class="bi bi-x-lg"></i>Cancelar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+
+<div class="modal fade" id="verdetModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Detalles de Corte</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+
+                <!-- Tu tabla de detalle -->
+                <table class="table table-bordered table-sm">
+                    <thead class="table-light">
+                        <tr>
+                            <th>CIRCUNFERENCIA</th>
+                            <th>PRECIO / m³</th>
+                            <th>LARGO (m)</th>
+                            <th>CARACTERÍSTICA</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr *ngFor="let d of listDetCortes">
+                            <td>
+                                {{d.circunferencia}}
+                            </td>
+                            <td>
+                                {{d.precioM3}}
+                            </td>
+                            <td>
+                                {{d.largo}}
+                            </td>
+                            <td>
+                                {{d.caracteristica}}
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" data-bs-dismiss="modal" (click)="closeDetailModal()">Cerrar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<!-- 
+ -->
+<div class="modal fade" id="detModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Agregar detalles del Corte</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+
+                <!-- Tu tabla de detalle -->
+                <table class="table table-bordered table-sm">
+                    <thead class="table-light">
+                        <tr>
+                            <th>TROZAS</th>
+                            <th>CIRCUNFERENCIA</th>
+                            <th>PRECIO / m³</th>
+                            <th>LARGO (m)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr *ngFor="let d of nuevoDetCorte; let i = index">
+                            <td>
+                                <input type="number" class="form-control form-control-sm" [(ngModel)]="d.trozas"
+                                    name="trozas" required>
+                            </td>
+                            <td>
+                                <input type="number" class="form-control form-control-sm" [(ngModel)]="d.circ_bruta"
+                                    name="circ_bruta" required>
+                            </td>
+                            <td>
+                                <input type="number" class="form-control form-control-sm" [(ngModel)]="d.m_cubica"
+                                    name="m_cubica" required>
+                            </td>
+                            <td>
+                                <input type="number" class="form-control form-control-sm" [(ngModel)]="d.largo_bruto"
+                                    name="largo_bruto" required>
+                            </td>
+                            <td class="text-center">
+                                <button class="btn btn-sm btn-danger" (click)="removeRow(i)">
+                                    &times;
+                                </button>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+                <div class="text-center">
+                    <button class="btn btn-outline-primary btn-sm " (click)="addRow()">
+                        + Agregar fila
+                    </button>
+                </div>
+
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button class="btn btn-primary" (click)="onSaveDet()" data-bs-dismiss="modal">
+                    Aceptar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
