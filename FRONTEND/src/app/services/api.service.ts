@@ -57,12 +57,18 @@ export class ApiService {
   countCorteBySR(id: number): Observable<number> {
     return this.http.get<number>(`${this.baseUrl}/corte/count-by-SR/${id}`);
   }
+  putCorteClose(cabecera_corte_id: number): Observable<any> {
+    return this.http.put(`${this.baseUrl}/cortes/${cabecera_corte_id}/close`, {});
+  }
   //-----DETALLE CORTE-------//
   getDetalleCortes(): Observable<any> {
     return this.http.get(`${this.baseUrl}/detalle-cortes`);
   }
-  getDetalleCorte(id: number): Observable<any> {
-    return this.http.get(`${this.baseUrl}/detalle-cortes/${id}`);
+  getDetalleCorte(cabecera_corte_id: number): Observable<any> {
+    return this.http.get(`${this.baseUrl}/detalle-cortes/${cabecera_corte_id}`);
+  }
+  countDetalleCorte(cabecera_corte_id: number): Observable<any> {
+    return this.http.get<number>(`${this.baseUrl}/detalle-cortes/count/${cabecera_corte_id}`);
   }
   postDetalleCorte(detalleCorte: any): Observable<any> {
     return this.http.post(`${this.baseUrl}/detalle-cortes`, detalleCorte);

@@ -9,6 +9,7 @@ use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 use Tymon\JWTAuth\Contracts\JWTSubject;
 
+
 class User extends Authenticatable implements JWTSubject
 {
     use HasApiTokens, HasFactory, Notifiable;
@@ -43,7 +44,7 @@ class User extends Authenticatable implements JWTSubject
         'email_verified_at' => 'datetime',
     ];
 
-     /**
+    /**
      * Get the identifier that will be stored in the subject claim of the JWT.
      */
     public function getJWTIdentifier()
@@ -57,9 +58,15 @@ class User extends Authenticatable implements JWTSubject
     public function getJWTCustomClaims()
     {
         return [
-            'username' => $this->username,     
-            'rol_id'   => $this->rol_id,       
-            'group_id' => $this->group_id     
+            'username' => $this->username,
+            'id' => $this->id,
+            //'rol_id'   => $this->rol_id,       
+            //'group_id' => $this->group_id     
         ];
+    }
+
+    public function transacciones()
+    {
+        return $this->belongsToMany(Transaccion::class);
     }
 }

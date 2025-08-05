@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 class DetalleCorte extends Model
 {
     use HasFactory;
-    protected $table = 'detalle_contrato';
+    protected $table = 'detalle_corte';
     protected $primaryKey = 'id';
     public $timestamps = true;
     protected $dates = ['created_at', 'updated_at'];
@@ -20,7 +20,7 @@ class DetalleCorte extends Model
         'largo_bruto',
         'largo_neto',
         'm_cubica',
-        'valror_mcubico',
+        'valor_mcubico',
         'valor_troza',
         'estado',
         'usuario_creacion'

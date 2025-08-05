@@ -18,7 +18,7 @@ class CabeceraCorte extends Model
         'siembra_rebrote_id',
         'sello_id',
         'fecha_embarque',
-        'cant_arboles',
+        //'cant_arboles',
         'numero_viaje',
         'placa_carro',
         'contenedor',
@@ -44,7 +44,7 @@ class CabeceraCorte extends Model
     public function raleoTipo()
     {
         return $this->belongsTo(Parametro::class, 'raleo_tipo_id')
-        ->where('categoria', 'raleo_tipo');
+        ->where('categoria', 'raleoTipo');
     }
     
     public function sello()
@@ -53,7 +53,6 @@ class CabeceraCorte extends Model
         ->where('categoria', 'sello');
     }
     
-
     public function detalleCortes()
     {
         return $this->hasMany(DetalleCorte::class, 'cabecera_corte_id');

@@ -25,7 +25,6 @@ interface Corte {
   supervisor: string
 }
 interface detCorte {
-  id: number,
   cabecera_corte_id: number,
   trozas: number,
   circ_bruta: number,
@@ -46,11 +45,14 @@ interface detCorte {
 })
 export class CorteComponent {
   @ViewChild('confirmModal') confirmModal!: ElementRef;
+  @ViewChild('confirmModalAgreem') confirmModalAgreem!: ElementRef;
+
   private modalInstance: any;
   private pendingDeleteId!: number;
-  
+  private modalInstanceAgreem: any;
+  private pendingCloseAgreemId!: number;
+
   nuevoDetCorte: detCorte[] = [{
-    id: 0,
     cabecera_corte_id: 0,
     trozas: 0,
     circ_bruta: 0,
@@ -83,6 +85,7 @@ export class CorteComponent {
   listCorte: any[] = [];
   cortesFiltrados: any[] = [];
 
+  filtroSiembraRebrote: number | null = null;
   filtroBosque: number | null = null;
   filtroContrato: number | null = null;
   filtroFecha: Date | null = null;
@@ -92,6 +95,16 @@ export class CorteComponent {
   paginaActual: number = 1;
   itemsPorPagina: number = 15;
 
+  //Totales
+  totalCircBruta: number = 0;
+  totalCircNeta: number = 0
+  totalLargoBruto: number = 0;
+  totalLargoNeto: number = 0
+  totalMCubica: number = 0;
+  totalValorMCubico: number = 0
+  totalValorTroza: number = 0;
+
+  // Datos para los select
   bosques: any[] = [];
   contrato: any[] = [];
   raleoTipo: any[] = [];
@@ -103,6 +116,13 @@ export class CorteComponent {
   constructor(private corteService: ApiService, private route: ActivatedRoute) { }
 
   ngOnInit(): void {
+    const idSiemRebParam = this.route.snapshot.paramMap.get('idSiembraRebrote');
+    console.log(idSiemRebParam);
+    if (idSiemRebParam) {
+      this.filtroSiembraRebrote = +idSiemRebParam; // lo conviertes a número y aplicas como filtro
+      console.log('filtroSiembraRebrote', this.filtroSiembraRebrote);
+    }
+
     this.corteService.getCabeceraCortes().subscribe(
       exito => {
         console.log('corte', exito);
@@ -169,6 +189,7 @@ export class CorteComponent {
 
   ngAfterViewInit(): void {
     this.modalInstance = new bootstrap.Modal(this.confirmModal.nativeElement);
+    this.modalInstanceAgreem = new bootstrap.Modal(this.confirmModalAgreem.nativeElement);
     const tooltipTriggerList = Array.from(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
     tooltipTriggerList.forEach((tooltipTriggerEl: Element) => {
       new bootstrap.Tooltip(tooltipTriggerEl);
@@ -197,7 +218,9 @@ export class CorteComponent {
   }
   getCortesFiltrados() {
     return this.cortesFiltrados = this.listCorte.filter(b =>
-      (!this.filtroBosque || b.bosque_id == this.filtroBosque)
+      (!this.filtroSiembraRebrote
+        || +b.siembra_rebrote_id === this.filtroSiembraRebrote)
+      && (!this.filtroBosque || b.bosque_id == this.filtroBosque)
       && (!this.filtroContrato || b.contrato_id == this.filtroContrato)
       && (!this.filtroNumeroViaje || b.numero_viaje == this.filtroNumeroViaje)
       && (!this.filtroFecha || new Date(b.fecha_embarque).toDateString() === new Date(this.filtroFecha).toDateString())
@@ -305,16 +328,60 @@ export class CorteComponent {
       });
   }
 
+  //--------------------------------------------
+  openCloseAModal(id: number) {
+    this.pendingCloseAgreemId = id;
+    this.modalInstanceAgreem.show();
+  }
+
+  // 2) Si el usuario pulsa “Sí”
+  confirmCloseA() {
+    this.closeEstado(this.pendingCloseAgreemId);
+    this.modalInstanceAgreem.hide();
+  }
+
+  // 3) Si pulsa “No” o cierra el modal
+  cancelCloseA() {
+    this.modalInstanceAgreem.hide();
+  }
+
+  closeEstado(id: number): void {
+    this.corteService.putCorteClose(id).subscribe(
+      exito => {
+        console.log(exito);
+        this.listCorte = this.listCorte.filter(cabecera_corte => cabecera_corte.id !== id);
+        this.getCortesFiltrados();
+
+        const totalItems = this.cortesFiltrados.length;
+        const totalPages = Math.ceil(totalItems / this.itemsPorPagina);
+        if (this.paginaActual > totalPages) {
+          this.paginaActual = totalPages || 1;
+        }
+      },
+      error => {
+        console.log(error);
+      }
+    );
+  }
+
 
   //--------------DETALLE CORTE---------------------
 
-  openDetailModal(contratoId: number) {
-    this.selectedCorteId = contratoId;
-    console.log('Contrato ID seleccionado:', this.selectedCorteId);
-    // 1) pido al backend los detalles de ese contrato
-    this.corteService.getDetContratoByContratoId(contratoId)
+  openDetailModal(cabecera_corte_id: number) {
+    this.selectedCorteId = cabecera_corte_id;
+    console.log('Corte ID seleccionado:', this.selectedCorteId);
+
+    this.corteService.getDetalleCorte(cabecera_corte_id)
       .subscribe(response => {
         this.listDetCortes = Array.isArray(response) ? response : [response];
+        this.totalCircBruta = this.listDetCortes.reduce((acc, curr) => acc + (Number(curr.circ_bruta) || 0), 0);
+        this.totalCircNeta = this.listDetCortes.reduce((acc, curr) => acc + (Number(curr.circ_neta) || 0), 0);
+        this.totalLargoBruto = this.listDetCortes.reduce((acc, curr) => acc + (Number(curr.largo_bruto) || 0), 0);
+        this.totalLargoNeto = this.listDetCortes.reduce((acc, curr) => acc + (Number(curr.largo_neto) || 0), 0);
+        this.totalMCubica = this.listDetCortes.reduce((acc, curr) => acc + (Number(curr.m_cubica) || 0), 0);
+        this.totalValorMCubico = this.listDetCortes.reduce((acc, curr) => acc + (Number(curr.valor_mcubico) || 0), 0);
+        this.totalValorTroza = this.listDetCortes.reduce((acc, curr) => acc + (Number(curr.valor_troza) || 0), 0);
+
         // 2) abro el modal
         const modalEl = document.getElementById('verdetModal')!;
         const modal = new bootstrap.Modal(modalEl);
@@ -330,31 +397,37 @@ export class CorteComponent {
 
   openDetailModal2(corteId: number) {
     this.selectedCorteId = corteId;
-    console.log('Corte ID seleccionado:', this.selectedCorteId);
-    // Inicializar la primera fila con el contrato actual
-    this.nuevoDetCorte = [{
-      id: 0,
-      cabecera_corte_id: 0,
-      trozas: 0,
-      circ_bruta: 0,
-      circ_neta: 0,
-      largo_bruto: 0,
-      largo_neto: 0,
-      m_cubica: 0,
-      valor_mcubico: 0,
-      valor_troza: 0
-    }];
 
-    const modalEl = document.getElementById('detModal')!;
-    const modal = new bootstrap.Modal(modalEl);
-    modal.show();
+    this.corteService.countDetalleCorte(corteId).subscribe(resp => {
+      const existingCount = resp.count; // trozas ya guardadas
+
+      // inicializo la primera fila justo en existingCount + 1
+      this.nuevoDetCorte = [{
+        cabecera_corte_id: corteId,
+        trozas: existingCount + 1,
+        circ_bruta: 0,
+        circ_neta: 0,
+        largo_bruto: 0,
+        largo_neto: 0,
+        m_cubica: 0,
+        valor_mcubico: 0,
+        valor_troza: 0
+      }];
+
+      const modalEl = document.getElementById('detModal')!;
+      new bootstrap.Modal(modalEl).show();
+    }, err => {
+      console.error('No pude obtener el conteo de trozas', err);
+    });
   }
-
   addRow() {
+    const lastTroza = this.nuevoDetCorte.length
+      ? this.nuevoDetCorte[this.nuevoDetCorte.length - 1].trozas
+      : 0;
+
     this.nuevoDetCorte.push({
-      id: 0,
-      cabecera_corte_id: 0,
-      trozas: 0,
+      cabecera_corte_id: this.selectedCorteId!,
+      trozas: lastTroza + 1,
       circ_bruta: 0,
       circ_neta: 0,
       largo_bruto: 0,
@@ -383,48 +456,48 @@ export class CorteComponent {
     );
   }
   exportToPDF() {
-      const doc = new jsPDF();
-      const columns = [
-        { header: 'Bosque', dataKey: 'bosque' },
-        { header: 'Contrato', dataKey: 'contrato' },
-        { header: 'Raleo Tipo', dataKey: 'raleoTipo' },
-        { header: 'Siembra/Rebrote', dataKey: 'siembraRebrote' },
-        { header: 'Sello Tipo', dataKey: 'selloTipo' },
-        { header: 'Fecha Embarque', dataKey: 'fechaEmbarque' },
-        { header: 'Cantidad Árboles', dataKey: 'cantArboles' },
-        { header: 'Número de Viaje', dataKey: 'numeroViaje' },
-        { header: 'Placa Carro', dataKey: 'placaCarro' },
-        { header: 'Contenedor', dataKey: 'contenedor' },
-        { header: 'Conductor', dataKey: 'conductor' },
-        { header: 'Supervisor', dataKey: 'supervisor' }
-      ];
-      const rows = this.cortesFiltrados.map(corte => ({
-        bosque: this.getBosqueId(corte.bosque_id),
-        contrato: this.getContratoId(corte.contrato_id),
-        raleoTipo: this.getRaleoId(corte.raleo_tipo_id),
-        siembraRebrote: this.getSiemRebId(corte.siembra_rebrote_id),
-        selloTipo: this.getSelloTipoId(corte.sello_id),
-        fechaEmbarque: corte.fecha_embarque,
-        cantArboles: corte.cant_arboles,
-        numeroViaje: corte.numero_viaje,
-        placaCarro: corte.placa_carro,
-        contenedor: corte.contenedor,
-        conductor: corte.conductor,
-        supervisor: corte.supervisor
-      }));
-      doc.text('Reporte de Cortes', 14, 10);
-      doc.setFontSize(10);
-      autoTable(doc, {
-        columns,  
-        body: rows,
+    const doc = new jsPDF();
+    const columns = [
+      { header: 'Bosque', dataKey: 'bosque' },
+      { header: 'Contrato', dataKey: 'contrato' },
+      { header: 'Raleo Tipo', dataKey: 'raleoTipo' },
+      { header: 'Siembra/Rebrote', dataKey: 'siembraRebrote' },
+      { header: 'Sello Tipo', dataKey: 'selloTipo' },
+      { header: 'Fecha Embarque', dataKey: 'fechaEmbarque' },
+      { header: 'Cantidad Árboles', dataKey: 'cantArboles' },
+      { header: 'Número de Viaje', dataKey: 'numeroViaje' },
+      { header: 'Placa Carro', dataKey: 'placaCarro' },
+      { header: 'Contenedor', dataKey: 'contenedor' },
+      { header: 'Conductor', dataKey: 'conductor' },
+      { header: 'Supervisor', dataKey: 'supervisor' }
+    ];
+    const rows = this.cortesFiltrados.map(corte => ({
+      bosque: this.getBosqueId(corte.bosque_id),
+      contrato: this.getContratoId(corte.contrato_id),
+      raleoTipo: this.getRaleoId(corte.raleo_tipo_id),
+      siembraRebrote: this.getSiemRebId(corte.siembra_rebrote_id),
+      selloTipo: this.getSelloTipoId(corte.sello_id),
+      fechaEmbarque: corte.fecha_embarque,
+      cantArboles: corte.cant_arboles,
+      numeroViaje: corte.numero_viaje,
+      placaCarro: corte.placa_carro,
+      contenedor: corte.contenedor,
+      conductor: corte.conductor,
+      supervisor: corte.supervisor
+    }));
+    doc.text('Reporte de Cortes', 14, 10);
+    doc.setFontSize(10);
+    autoTable(doc, {
+      columns,
+      body: rows,
       headStyles: {
-        fillColor: [0, 127, 0],    
+        fillColor: [0, 127, 0],
         textColor: 255
       },
       showHead: 'everyPage'
-      });
-      doc.save('reporte_contratos.pdf');
-    }
+    });
+    doc.save('reporte_cortes.pdf');
+  }
 }
 
 

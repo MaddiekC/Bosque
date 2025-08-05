@@ -10,6 +10,7 @@ use App\Http\Controllers\DetalleCorteController;
 use App\Http\Controllers\ParametroController;
 use App\Http\Controllers\SiembraRebroteController;
 use App\Http\Controllers\AnticipoController;
+use App\Http\Controllers\SeccionController;
 
 use Illuminate\Support\Facades\Route;
 
@@ -44,26 +45,27 @@ Route::group(
         'middleware' => 'auth:api'
     ],
     function () {
-        Route::get('/me', [AuthController::class, 'me']); // Obtener información del usuario autenticado
+        Route::get('/me/permissions', [AuthController::class, 'permissions']); // Transacciones
         Route::get('/bosques', [BosqueController::class, 'index']);        // Listar todos los bosques
         Route::post('/bosques', [BosqueController::class, 'store']); // Crear un bosque
         Route::get('/bosques/{id}', [BosqueController::class, 'show']);    // Ver un bosque por ID
-        Route::get('siembras-rebrote/count-by-bosque/{id}', function ($id) {
-            return response()->json(\App\Models\SiembraRebrote::where('bosque_id', $id)->count());
-        });
-        // Contar siembras/rebrotes por bosque
-
+        Route::get('/secciones', [SeccionController::class, 'index']);
         Route::put('/bosques/{id}', [BosqueController::class, 'update']);  // Actualizar un bosque (PUT)
         Route::put('/bosques/{id}/inactive', [BosqueController::class, 'destroy']); // Marcar un bosque como inactivo
 
         Route::get('/cabecera-cortes', [CabeceraCorteController::class, 'index']); // Listar todas las cabeceras de corte
         Route::get('/cabecera-cortes/{id}', [CabeceraCorteController::class, 'show']); // Ver una cabecera de corte por ID
+        Route::get('corte/count-by-SR/{id}', function ($id) {
+            return response()->json(\App\Models\CabeceraCorte::where('siembra_rebrote_id', $id)->count());
+        });
         Route::post('/cabecera-cortes', [CabeceraCorteController::class, 'store']); // Crear una cabecera de corte
         Route::put('/cabecera-cortes/{id}', [CabeceraCorteController::class, 'update']); // Actualizar una cabecera de corte (PUT)
         Route::put('/cabecera-cortes/{id}/inactive', [CabeceraCorteController::class, 'destroy']); // Marcar una cabecera de corte como inactiva
+        Route::put('/cortes/{cabecera_corte_id}/close', [CabeceraCorteController::class, 'closeCorte']); // Marcar un contrato como cerrado
 
         Route::get('/detalle-cortes', [DetalleCorteController::class, 'index']); // Listar todos los detalles de corte
-        Route::get('/detalle-cortes/{id}', [DetalleCorteController::class, 'show']); // Ver un detalle de corte por ID
+        Route::get('/detalle-cortes/{cabecera_corte_id}', [DetalleCorteController::class, 'show']); // Ver un detalle de corte por ID
+        Route::get('detalle-cortes/count/{cabecera_corte_id}', [DetalleCorteController::class, 'count']); // Contar detalles de corte por cabecera
         Route::post('/detalle-cortes', [DetalleCorteController::class, 'store']); // Crear un detalle de corte
         Route::put('/detalle-cortes/{id}', [DetalleCorteController::class, 'update']); // Actualizar un detalle de corte (PUT)
         Route::put('/detalle-cortes/{id}/inactive', [DetalleCorteController::class, 'destroy']); // Marcar un detalle de corte como inactivo
@@ -75,6 +77,9 @@ Route::group(
         Route::get('siembra-rebrote/sum-hectarea/{bosque}', [SiembraRebroteController::class, 'sumHectarea']);
         Route::get('/siembra-rebrotes', [SiembraRebroteController::class, 'index']); // Listar todas las siembras/rebrotes
         Route::get('/siembra-rebrotes/{id}', [SiembraRebroteController::class, 'show']); // Ver una siembra/rebrote por ID
+        Route::get('siembra-rebrote/count-by-bosque/{id}', function ($id) {
+            return response()->json(\App\Models\SiembraRebrote::where('bosque_id', $id)->count());
+        });
         Route::post('/siembra-rebrotes', [SiembraRebroteController::class, 'store']); // Crear una siembra/rebrote  
         Route::put('/siembra-rebrotes/{id}', [SiembraRebroteController::class, 'update']); // Actualizar una siembra/rebrote (PUT)
         Route::put('/siembra-rebrotes/{id}/inactive', [SiembraRebroteController::class, 'destroy']); // Marcar una siembra/rebrote como inactiva

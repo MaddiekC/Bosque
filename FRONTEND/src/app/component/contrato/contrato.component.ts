@@ -35,8 +35,11 @@ interface detContrato {
 })
 export class ContratoComponent implements AfterViewInit {
   @ViewChild('confirmModal') confirmModal!: ElementRef;
+  @ViewChild('confirmModalAgreem') confirmModalAgreem!: ElementRef;
   private modalInstance: any;
+  private modalInstanceAgreem: any;
   private pendingDeleteId!: number;
+  private pendingCloseAgreemId!: number;
 
   //ANTICIPO
   nuevoAnticipo: any = {
@@ -58,6 +61,7 @@ export class ContratoComponent implements AfterViewInit {
   // DETALLES CONTRATO
   listDetContrato: any[] = [];
   selectedContratoId: number | null = null;
+  selectedEstado: string | null = null; // Para almacenar el estado del contrato seleccionado
 
   //ANTICPOS
   listAnticipo: any[] = [];
@@ -135,6 +139,7 @@ export class ContratoComponent implements AfterViewInit {
 
   ngAfterViewInit(): void {
     this.modalInstance = new bootstrap.Modal(this.confirmModal.nativeElement);
+    this.modalInstanceAgreem = new bootstrap.Modal(this.confirmModalAgreem.nativeElement);
     const tooltipTriggerList = Array.from(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
     tooltipTriggerList.forEach((tooltipTriggerEl: Element) => {
       new bootstrap.Tooltip(tooltipTriggerEl);
@@ -156,7 +161,7 @@ export class ContratoComponent implements AfterViewInit {
     );
   }
 
-
+  //--------------------------------------------------------
   // 1) Se llama al hacer clic en el icono de papelera
   openConfirmModal(id: number) {
     this.pendingDeleteId = id;
@@ -191,6 +196,25 @@ export class ContratoComponent implements AfterViewInit {
         console.log(error);
       }
     );
+  }
+  //--------------------------------------------------------
+
+  // Cerrar contrato
+
+  openCloseAModal(id: number) {
+    this.pendingCloseAgreemId = id;
+    this.modalInstanceAgreem.show();
+  }
+
+  // 2) Si el usuario pulsa “Sí”
+  confirmCloseA() {
+    this.closeAgreement(this.pendingCloseAgreemId);
+    this.modalInstanceAgreem.hide();
+  }
+
+  // 3) Si pulsa “No” o cierra el modal
+  cancelCloseA() {
+    this.modalInstanceAgreem.hide();
   }
 
   closeAgreement(id: number): void {
@@ -358,8 +382,9 @@ export class ContratoComponent implements AfterViewInit {
   }
 
   //--------------ANTICIPO---------------------
-  openAnticipoModal(contratoId: number) {
+  openAnticipoModal(contratoId: number, estado: string) {
     this.selectedContratoId = contratoId;
+    this.selectedEstado = estado;
     console.log('Contrato ID seleccionado para anticipo:', this.selectedContratoId);
 
     this.contratoService.getAnticipo(contratoId)
@@ -414,7 +439,7 @@ export class ContratoComponent implements AfterViewInit {
     const doc = new jsPDF();
     const columns = [
       { header: 'Cliente', dataKey: 'cliente_id' },
-      { header: 'Año', dataKey: 'anio' }, 
+      { header: 'Año', dataKey: 'anio' },
       { header: 'Fecha', dataKey: 'fecha' },
       { header: 'Estado', dataKey: 'estado' }
     ];
@@ -423,18 +448,18 @@ export class ContratoComponent implements AfterViewInit {
       anio: item.anio,
       fecha: new Date(item.fecha).toLocaleDateString(),
       estado: item.estado === 'A'
-          ? 'Activo'
-          : item.estado === 'C'
-            ? 'Cerrado'
-            : ''
+        ? 'Activo'
+        : item.estado === 'C'
+          ? 'Cerrado'
+          : ''
     }));
     doc.text('Reporte de Contratos', 14, 10);
     doc.setFontSize(10);
     autoTable(doc, {
-      columns,  
+      columns,
       body: rows,
       headStyles: {
-        fillColor: [0, 127, 0],    
+        fillColor: [0, 127, 0],
         textColor: 255
       },
       showHead: 'everyPage'

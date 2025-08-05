@@ -10,8 +10,10 @@ class CabeceraCorteController extends Controller
 {
     public function index()
     {
-        $cabeceraCortes = CabeceraCorte::with(['bosque', 'contrato', 'siembraRebrote', 'raleoTipo', 'sello'])
-            ->where('estado', 'A')->get();
+        $cabeceraCortes = CabeceraCorte::with(['bosque', 'contrato.cliente', 'siembraRebrote', 'raleoTipo', 'sello'])
+            ->withCount('detalleCortes')
+            ->whereIn('estado', ['A', 'C'])
+            ->get();
         return response()->json($cabeceraCortes);
     }
 
@@ -35,7 +37,7 @@ class CabeceraCorteController extends Controller
             'siembra_rebrote_id' => 'nullable|integer|exists:siembra_rebrote,id',
             'sello_id' => 'required|integer|exists:parametro,id',
             'fecha_embarque' => 'required|date',
-            'cant_arboles' => 'required|integer|min:1',
+            //'cant_arboles' => 'required|integer|min:1',
             'numero_viaje' => 'nullable|integer|min:1',
             'placa_carro' => 'nullable|string|max:50',
             'contenedor' => 'nullable|string|max:50',
@@ -81,7 +83,7 @@ class CabeceraCorteController extends Controller
             'siembra_rebrote_id' => 'nullable|integer|exists:siembra_rebrote,id',
             'sello_id' => 'nullable|integer|exists:parametro,id',
             'fecha_embarque' => 'nullable|date',
-            'cant_arboles' => 'nullable|integer|min:1',
+            //'cant_arboles' => 'nullable|integer|min:1',
             'numero_viaje' => 'nullable|integer|min:1',
             'placa_carro' => 'nullable|string|max:50',
             'contenedor' => 'nullable|string|max:50',
@@ -121,5 +123,17 @@ class CabeceraCorteController extends Controller
         }
         $cabeceraCorte->update(['estado' => 'I']);
         return response()->json(['message' => 'Marcado como inactivo']);
+    }
+
+    public function closeCorte($cabecera_corte_id)
+    {
+        $Contrato = CabeceraCorte::find($cabecera_corte_id);
+        if (!$Contrato || $Contrato->estado !== 'A') {
+            return response()->json(['message' => 'Corte no encontrado'], 404);
+        }
+
+        $Contrato->update(['estado' => 'C']);
+
+        return response()->json(['message' => 'Corte cerrado correctamente']);
     }
 }

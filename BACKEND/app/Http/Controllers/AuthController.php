@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 //use Tymon\JWTAuth\Exceptions\JWTException;
 use Tymon\JWTAuth\Facades\JWTAuth;
+use Illuminate\Http\JsonResponse;
 
 class AuthController extends Controller
 {
@@ -41,6 +42,7 @@ class AuthController extends Controller
             'message' => 'Login exitoso',
             'expires_in'   => $ttl * 60,
             'username' => $user->username,
+            'id' => $user->id,
             'email' => $user->email
         ]);
     }
@@ -69,5 +71,16 @@ class AuthController extends Controller
     public function me()
     {
         return response()->json(auth()->user());
+    }
+
+    public function permissions(): JsonResponse
+    {
+        /** @var \App\Models\User $user */
+        $user = auth()->user();
+
+        // Asumiendo relación many-to-many user↔transacciones
+        $perms = $user->transacciones->pluck('id');
+
+        return response()->json($perms);
     }
 }

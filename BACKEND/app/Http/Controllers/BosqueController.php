@@ -30,8 +30,8 @@ class BosqueController extends Controller
     public function store(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'seccion_id' => 'required|integer|exists:parametro,id',
-            'nombre' => 'required|string|max:500',
+            'seccion_id' => 'required|integer',
+            'nombre' => 'required|string|unique:bosque,nombre',
             'hectarea' => 'required|numeric',
         ]);
 
@@ -62,7 +62,7 @@ class BosqueController extends Controller
 
         $user = $request->user();
         $validator = Validator::make($request->all(), [
-            'seccion_id' => 'nullable|integer|exists:parametro,id',
+            'seccion_id' => 'nullable|integer',
             'nombre' => 'nullable|string|max:500',
             'hectarea' => 'nullable|numeric',
         ]);

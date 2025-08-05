@@ -47,6 +47,7 @@
 
             <table class="table table-striped table-bordered table-hover table-sm w-100">
                 <colgroup>
+                    <col>
                     <col> <!--  -->
                     <col> <!--  -->
                     <col> <!--  -->
@@ -64,6 +65,7 @@
                 </colgroup>
                 <thead class="table-success" style="text-align: center;">
                     <tr>
+                        <th>Cerrar</th>
                         <th>Bosque</th>
                         <th>Contrato</th>
                         <th>Tipo de raleo</th>
@@ -82,8 +84,20 @@
                 </thead>
                 <!-- Visualizar -->
                 <tbody>
-                    <tr
-                        *ngFor="let corte of cortesFiltrados| paginate: { itemsPerPage: itemsPorPagina, currentPage: paginaActual }; let i = index">
+                    <tr *ngFor="let corte of cortesFiltrados| paginate: { itemsPerPage: itemsPorPagina, currentPage: paginaActual }; let i = index"
+                        [ngClass]="{'table-warning': corte.estado === 'C'}">
+                        <td class="d-flex justify-content-center align-items-center">
+                            <button class="btn btnAngosto "
+                                *ngIf="corte.estado === 'A' && corte.detalle_cortes_count > 0" ata-bs-toggle="tooltip"
+                                title="Cerrar contrato" style="background-color:#35e782 ;"
+                                (click)="openCloseAModal(corte.id)">
+                                <i class="bi bi-check-circle"></i>
+                            </button>
+                            <button class="btn btnAngosto " *ngIf="corte.estado === 'C'" ata-bs-toggle="tooltip"
+                                style="color:#555e5993 ;">
+                                <i class="bi bi-check-lg"></i>
+                            </button>
+                        </td>
                         <!-- Columna Bosque-->
                         <td class="text-center">
                             {{ getBosqueId(corte.bosque_id) }}
@@ -134,8 +148,8 @@
                         </td>
                         <!-- Columna Detalles -->
                         <td class="text-center">
-                            <a *ngIf="corte.detalle_cortes_count == 0" class="btnSiembra-Rebrote"
-                                title="Agregar detalles" (click)="openDetailModal2(corte.id)">
+                            <a *ngIf="corte.estado === 'A'" class="btnSiembra-Rebrote" title="Agregar detalles"
+                                (click)="openDetailModal2(corte.id)">
                                 <img src="/assets/images/agregarArchivo.png" width="24" height="24">
                             </a>
                             <a *ngIf="corte.detalle_cortes_count > 0" class="btnSiembra-Rebrote" title="Ver detalles"
@@ -202,6 +216,27 @@
         </div>
     </div>
 </div>
+
+
+<!-- Confirm Close Modal  -->
+<div class="modal fade" tabindex="-1" aria-labelledby="confirmModalLabelA" #confirmModalAgreem>
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="confirmModalLabel">Confirmar cierre</h5>
+                <button type="button" class="btn-close" aria-label="Cerrar" (click)="cancelCloseA()"></button>
+            </div>
+            <div class="modal-body">
+                ¿Estás seguro de que deseas cerrar el corte?
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-success" (click)="confirmCloseA()">Sí</button>
+                <button type="button" class="btn btn-secondary" (click)="cancelCloseA()">No</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 
 <!-- Modal para registrar  -->
 <div class="modal fade" id="miModal" tabindex="-1" aria-labelledby="miModalLabel" aria-hidden="true">
@@ -443,28 +478,56 @@
                 <table class="table table-bordered table-sm">
                     <thead class="table-light">
                         <tr>
-                            <th>CIRCUNFERENCIA</th>
-                            <th>PRECIO / m³</th>
-                            <th>LARGO (m)</th>
-                            <th>CARACTERÍSTICA</th>
+                            <th>#TROZAS</th>
+                            <th>CIRCUNFERENCIA BRUTA</th>
+                            <th>CIRCUNFERENCIA NETA</th>
+                            <th>LARGO BRUTO (m)</th>
+                            <th>LARGO NETO (m)</th>
+                            <th>M³</th>
+                            <th>VALOR M³</th>
+                            <th>VALOR TROZA</th>
                         </tr>
                     </thead>
                     <tbody>
                         <tr *ngFor="let d of listDetCortes">
                             <td>
-                                {{d.circunferencia}}
+                                {{d.trozas}}
                             </td>
                             <td>
-                                {{d.precioM3}}
+                                {{d.circ_bruta}}
                             </td>
                             <td>
-                                {{d.largo}}
+                                {{d.circ_neta}}
                             </td>
                             <td>
-                                {{d.caracteristica}}
+                                {{d.largo_bruto | number:'1.2-2' }}
+                            </td>
+                            <td>
+                                {{d.largo_neto | number:'1.2-2' }}
+                            </td>
+                            <td>
+                                {{d.m_cubica | number:'1.4-4' }}
+                            </td>
+                            <td>
+                                {{d.valor_mcubico | number:'1.2-2' }}
+                            </td>
+                            <td>
+                                {{d.valor_troza | number:'1.2-2' }}
                             </td>
                         </tr>
                     </tbody>
+                    <tfoot>
+                        <tr>
+                            <td colspan="1"><strong>Total:</strong></td>
+                            <td><strong>{{ totalCircBruta }}</strong></td>
+                            <td><strong>{{ totalCircNeta }}</strong></td>
+                            <td><strong>{{ totalLargoBruto }}</strong></td>
+                            <td><strong>{{ totalLargoNeto }}</strong></td>
+                            <td><strong>{{ totalMCubica }}</strong></td>
+                            <td><strong>{{ totalValorMCubico | currency}}</strong></td>
+                            <td><strong>{{ totalValorTroza | currency}}</strong></td>
+                        </tr>
+                    </tfoot>
                 </table>
             </div>
             <div class="modal-footer">
@@ -490,25 +553,19 @@
                 <table class="table table-bordered table-sm">
                     <thead class="table-light">
                         <tr>
-                            <th>TROZAS</th>
-                            <th>CIRCUNFERENCIA</th>
-                            <th>PRECIO / m³</th>
-                            <th>LARGO (m)</th>
+                            <th>#TROZAS</th>
+                            <th>CIRCUNFERENCIA BRUTA</th>
+                            <th>LARGO BRUTO (m)</th>
                         </tr>
                     </thead>
                     <tbody>
                         <tr *ngFor="let d of nuevoDetCorte; let i = index">
-                            <td>
-                                <input type="number" class="form-control form-control-sm" [(ngModel)]="d.trozas"
-                                    name="trozas" required>
+                            <td class="text-center">
+                                {{ i + 1 }}
                             </td>
                             <td>
                                 <input type="number" class="form-control form-control-sm" [(ngModel)]="d.circ_bruta"
                                     name="circ_bruta" required>
-                            </td>
-                            <td>
-                                <input type="number" class="form-control form-control-sm" [(ngModel)]="d.m_cubica"
-                                    name="m_cubica" required>
                             </td>
                             <td>
                                 <input type="number" class="form-control form-control-sm" [(ngModel)]="d.largo_bruto"

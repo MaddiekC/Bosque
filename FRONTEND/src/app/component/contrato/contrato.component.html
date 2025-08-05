@@ -87,9 +87,9 @@
                             {{ (paginaActual - 1) * itemsPorPagina + (i + 1) }}
                         </td>
                         <td class="d-flex justify-content-center align-items-center">
-                            <button class="btn btnAngosto " *ngIf="contrato.estado === 'A'" ata-bs-toggle="tooltip"
+                            <button class="btn btnAngosto " *ngIf="contrato.estado === 'A' && contrato.detalles_count > 0" ata-bs-toggle="tooltip"
                                 title="Cerrar contrato" style="background-color:#35e782 ;"
-                                (click)="closeAgreement(contrato.id)">
+                                (click)="openCloseAModal(contrato.id)">
                                 <i class="bi bi-check-circle"></i>
                             </button>
                             <button class="btn btnAngosto " *ngIf="contrato.estado === 'C'" ata-bs-toggle="tooltip"
@@ -110,7 +110,7 @@
                             {{ contrato.fecha | date: 'dd/MM/yyyy' }}
                         </td>
                         <td class="text-center">
-                            <a class="btnSiembra-Rebrote" title="Anticipo" (click)="openAnticipoModal(contrato.id)">
+                            <a class="btnSiembra-Rebrote" title="Anticipo" (click)="openAnticipoModal(contrato.id, contrato.estado)">
                                 <span class="badge bg-info"
                                     style="background-color: #357ce7 !important; min-width: 80px; ">
                                     {{ totalAnticipo[contrato.id] || 0 | currency }}
@@ -121,7 +121,7 @@
                         </td>
                         <!-- Columna Ver -->
                         <td class="text-center">
-                            <a *ngIf="contrato.detalles_count == 0" class="btnSiembra-Rebrote" title="Agregar detalles"
+                            <a *ngIf="contrato.detalles_count == 0 && contrato.estado === 'A'" class="btnSiembra-Rebrote" title="Agregar detalles"
                                 (click)="openDetailModal2(contrato.id)">
                                 <img src="/assets/images/agregarArchivo.png" width="24" height="24">
                             </a>
@@ -176,7 +176,7 @@
 
     <!-- Confirm Modal -->
     <div class="modal fade" tabindex="-1" aria-labelledby="confirmModalLabel" #confirmModal>
-        <div class="modal-dialog">
+        <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title" id="confirmModalLabel">Confirmar eliminación</h5>
@@ -188,6 +188,25 @@
                 <div class="modal-footer">
                     <button type="button" class="btn btn-danger" (click)="confirmDelete()">Sí</button>
                     <button type="button" class="btn btn-secondary" (click)="cancelDelete()">No</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Confirm Close Modal  -->
+        <div class="modal fade" tabindex="-1" aria-labelledby="confirmModalLabelA" #confirmModalAgreem>
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="confirmModalLabel">Confirmar cierre</h5>
+                    <button type="button" class="btn-close" aria-label="Cerrar" (click)="cancelCloseA()"></button>
+                </div>
+                <div class="modal-body">
+                    ¿Estás seguro de que deseas cerrar este contrato?
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-success" (click)="confirmCloseA()">Sí</button>
+                    <button type="button" class="btn btn-secondary" (click)="cancelCloseA()">No</button>
                 </div>
             </div>
         </div>
@@ -418,7 +437,7 @@
                     </table>
 
                     <!-- Formulario rápido -->
-                    <div class="row g-2 align-items-end">
+                    <div class="row g-2 align-items-end" *ngIf="selectedEstado === 'A'">
                         <div class="col-auto">
                             <label>Factura</label>
                             <input type="text" class="form-control form-control-sm" [(ngModel)]="nuevoAnticipo.factura"
