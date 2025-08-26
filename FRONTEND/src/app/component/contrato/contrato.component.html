@@ -2,20 +2,32 @@
 <div style="display: flex; align-items: start; gap: 15px;">
     <div style="white-space: nowrap;">
         <!-- Fila de filtros -->
-        <table class="table table-striped table-hover table-sm w-100%">
+        <table class="table table-striped table-hover table-sm w-100%" style="table-layout: fixed;">
             <colgroup>
-                <col> <!-- # -->
-                <col [width]="61"> <!-- Cerrar -->
-                <col [width]="230"> <!-- Cliente -->
-                <col [width]="80"> <!-- Año -->
-                <col [width]="100"> <!-- Fecha -->
-                <col> <!-- Anticipo -->
+                <col style="width: 1%;"> <!-- # -->
+                <col style="width: 6%;"> <!-- Cerrar -->
+                <col style="width: 1%;"> <!-- Cliente -->
+                <col style="width: 24%;"> <!-- Año -->
+                <col style="width: 4%;"> <!-- Fecha -->
+                <col style="width: 8%;"> <!-- Anticipo -->
                 <col> <!-- Saldo -->
                 <col> <!-- Detalles -->
-                <col [width]="80"> <!-- ... -->
+                <col> <!-- ... -->
+                <col>
+                <col>
             </colgroup>
             <tr>
                 <th class="p-1 flex-fill"></th>
+                <th class="p-1 flex-fill">
+                    <label for="estado" style="background-color: transparent">Estado:</label>
+                    <select class="form-select form-select-sm" [(ngModel)]="filtroEstado"
+                        (ngModelChange)="getContratosFiltrados()">
+                        <option [ngValue]="null">Todo</option>
+                        <option *ngFor="let e of estados" [ngValue]="e.value">
+                            {{ e.label }}
+                        </option>
+                    </select>
+                </th>
                 <th class="p-1 flex-fill"></th>
                 <th class="p-1 flex-fill">
                     <label for="cliente" style="background-color: transparent">Cliente:</label>
@@ -29,7 +41,7 @@
                 </th>
                 <th class="p-1 flex-fill">
                     <label for="anio" style="background-color: transparent">Año:</label>
-                    <input type="number" min="0" step="1" class="form-control form-control-sm" placeholder="Filtrar"
+                    <input type="number" min="0" step="1" class="form-control form-control-sm" placeholder="Todo"
                         [(ngModel)]="filtroAnio" (ngModelChange)="getContratosFiltrados()">
                 </th>
                 <th class="p-1 flex-fill">
@@ -37,15 +49,6 @@
                     <input type="date" class="form-control form-control-sm" placeholder="Filtrar Fecha"
                         [(ngModel)]="filtroFecha" (ngModelChange)="getContratosFiltrados()">
                 </th>
-                <th class="p-1 flex-fill">
-                    <label for="estado" style="background-color: transparent">Estado:</label>
-                    <select class="form-select form-select-sm" [(ngModel)]="filtroEstado"
-                        (ngModelChange)="getContratosFiltrados()">
-                        <option [ngValue]="null">Todo</option>
-                        <option *ngFor="let e of estados" [ngValue]="e.value">
-                            {{ e.label }}
-                        </option>
-                    </select>
                 <th class="p-1 flex-fill"></th>
                 <th class="p-1 flex-fill"></th>
                 <th class="p-1 flex-fill"></th>
@@ -59,21 +62,25 @@
                     <col> <!-- # -->
                     <col> <!-- Cerrar -->
                     <col> <!-- Cliente -->
-                    <col [width]="100"> <!-- Año -->
+                    <col> <!-- Año -->
                     <col> <!-- Fecha -->
                     <col> <!-- Anticipo -->
                     <col> <!-- Saldo -->
                     <col> <!-- Detalles -->
                     <col> <!-- ... -->
+                    <col>
+                    <col>
                 </colgroup>
                 <thead class="table-success" style="text-align: center;">
                     <tr>
                         <th class="">#</th>
                         <th>Cerrar</th>
+                        <th>Id</th>
                         <th>Cliente</th>
                         <th>Año</th>
                         <th>Fecha</th>
                         <th>Anticipo</th>
+                        <th>Embarcado</th>
                         <th>Saldo</th>
                         <th>Detalles</th>
                         <th>...</th>
@@ -87,8 +94,9 @@
                             {{ (paginaActual - 1) * itemsPorPagina + (i + 1) }}
                         </td>
                         <td class="d-flex justify-content-center align-items-center">
-                            <button class="btn btnAngosto " *ngIf="contrato.estado === 'A' && contrato.detalles_count > 0" ata-bs-toggle="tooltip"
-                                title="Cerrar contrato" style="background-color:#35e782 ;"
+                            <button class="btn btnAngosto "
+                                *ngIf="contrato.estado === 'A' && contrato.detalles_count > 0  && (totalAnticipo[contrato.id] || 0) > 0"
+                                ata-bs-toggle="tooltip" title="Cerrar contrato" style="background-color:#35e782 ;"
                                 (click)="openCloseAModal(contrato.id)">
                                 <i class="bi bi-check-circle"></i>
                             </button>
@@ -96,6 +104,9 @@
                                 style="color:#555e5993 ;">
                                 <i class="bi bi-check-lg"></i>
                             </button>
+                        </td>
+                        <td class="text-center">
+                            {{ contrato.id}}
                         </td>
                         <!-- Columna Cliente-->
                         <td>
@@ -110,18 +121,35 @@
                             {{ contrato.fecha | date: 'dd/MM/yyyy' }}
                         </td>
                         <td class="text-center">
-                            <a class="btnSiembra-Rebrote" title="Anticipo" (click)="openAnticipoModal(contrato.id, contrato.estado)">
+                            <a class="btnSiembra-Rebrote" title="Anticipo"
+                                (click)="openAnticipoModal(contrato.id, contrato.estado)">
                                 <span class="badge bg-info"
                                     style="background-color: #357ce7 !important; min-width: 80px; ">
                                     {{ totalAnticipo[contrato.id] || 0 | currency }}
                                 </span></a>
                         </td>
                         <td class="text-center">
-                            Na
+                            <a class="btnSiembra-Rebrote" title="Embarque" (click)="openEmbarqueModal(contrato.id)">
+                                <span class="badge bg-success"
+                                    style="background-color: #e7a035 !important; min-width: 80px; ">
+                                    {{ (contratoValorTroza[contrato.id] || 0) | currency }}
+                                </span>
+                            </a>
+                        </td>
+                        <td class="text-center">
+                            <a class="btnSiembra-Rebrote" title="Saldo">
+                                <span class="badge" style="min-width: 80px;" [ngClass]="{
+    'bg-success': (contratoSaldos[contrato.id]?.saldo ?? 0) >= 0,
+    'bg-danger': (contratoSaldos[contrato.id]?.saldo ?? 0) < 0
+  }">
+                                    {{ contratoSaldos[contrato.id]?.saldo ?? 0 | currency }}
+                                </span>
+                            </a>
                         </td>
                         <!-- Columna Ver -->
                         <td class="text-center">
-                            <a *ngIf="contrato.detalles_count == 0 && contrato.estado === 'A'" class="btnSiembra-Rebrote" title="Agregar detalles"
+                            <a *ngIf=" contrato.detalles_count <= 0 && contrato.estado === 'A'"
+                                class="btnSiembra-Rebrote" title="Agregar detalles"
                                 (click)="openDetailModal2(contrato.id)">
                                 <img src="/assets/images/agregarArchivo.png" width="24" height="24">
                             </a>
@@ -146,7 +174,7 @@
                 <tfoot>
                     <tr>
                         <!-- Ajusta el colspan al número de columnas de tu tabla -->
-                        <td [attr.colspan]="9" class="text-center">
+                        <td [attr.colspan]="11" class="text-center">
                             <pagination-controls (pageChange)="paginaActual = $event" [autoHide]="true" [maxSize]="15"
                                 previousLabel="«" nextLabel="»">
                             </pagination-controls>
@@ -162,8 +190,8 @@
                             title="Agregar registro"></button>
                 </div>
                 <div>
-                    <button class="btn btn-success mb-3" style="background: none; color: green; border: none;" title="Descargar registro"
-                        (click)="exportToPDF() ">
+                    <button class="btn btn-success mb-3" style="background: none; color: green; border: none;"
+                        title="Descargar registro" (click)="exportToPDF() ">
                         <i class="bi bi-file-earmark-pdf-fill fs-4"></i>
                     </button>
                 </div>
@@ -194,7 +222,7 @@
     </div>
 
     <!-- Confirm Close Modal  -->
-        <div class="modal fade" tabindex="-1" aria-labelledby="confirmModalLabelA" #confirmModalAgreem>
+    <div class="modal fade" tabindex="-1" aria-labelledby="confirmModalLabelA" #confirmModalAgreem>
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
                 <div class="modal-header">
@@ -301,12 +329,36 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
-
+                    <!-- Bloque info cabecera -->
+                    <div *ngIf="selectedContrato" class="mb-3">
+                        <div class="row g-2">
+                            <div class="col-sm-3">
+                                <small class="text-muted">Contrato</small>
+                                <div><strong>{{ selectedContrato.id}}</strong></div>
+                            </div>
+                            <div class="col-sm-3">
+                                <small class="text-muted">Cliente</small>
+                                <div><strong>{{ getClienteId(selectedContrato.cliente_id) }}</strong></div>
+                            </div>
+                            <div class="col-sm-3">
+                                <small class="text-muted">Fecha</small>
+                                <div><strong>{{ selectedContrato.fecha}}</strong></div>
+                            </div>
+                            <!-- Botón PDF -->
+                            <div class="col-sm-3 gap-2 d-flex justify-content-end align-items-start">
+                                <button class="btn btn-success mb-3"
+                                    style="background: none; color: green; border: none;" (click)="exportToPDF2()"
+                                    title="Descargar registro">
+                                    <i class="bi bi-file-earmark-pdf-fill fs-4"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
                     <!-- Tu tabla de detalle -->
                     <table class="table table-bordered table-sm">
                         <thead class="table-light">
                             <tr>
-                                <th>CIRCUNFERENCIA</th>
+                                <th>CIRCUNFERENCIA NETA</th>
                                 <th>PRECIO / m³</th>
                                 <th>LARGO (m)</th>
                                 <th>CARACTERÍSTICA</th>
@@ -321,7 +373,7 @@
                                     {{d.precioM3}}
                                 </td>
                                 <td>
-                                    {{d.largo}}
+                                    {{d.largo | number:'1.2-2' }}
                                 </td>
                                 <td>
                                     {{d.caracteristica}}
@@ -349,49 +401,81 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
-
-                    <!-- Tu tabla de detalle -->
-                    <table class="table table-bordered table-sm">
-                        <thead class="table-light">
-                            <tr>
-                                <th>CIRCUNFERENCIA</th>
-                                <th>PRECIO / m³</th>
-                                <th>LARGO (m)</th>
-                                <th>CARACTERÍSTICA</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr *ngFor="let d of nuevoDetContrato; let i = index">
-                                <td>
-                                    <input class="form-control form-control-sm" [(ngModel)]="d.circunferencia"
-                                        name="circunferencia" required>
-                                </td>
-                                <td>
-                                    <input type="number" class="form-control form-control-sm" [(ngModel)]="d.precioM3"
-                                        name="precioM3" required>
-                                </td>
-                                <td>
-                                    <input type="number" class="form-control form-control-sm" [(ngModel)]="d.largo"
-                                        name="largo" required>
-                                </td>
-                                <td>
-                                    <input class="form-control form-control-sm" [(ngModel)]="d.caracteristica"
-                                        name="caracteristica" required>
-                                </td>
-                                <td class="text-center">
-                                    <button class="btn btn-sm btn-danger" (click)="removeRow(i)">
-                                        &times;
-                                    </button>
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
-                    <div class="text-center">
-                        <button class="btn btn-outline-primary btn-sm " (click)="addRow()">
-                            + Agregar fila
-                        </button>
+                    <!-- Bloque info cabecera -->
+                    <div *ngIf="selectedContrato" class="mb-3">
+                        <div class="row g-2">
+                            <div class="col-sm-3">
+                                <small class="text-muted">Contrato</small>
+                                <div><strong>{{ selectedContrato.id}}</strong></div>
+                            </div>
+                            <div class="col-sm-3">
+                                <small class="text-muted">Cliente</small>
+                                <div><strong>{{ getClienteId(selectedContrato.cliente_id) }}</strong></div>
+                            </div>
+                            <div class="col-sm-3">
+                                <small class="text-muted">Fecha</small>
+                                <div><strong>{{ selectedContrato.fecha}}</strong></div>
+                            </div>
+                        </div>
                     </div>
-
+                    <form #fForm="ngForm" class="modal-body">
+                        <!-- Tu tabla de detalle -->
+                        <table class="table table-bordered table-sm">
+                            <thead class="table-light">
+                                <tr>
+                                    <!-- <th>Rango</th> -->
+                                    <th>CIRC (Desde)</th>
+                                    <th>CIRC (Hasta)</th>
+                                    <!-- <th>CIRCUNFERENCIA NETA</th> -->
+                                    <th>PRECIO / m³</th>
+                                    <th>LARGO (m)</th>
+                                    <th>CARACTERÍSTICA (obligatorio)</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr *ngFor="let d of nuevoDetContrato; let i = index">
+                                    <!-- <td class="text-center">
+                                        <input type="checkbox" [(ngModel)]="d.useRange" name="useRange{{i}}"
+                                            title="Usar rango">
+                                    </td> -->
+                                    <td>
+                                        <!-- <div *ngIf="!d.useRange">
+                                            <input type="number" class="form-control form-control-sm"
+                                                [(ngModel)]="d.circunferencia" name="circunferencia{{i}}" required>
+                                        </div> -->
+                                        <input type="number" min="0" step="1" class="form-control form-control-sm"
+                                            [(ngModel)]="d.desde" name="desde{{i}}" placeholder="Desde" required>
+                                    </td>
+                                    <td>
+                                        <input type="number" min="0" step="1" class="form-control form-control-sm"
+                                            [(ngModel)]="d.hasta" name="hasta{{i}}" placeholder="Hasta" required>
+                                    </td>
+                                    <td>
+                                        <input type="number" class="form-control form-control-sm"
+                                            [(ngModel)]="d.precioM3" name="precioM3{{i}}" required>
+                                    </td>
+                                    <td>
+                                        <input type="number" class="form-control form-control-sm" [(ngModel)]="d.largo"
+                                            name="largo{{i}}" required>
+                                    </td>
+                                    <td>
+                                        <input class="form-control form-control-sm" [(ngModel)]="d.caracteristica"
+                                            name="caracteristica{{i}}" required>
+                                    </td>
+                                    <td class="text-center">
+                                        <button class="btn btn-sm btn-danger" (click)="removeRow(i)">
+                                            &times;
+                                        </button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                        <div class="text-center">
+                            <button class="btn btn-outline-primary btn-sm " (click)="addRow()">
+                                + Agregar fila
+                            </button>
+                        </div>
+                    </form>
                 </div>
                 <div class="modal-footer">
                     <button class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
@@ -403,9 +487,119 @@
         </div>
     </div>
 
+    <!-- Modal de EmbarqueEmbarque -->
+    <div class="modal fade" id="embarqueModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Historial de Embarques</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div style="display: flex; align-items: start; gap: 15px;">
+                        <table class="table table-striped table-bordered table-hover table-sm w-100">
+                            <colgroup>
+                                <col> <!--  -->
+                                <col> <!--  -->
+                                <col> <!--  -->
+                                <col> <!--  -->
+                                <col> <!--  -->
+                                <col> <!--  -->
+                                <col> <!--  -->
+                                <col> <!--  -->
+                                <col> <!--  -->
+                                <col> <!--  -->
+                                <col> <!--  -->
+                                <col> <!--  -->
+                            </colgroup>
+                            <thead class="table-warning" style="text-align: center;">
+                                <tr>
+                                    <th>Bosque</th>
+                                    <th>Siembra Rebrote</th>
+                                    <th>Sello</th>
+                                    <th>Fecha</th>
+                                    <th>Árboles</th>
+                                    <th>N. viaje</th>
+                                    <th>Placa</th>
+                                    <th>Contenedor</th>
+                                    <th>Conductor</th>
+                                    <th>Supervisor</th>
+                                    <!-- <th>Detalles</th> -->
+                                </tr>
+                            </thead>
+                            <!-- Visualizar -->
+                            <tbody>
+                                <tr *ngFor="let corte of cortesFiltrados| paginate: { itemsPerPage: itemsPorPagina, currentPage: paginaActual }; let i = index"
+                                    [ngClass]="{'table-warning': corte.estado === 'C'}">
+                                    <!-- Columna Bosque-->
+                                    <td class="text-center">
+                                        {{ getBosqueId(corte.bosque_id) }}
+                                    </td>
+                                    <!-- Columna Siembra rebrote -->
+                                    <td class="text-center">
+                                        {{ getSiemRebTipo(getSiemRebId(corte.siembra_rebrote_id))}} - {{
+                                        getSiemRebAnio(corte.siembra_rebrote_id)}}
+                                    </td>
+                                    <!-- Columna Siembra rebrote -->
+                                    <td class="text-center">
+                                        {{ getSelloTipoId(corte.sello_id) }}
+                                    </td>
+                                    <!-- Columna Fecha -->
+                                    <td class="text-center">
+                                        {{ corte.fecha_embarque | date: 'dd/MM/yyyy' }}
+                                    </td>
+                                    <!-- Columna Cant -->
+                                    <td class="text-center">
+                                        {{ corte.cant_arboles | number: '1.0-0'}}
+                                    </td>
+                                    <!-- Columna N. viaje -->
+                                    <td class="text-center">
+                                        {{ corte.numero_viaje }}
+                                    </td>
+                                    <!-- Columna Placa carro -->
+                                    <td class="text-center">
+                                        {{ corte.placa_carro }}
+                                    </td>
+                                    <!-- Columna Contenedor -->
+                                    <td class="text-center">
+                                        {{ corte.contenedor }}
+                                    </td>
+                                    <!-- Columna Conductor -->
+                                    <td class="text-center">
+                                        {{ corte.conductor }}
+                                    </td>
+                                    <!-- Columna Supervisor -->
+                                    <td class="text-center">
+                                        {{ corte.supervisor }}
+                                    </td>
+                                    <!-- Columna Detalles -->
+                                    <!-- <td class="text-center">
+                                        <a class="btnSiembra-Rebrote"
+                                            title="Ver detalles" (click)="openDetailModal(corte.id)">
+                                            <img src="/assets/images/archivoDetalles.png" width="24" height="24">
+                                        </a>
+                                    </td> -->
+                                </tr>
+                            </tbody>
+                            <tfoot>
+                                <tr>
+                                    <!-- Ajusta el colspan al número de columnas de tu tabla -->
+                                    <td [attr.colspan]="10" class="text-center">
+                                        <pagination-controls (pageChange)="paginaActual = $event" [autoHide]="true"
+                                            [maxSize]="15" previousLabel="«" nextLabel="»">
+                                        </pagination-controls>
+                                    </td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
     <!-- Modal de Anticipo -->
     <div class="modal fade" id="anticipoModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-lg">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title">Historial de Anticipos</h5>

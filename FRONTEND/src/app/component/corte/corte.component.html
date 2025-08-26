@@ -2,20 +2,30 @@
 <div style="display: flex; align-items: start; gap: 15px;">
     <div style="white-space: nowrap;">
         <!-- Fila de filtros -->
-        <table class="table table-striped table-hover table-sm w-100%">
+        <table class="table table-striped table-hover table-sm w-100%" style="table-layout: fixed;">
             <colgroup>
-                <col> <!-- Cerrar -->
-                <col> <!-- Cliente -->
-                <col> <!-- Año -->
-                <col> <!-- Fecha -->
+                <col style="width: 4%;">
+                <col style="width: 4%;"> <!-- Cerrar -->
+                <col style="width: 17%;"> <!-- Cliente -->
+                <col style="width: 7%;"> <!-- Año -->
+                <col style="width: 8%;"> <!-- Fecha -->
+                <col style="width: 6%;">
+                <col style="width: 6%;">
+                <col>
+                <col>
+                <col>
+                <col>
+                <col>
+                <col>
             </colgroup>
             <tr>
+                <th></th>
                 <th class="p-1 flex-fill">
-                    <label for="bosques" style="background-color: transparent">Bosques:</label>
+                    <label for="bosques" style="background-color: transparent">Bosque:</label>
                     <select class="form-select form-select-sm" [(ngModel)]="filtroBosque"
-                        (ngModelChange)="getCortesFiltrados()">
+                        (ngModelChange)="getCortesFiltrados()" (ngModelChange)="onBosqueChange($event)">
                         <option [ngValue]="null">Todo</option>
-                        <option *ngFor="let b of bosques" [ngValue]="b.idbosques">
+                        <option *ngFor="let b of bosques" [ngValue]="b.id">
                             {{ b.nombre }}
                         </option>
                     </select>
@@ -25,8 +35,43 @@
                     <select class="form-select form-select-sm" [(ngModel)]="filtroContrato"
                         (ngModelChange)="getCortesFiltrados()">
                         <option [ngValue]="null">Todo</option>
-                        <option *ngFor="let e of cliente" [ngValue]="e.idcontrato">
-                            {{ e.NombreComercial }}
+                        <option *ngFor="let c of contrato" [ngValue]="c.id">
+                            {{ c.id}} - {{ getClienteId(c.cliente_id) }} - {{ c.anio }}
+                        </option>
+                    </select>
+                </th>
+                <th class="p-1 flex-fill">
+                    <label for="RaleoTipo" style="background-color: transparent">Raleo:</label>
+                    <select class="form-select form-select-sm" [(ngModel)]="filtroRaleoTipo"
+                        (ngModelChange)="getCortesFiltrados()">
+                        <option [ngValue]="null">Todo</option>
+                        <option *ngFor="let r of raleoTipo" [ngValue]="r.id">
+                            {{ r.nombre }}
+                        </option>
+                    </select>
+                </th>
+                <th>
+                    <label for="SiembraRebrote" style="background-color: transparent">Siembra Rebrote:</label>
+                    <select class="form-select form-select-sm" [(ngModel)]="filtroSiembraRebrote"
+                        (ngModelChange)="getCortesFiltrados()">
+                        <option [ngValue]="null">Todo</option>
+                        <option *ngFor="let s of siemRebFiltered" [ngValue]="s.id">
+                            {{ getSiemRebTipo(s.tipo_id) }} - {{ s.anio }}
+                        </option>
+                    </select>
+                </th>
+                <!-- <th>
+                    <label for="SiembraRebrote" style="background-color: transparent">Siembra Rebrote:</label>
+                    <input class="form-control form-control-sm" placeholder="Todo"
+                        [(ngModel)]="filtroSR" (ngModelChange)="getCortesFiltrados()">
+                </th> -->
+                <th class="p-1 flex-fill">
+                    <label for="SelloTipo" style="background-color: transparent">Sello:</label>
+                    <select class="form-select form-select-sm" [(ngModel)]="filtroSelloTipo"
+                        (ngModelChange)="getCortesFiltrados()">
+                        <option [ngValue]="null">Todo</option>
+                        <option *ngFor="let s of selloTipo" [ngValue]="s.id">
+                            {{ s.nombre }}
                         </option>
                     </select>
                 </th>
@@ -35,11 +80,11 @@
                     <input type="date" class="form-control form-control-sm" placeholder="Filtrar Fecha"
                         [(ngModel)]="filtroFecha" (ngModelChange)="getCortesFiltrados()">
                 </th>
-                <th class="p-1 flex-fill">
+                <!-- <th class="p-1 flex-fill">
                     <label for="NumeroViaje" style="background-color: transparent">NumeroViaje:</label>
                     <input type="number" min="0" step="1" class="form-control form-control-sm" placeholder="Filtrar"
                         [(ngModel)]="filtroNumeroViaje" (ngModelChange)="getCortesFiltrados()">
-                </th>
+                </th> -->
             </tr>
         </table>
 
@@ -62,22 +107,24 @@
                     <col> <!--  -->
                     <col> <!--  -->
                     <col>
+                    <col>
                 </colgroup>
                 <thead class="table-success" style="text-align: center;">
                     <tr>
                         <th>Cerrar</th>
                         <th>Bosque</th>
                         <th>Contrato</th>
-                        <th>Tipo de raleo</th>
+                        <th>Raleo</th>
                         <th>Siembra Rebrote</th>
                         <th>Sello</th>
-                        <th>Fecha Embarque</th>
-                        <th>Cantidad de arboles</th>
+                        <th>Fecha</th>
+                        <th>Árboles</th>
                         <th>N. viaje</th>
-                        <th>Placa Carro</th>
+                        <th>Placa</th>
                         <th>Contenedor</th>
                         <th>Conductor</th>
                         <th>Supervisor</th>
+                        <th>Valor Troza</th>
                         <th>Detalles</th>
                         <th>...</th>
                     </tr>
@@ -85,16 +132,17 @@
                 <!-- Visualizar -->
                 <tbody>
                     <tr *ngFor="let corte of cortesFiltrados| paginate: { itemsPerPage: itemsPorPagina, currentPage: paginaActual }; let i = index"
-                        [ngClass]="{'table-warning': corte.estado === 'C'}">
+                        [ngClass]="{'table-warning': corte.estado === 'C' || corte.raleo_tipo_id == 20 || corte.raleo_tipo_id == 21}">
                         <td class="d-flex justify-content-center align-items-center">
                             <button class="btn btnAngosto "
-                                *ngIf="corte.estado === 'A' && corte.detalle_cortes_count > 0" ata-bs-toggle="tooltip"
+                                *ngIf="corte.estado === 'A' && corte.detalle_cortes_count > 0" data-bs-toggle="tooltip"
                                 title="Cerrar contrato" style="background-color:#35e782 ;"
                                 (click)="openCloseAModal(corte.id)">
                                 <i class="bi bi-check-circle"></i>
                             </button>
-                            <button class="btn btnAngosto " *ngIf="corte.estado === 'C'" ata-bs-toggle="tooltip"
-                                style="color:#555e5993 ;">
+                            <button class="btn btnAngosto "
+                                *ngIf="corte.estado === 'C' || corte.raleo_tipo_id == 20 || corte.raleo_tipo_id == 21"
+                                data-bs-toggle="tooltip" style="color:#555e5993 ;">
                                 <i class="bi bi-check-lg"></i>
                             </button>
                         </td>
@@ -102,9 +150,11 @@
                         <td class="text-center">
                             {{ getBosqueId(corte.bosque_id) }}
                         </td>
-                        <!-- Columna Contrato -->
+                        <!-- Columna 
+                        -->
                         <td class="text-center">
-                            {{ getContratoId(corte.contrato_id) }}
+                            {{getContrId(corte.contrato_id)}} - {{ getClienteId(getContratoId(corte.contrato_id)) }} -
+                            {{getContratoAnio(corte.contrato_id)}}
                         </td>
                         <!-- Columna Tipo de raleo -->
                         <td class="text-center">
@@ -112,7 +162,8 @@
                         </td>
                         <!-- Columna Siembra rebrote -->
                         <td class="text-center">
-                            {{ getSiemRebId(corte.siembra_rebrote_id) }}
+                            {{ getSiemRebTipo(getSiemRebId(corte.siembra_rebrote_id))}} - {{
+                            getSiemRebAnio(corte.siembra_rebrote_id)}}
                         </td>
                         <!-- Columna Siembra rebrote -->
                         <td class="text-center">
@@ -124,7 +175,7 @@
                         </td>
                         <!-- Columna Cant -->
                         <td class="text-center">
-                            {{ corte.cant_arboles }}
+                            {{ corte.cant_arboles || corte.detalle_cortes_count | number: '1.0-0'}}
                         </td>
                         <!-- Columna N. viaje -->
                         <td class="text-center">
@@ -146,10 +197,13 @@
                         <td class="text-center">
                             {{ corte.supervisor }}
                         </td>
+                        <td>
+                            {{ (corteValorTroza[corte.id] || 0) | currency }}
+                        </td>
                         <!-- Columna Detalles -->
                         <td class="text-center">
-                            <a *ngIf="corte.estado === 'A'" class="btnSiembra-Rebrote" title="Agregar detalles"
-                                (click)="openDetailModal2(corte.id)">
+                            <a *ngIf="corte.estado === 'A'  && corte.contrato_id !== null " class="btnSiembra-Rebrote"
+                                title="Agregar detalles" (click)="openDetailModal2(corte.id)">
                                 <img src="/assets/images/agregarArchivo.png" width="24" height="24">
                             </a>
                             <a *ngIf="corte.detalle_cortes_count > 0" class="btnSiembra-Rebrote" title="Ver detalles"
@@ -159,7 +213,7 @@
                         </td>
                         <!-- Acciones -->
                         <td class="d-flex justify-content-center align-items-center" *ngIf="corte.estado === 'A'">
-                            <button class="btn btnAngosto" ata-bs-toggle="tooltip" title="Editar registro"
+                            <button class="btn btnAngosto" data-bs-toggle="tooltip" title="Editar registro"
                                 style="background-color:#e7bd35 ;" (click)="startEdit(corte.id)">
                                 <i class="bi bi-pencil"></i>
                             </button>
@@ -173,7 +227,7 @@
                 <tfoot>
                     <tr>
                         <!-- Ajusta el colspan al número de columnas de tu tabla -->
-                        <td [attr.colspan]="14" class="text-center">
+                        <td [attr.colspan]="16" class="text-center">
                             <pagination-controls (pageChange)="paginaActual = $event" [autoHide]="true" [maxSize]="15"
                                 previousLabel="«" nextLabel="»">
                             </pagination-controls>
@@ -184,10 +238,21 @@
         </div>
     </div>
     <div class="d-flex align-items-center ">
-        <div style="margin-bottom: 14px;">
-            <button data-bs-toggle="modal" data-bs-target="#miModal" ata-bs-toggle="tooltip"
-                style="border:none; background:none; " title="Agregar registro"> <img src="/assets/images/nuevo.png"
-                    width="30" height="31" ata-bs-toggle="tooltip" title="Agregar registro"></button>
+        <div style="margin-bottom: 14px;" class="dropdown">
+            <button data-bs-toggle="modal" data-bs-target="#miModal" title="Agregar registro"
+                style="border:none; background:none;">
+                <img src="/assets/images/nuevo.png" width="30" height="31" alt="Agregar" title="Agregar registro">
+            </button>
+            <!-- <button id="btnAddDropdown" class="btn" type="button" data-bs-toggle="dropdown" aria-expanded="false"
+                title="Agregar registro" style="border:none; background:none;">
+                <img src="/assets/images/nuevo.png" width="30" height="31" alt="Agregar" data-bs-toggle="tooltip"
+                    data-bs-placement="bottom" title="Agregar registro">
+            </button> -->
+            <!-- <ul class="dropdown-menu" aria-labelledby="btnAddDropdown">
+                <li><button class="dropdown-item" (click)="onClickComercial()">Comercial</button></li>
+                <li><button class="dropdown-item" (click)="onClickSemiComercial()">No comercial</button></li>
+                <li><button class="dropdown-item" (click)="onClickBasureo()">Basureo</button></li>
+            </ul> -->
         </div>
         <div>
             <button class="btn btn-success mb-3" style="background: none; color: green; border: none;"
@@ -200,7 +265,7 @@
 
 <!-- Confirm Modal -->
 <div class="modal fade" tabindex="-1" aria-labelledby="confirmModalLabel" #confirmModal>
-    <div class="modal-dialog">
+    <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title" id="confirmModalLabel">Confirmar eliminación</h5>
@@ -249,46 +314,52 @@
             <form #fForm="ngForm" class="modal-body">
                 <div class="d-flex flex-wrap gap-2" style="margin-top: 15px; margin-bottom: 15px;">
                     <div>
+                        <label>Raleo:</label>
+                        <select class="form-select" [(ngModel)]="selectedRaleo" (ngModelChange)="onRaleoChange($event)"
+                            name="raleo_tipo_id" required class="form-select form-select-sm">
+                            <option [ngValue]="null">-- Seleccione Raleo --</option>
+                            <option *ngFor="let c of raleoTipo" [ngValue]="c.id">
+                                {{ c.nombre }}
+                            </option>
+                        </select>
+                    </div>
+                    <div *ngIf="isRaleoComercial()">
+                        <label>Contrato:</label>
+                        <select class="form-select" [(ngModel)]="nuevoCorte.contrato_id" name="contrato"
+                            [required]="isRaleoComercial()">
+                            <option [ngValue]="null">-- Seleccione contrato --</option>
+                            <option *ngFor="let c of contrato" [ngValue]="c.id">
+                                {{ c.id }} - {{ getClienteId(c.cliente_id) }} - {{ c.anio }}
+                            </option>
+                        </select>
+                    </div>
+                    <div>
                         <label>Nombre del Bosque</label>
-                        <select class="form-select form-select-sm" [(ngModel)]="nuevoCorte.bosque_id" name="bosque_id"
-                            required class="form-select form-select-sm">
+                        <select class="form-select form-select-sm" [(ngModel)]="nuevoCorte.bosque_id"
+                            (ngModelChange)="onBosqueChange($event)" name="bosque_id" required
+                            class="form-select form-select-sm">
                             <option [ngValue]="null">-- Seleccione --</option>
                             <option *ngFor="let b of bosques" [ngValue]="b.id">
                                 {{ b.nombre }}
                             </option>
                         </select>
                     </div>
-                    <div>
-                        <label>Nombre del Contrato</label>
-                        <select class="form-select form-select-sm" [(ngModel)]="nuevoCorte.contrato_id"
-                            name="contrato_id" required class="form-select form-select-sm">
-                            <option [ngValue]="null">-- Seleccione --</option>
-                            <option *ngFor="let b of cliente" [ngValue]="b.id">
-                                {{ b.NombreComercial }}
-                            </option>
-                        </select>
-                    </div>
                 </div>
                 <div class="d-flex flex-wrap gap-2" style="margin-top: 15px; margin-bottom: 15px;">
-                    <div style="margin-bottom: 15px;">
-                        <label>Tipo de raleo</label>
-                        <select class="form-select form-select-sm" [(ngModel)]="nuevoCorte.raleo_tipo_id"
-                            name="raleo_tipo_id" required class="form-select form-select-sm">
-                            <option [ngValue]="null">-- Seleccione --</option>
-                            <option *ngFor="let b of raleoTipo" [ngValue]="b.id">
-                                {{ b.nombre }}
-                            </option>
-                        </select>
-                    </div>
                     <div style="margin-bottom: 15px;">
                         <label>Siembra Rebrote</label>
                         <select class="form-select form-select-sm" [(ngModel)]="nuevoCorte.siembra_rebrote_id"
                             name="siembra_rebrote_id" required class="form-select form-select-sm">
                             <option [ngValue]="null">-- Seleccione --</option>
-                            <option *ngFor="let b of siemReb" [ngValue]="b.id">
-                                {{ b.id }}
+                            <option *ngFor="let s of siemRebFiltered" [ngValue]="s.id">
+                                {{ getSiemRebTipo(s.tipo_id)}} - {{s.anio}}
                             </option>
                         </select>
+                    </div>
+                    <div *ngIf="!isRaleoComercial() && selectedRaleo != null">
+                        <label>Arboles</label>
+                        <input type="number" class="form-control form-control-sm" [(ngModel)]="nuevoCorte.cant_arboles"
+                            name="cant_arboles" required>
                     </div>
                     <div style="margin-bottom: 15px;">
                         <label>Sello</label>
@@ -339,7 +410,8 @@
                 </div>
             </form>
             <div class="modal-footer">
-                <button type="button" class="btn btn-primary" (click)="onSave()">Guardar</button>
+                <button type="button" class="btn btn-primary" (click)="onSave()"
+                    [disabled]="fForm.form.invalid">Guardar</button>
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"
                     (click)="cancelEdit()">Cerrar</button>
             </div>
@@ -453,7 +525,7 @@
                 </div>
                 <div class="modal-footer">
                     <button class="btnSaveEdit" (click)="saveEdit()">
-                        <i class="bi bi-save2"></i>Guardar
+                        <i class="bbi bi-save2"></i>Guardar
                     </button>
                     <button type="button" class="btnCancelEdit" data-bs-dismiss="modal"><i
                             class="bi bi-x-lg"></i>Cancelar</button>
@@ -473,7 +545,64 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
+                <!-- Bloque info cabecera -->
+                <div *ngIf="selectedCorte" class="mb-3">
+                    <div class="row g-2">
+                        <div class="col-sm-3">
+                            <small class="text-muted">Bosque</small>
+                            <div><strong>{{ getBosqueId(selectedCorte.bosque_id) }}</strong></div>
+                        </div>
+                        <div class="col-sm-3">
+                            <small class="text-muted">Contrato</small>
+                            <div>
+                                <strong>
+                                    {{ getContrId(selectedCorte.contrato_id) }} -
+                                    {{ getClienteId( getContratoId(selectedCorte.contrato_id) ) }}
+                                    {{ getContratoAnio(selectedCorte.contrato_id) ? (' - ' +
+                                    getContratoAnio(selectedCorte.contrato_id)) : '' }}
+                                </strong>
+                            </div>
+                        </div>
+                        <div class="col-sm-2">
+                            <small class="text-muted">Raleo</small>
+                            <div><strong>{{ getRaleoId(selectedCorte.raleo_tipo_id) }}</strong></div>
+                        </div>
+                        <div class="col-sm-2">
+                            <small class="text-muted">Siembra / Rebrote</small>
+                            <div><strong>{{ getSiemRebTipo(getSiemRebId(selectedCorte.siembra_rebrote_id)) }} - {{
+                                    getSiemRebAnio(selectedCorte.siembra_rebrote_id) }}</strong></div>
+                        </div>
+                        <div class="col-sm-2">
+                            <small class="text-muted">Sello</small>
+                            <div><strong>{{ getSelloTipoId(selectedCorte.sello_id) }}</strong></div>
+                        </div>
 
+                        <div class="col-sm-3 mt-2">
+                            <small class="text-muted">Fecha embarque</small>
+                            <div><strong>{{ selectedCorte.fecha_embarque | date:'dd/MM/yyyy' }}</strong></div>
+                        </div>
+                        <div class="col-sm-3 mt-2">
+                            <small class="text-muted">Árboles</small>
+                            <div><strong>{{ selectedCorte.cant_arboles || selectedCorte.detalle_cortes_count || 0
+                                    }}</strong></div>
+                        </div>
+                        <div class="col-sm-3 mt-2">
+                            <small class="text-muted">N. viaje</small>
+                            <div><strong>{{ selectedCorte.numero_viaje }}</strong></div>
+                        </div>
+                        <div class="col-sm-3 mt-2">
+                            <small class="text-muted">Placa / Contenedor</small>
+                            <div><strong>{{ selectedCorte.placa_carro }} / {{ selectedCorte.contenedor }}</strong></div>
+                        </div>
+                    </div>
+                </div>
+                <!-- Botón PDF -->
+                <div class="col-sm-3">
+                    <button class="btn btn-success mb-3" style="background: none; color: green; border: none;"
+                        (click)="exportToPDF2()" title="Descargar registro">
+                        <i class="bi bi-file-earmark-pdf-fill fs-4"></i>
+                    </button>
+                </div>
                 <!-- Tu tabla de detalle -->
                 <table class="table table-bordered table-sm">
                     <thead class="table-light">
@@ -521,9 +650,9 @@
                             <td colspan="1"><strong>Total:</strong></td>
                             <td><strong>{{ totalCircBruta }}</strong></td>
                             <td><strong>{{ totalCircNeta }}</strong></td>
-                            <td><strong>{{ totalLargoBruto }}</strong></td>
-                            <td><strong>{{ totalLargoNeto }}</strong></td>
-                            <td><strong>{{ totalMCubica }}</strong></td>
+                            <td><strong>{{ totalLargoBruto | number:'1.2-2'}}</strong></td>
+                            <td><strong>{{ totalLargoNeto | number:'1.2-2'}}</strong></td>
+                            <td><strong>{{ totalMCubica | number:'1.2-2'}}</strong></td>
                             <td><strong>{{ totalValorMCubico | currency}}</strong></td>
                             <td><strong>{{ totalValorTroza | currency}}</strong></td>
                         </tr>
@@ -548,7 +677,56 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
+                <div *ngIf="selectedCorte" class="mb-3">
+                    <div class="row g-2">
+                        <div class="col-sm-3">
+                            <small class="text-muted">Bosque</small>
+                            <div><strong>{{ getBosqueId(selectedCorte.bosque_id) }}</strong></div>
+                        </div>
+                        <div class="col-sm-3">
+                            <small class="text-muted">Contrato</small>
+                            <div>
+                                <strong>
+                                    {{ getContrId(selectedCorte.contrato_id) }} -
+                                    {{ getClienteId( getContratoId(selectedCorte.contrato_id) ) }}
+                                    {{ getContratoAnio(selectedCorte.contrato_id) ? (' - ' +
+                                    getContratoAnio(selectedCorte.contrato_id)) : '' }}
+                                </strong>
+                            </div>
+                        </div>
+                        <div class="col-sm-2">
+                            <small class="text-muted">Raleo</small>
+                            <div><strong>{{ getRaleoId(selectedCorte.raleo_tipo_id) }}</strong></div>
+                        </div>
+                        <div class="col-sm-2">
+                            <small class="text-muted">Siembra / Rebrote</small>
+                            <div><strong>{{ getSiemRebTipo(getSiemRebId(selectedCorte.siembra_rebrote_id)) }} - {{
+                                    getSiemRebAnio(selectedCorte.siembra_rebrote_id) }}</strong></div>
+                        </div>
+                        <div class="col-sm-2">
+                            <small class="text-muted">Sello</small>
+                            <div><strong>{{ getSelloTipoId(selectedCorte.sello_id) }}</strong></div>
+                        </div>
 
+                        <div class="col-sm-3 mt-2">
+                            <small class="text-muted">Fecha embarque</small>
+                            <div><strong>{{ selectedCorte.fecha_embarque | date:'dd/MM/yyyy' }}</strong></div>
+                        </div>
+                        <div class="col-sm-3 mt-2">
+                            <small class="text-muted">Árboles</small>
+                            <div><strong>{{ selectedCorte.cant_arboles || selectedCorte.detalle_cortes_count || 0
+                                    }}</strong></div>
+                        </div>
+                        <div class="col-sm-3 mt-2">
+                            <small class="text-muted">N. viaje</small>
+                            <div><strong>{{ selectedCorte.numero_viaje }}</strong></div>
+                        </div>
+                        <div class="col-sm-3 mt-2">
+                            <small class="text-muted">Placa / Contenedor</small>
+                            <div><strong>{{ selectedCorte.placa_carro }} / {{ selectedCorte.contenedor }}</strong></div>
+                        </div>
+                    </div>
+                </div>
                 <!-- Tu tabla de detalle -->
                 <table class="table table-bordered table-sm">
                     <thead class="table-light">
@@ -587,10 +765,10 @@
 
             </div>
             <div class="modal-footer">
-                <button class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
                 <button class="btn btn-primary" (click)="onSaveDet()" data-bs-dismiss="modal">
                     Aceptar
                 </button>
+                <button class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
             </div>
         </div>
     </div>

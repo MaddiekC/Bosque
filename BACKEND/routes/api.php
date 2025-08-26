@@ -54,7 +54,8 @@ Route::group(
         Route::put('/bosques/{id}/inactive', [BosqueController::class, 'destroy']); // Marcar un bosque como inactivo
 
         Route::get('/cabecera-cortes', [CabeceraCorteController::class, 'index']); // Listar todas las cabeceras de corte
-        Route::get('/cabecera-cortes/{id}', [CabeceraCorteController::class, 'show']); // Ver una cabecera de corte por ID
+        Route::get('/cabecera-corte/{id}', [CabeceraCorteController::class, 'show']); // Ver una cabecera de corte por ID
+        Route::get('/cabecera-cortes/contrato/{contrato_id}', [CabeceraCorteController::class, 'getContrato']); // Ver una cabecera de corte por contrato ID
         Route::get('corte/count-by-SR/{id}', function ($id) {
             return response()->json(\App\Models\CabeceraCorte::where('siembra_rebrote_id', $id)->count());
         });
@@ -64,6 +65,7 @@ Route::group(
         Route::put('/cortes/{cabecera_corte_id}/close', [CabeceraCorteController::class, 'closeCorte']); // Marcar un contrato como cerrado
 
         Route::get('/detalle-cortes', [DetalleCorteController::class, 'index']); // Listar todos los detalles de corte
+        Route::get('/detalle-cortes/valor-troza-all', [DetalleCorteController::class, 'valorTrozaAll']);
         Route::get('/detalle-cortes/{cabecera_corte_id}', [DetalleCorteController::class, 'show']); // Ver un detalle de corte por ID
         Route::get('detalle-cortes/count/{cabecera_corte_id}', [DetalleCorteController::class, 'count']); // Contar detalles de corte por cabecera
         Route::post('/detalle-cortes', [DetalleCorteController::class, 'store']); // Crear un detalle de corte
@@ -84,6 +86,8 @@ Route::group(
         Route::put('/siembra-rebrotes/{id}', [SiembraRebroteController::class, 'update']); // Actualizar una siembra/rebrote (PUT)
         Route::put('/siembra-rebrotes/{id}/inactive', [SiembraRebroteController::class, 'destroy']); // Marcar una siembra/rebrote como inactiva
 
+        Route::get('/contratos/saldos', [ContratoController::class, 'saldosAll']);
+        Route::get('/contratos/valor-troza', [ContratoController::class, 'valorTrozaAll']);
         Route::get('/contratos', [ContratoController::class, 'index']); // Listar todos los contratos
         Route::get('/contratos/{id}', [ContratoController::class, 'show']); // Ver un contrato por ID
         Route::post('/contratos', [ContratoController::class, 'store']); // Crear un contrato

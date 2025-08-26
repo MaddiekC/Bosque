@@ -21,10 +21,25 @@ class CabeceraCorteController extends Controller
     {
         $cabeceraCorte = CabeceraCorte::with(['bosque', 'contrato', 'siembraRebrote', 'raleoTipo', 'sello'])
             ->find($id);
-        if (!$cabeceraCorte || $cabeceraCorte->estado !== 'A') {
+
+        if (!$cabeceraCorte) { 
             return response()->json(['message' => 'Cabecera de corte no encontrada'], 404);
         }
 
+        // devolver la cabecera independientemente del estado (A, C, etc.)
+        return response()->json($cabeceraCorte, 200);
+    }
+
+    public function getContrato($contrato_id)
+    {
+        $cabeceraCorte = CabeceraCorte::with(['bosque', 'siembraRebrote', 'raleoTipo', 'sello'])
+            ->where('contrato_id', $contrato_id)
+            ->where('estado', 'A') // opcional: solo activas
+            ->orderBy('fecha_embarque', 'desc')
+            ->get();
+        if ($cabeceraCorte->isEmpty()) {
+            return response()->json([], 200);
+        }
         return response()->json($cabeceraCorte);
     }
 
@@ -32,7 +47,7 @@ class CabeceraCorteController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'bosque_id' => 'required|integer|exists:bosque,id',
-            'contrato_id' => 'required|integer|exists:contrato,id',
+            //'contrato_id' => 'required|integer|exists:contrato,id',
             'raleo_tipo_id' => 'required|integer|exists:parametro,id',
             'siembra_rebrote_id' => 'nullable|integer|exists:siembra_rebrote,id',
             'sello_id' => 'required|integer|exists:parametro,id',
@@ -50,7 +65,7 @@ class CabeceraCorteController extends Controller
         }
         $user = $request->user(); // obtiene el User autenticado
         $cabeceraCorte = CabeceraCorte::create([
-            'bosque_id ' => $request->bosque_id,
+            'bosque_id' => $request->bosque_id,
             'contrato_id'  => $request->contrato_id,
             'raleo_tipo_id' => $request->raleo_tipo_id,
             'siembra_rebrote_id' => $request->siembra_rebrote_id,
@@ -77,18 +92,18 @@ class CabeceraCorteController extends Controller
 
         $user = $request->user();
         $validator = Validator::make($request->all(), [
-            'bosque_id' => 'nullable|integer|exists:bosque,id',
-            'contrato_id' => 'nullable|integer|exists:contrato,id',
-            'raleo_tipo_id' => 'nullable|integer|exists:parametro,id',
-            'siembra_rebrote_id' => 'nullable|integer|exists:siembra_rebrote,id',
-            'sello_id' => 'nullable|integer|exists:parametro,id',
-            'fecha_embarque' => 'nullable|date',
+            'bosque_id' => 'required|integer|exists:bosque,id',
+            'contrato_id' => 'required|integer|exists:contrato,id',
+            'raleo_tipo_id' => 'required|integer|exists:parametro,id',
+            'siembra_rebrote_id' => 'required|integer|exists:siembra_rebrote,id',
+            'sello_id' => 'required|integer|exists:parametro,id',
+            'fecha_embarque' => 'required|date',
             //'cant_arboles' => 'nullable|integer|min:1',
-            'numero_viaje' => 'nullable|integer|min:1',
-            'placa_carro' => 'nullable|string|max:50',
-            'contenedor' => 'nullable|string|max:50',
-            'conductor' => 'nullable|string|max:200',
-            'supervisor' => 'nullable|string|max:200'
+            'numero_viaje' => 'required|integer|min:1',
+            'placa_carro' => 'required|string|max:50',
+            'contenedor' => 'required|string|max:50',
+            'conductor' => 'required|string|max:200',
+            'supervisor' => 'required|string|max:200'
         ]);
 
         if ($validator->fails()) {

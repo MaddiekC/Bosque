@@ -43,7 +43,10 @@ export class ApiService {
     return this.http.get(`${this.baseUrl}/cabecera-cortes`);
   }
   getCabeceraCorte(id: number): Observable<any> {
-    return this.http.get(`${this.baseUrl}/cabecera-cortes/${id}`);
+    return this.http.get(`${this.baseUrl}/cabecera-corte/${id}`);
+  }
+  getCabeceraCorteByContrato(contratoId: number): Observable<any> {
+    return this.http.get(`${this.baseUrl}/cabecera-cortes/contrato/${contratoId}`);
   }
   postCabeceraCorte(cabeceraCorte: any): Observable<any> {
     return this.http.post(`${this.baseUrl}/cabecera-cortes`, cabeceraCorte);
@@ -66,6 +69,9 @@ export class ApiService {
   }
   getDetalleCorte(cabecera_corte_id: number): Observable<any> {
     return this.http.get(`${this.baseUrl}/detalle-cortes/${cabecera_corte_id}`);
+  }
+  getValorTrozaAll2() : Observable<Record<number, number>> {
+    return this.http.get<Record<number, number>>(`${this.baseUrl}/detalle-cortes/valor-troza-all`);
   }
   countDetalleCorte(cabecera_corte_id: number): Observable<any> {
     return this.http.get<number>(`${this.baseUrl}/detalle-cortes/count/${cabecera_corte_id}`);
@@ -111,6 +117,13 @@ export class ApiService {
   }
 
   //-----CONTRATO-------//
+  getValorTrozaAll(): Observable<Record<number, number>> {
+    return this.http.get<Record<number, number>>(`${this.baseUrl}/contratos/valor-troza`);
+  }
+  getSaldosAll(): Observable<Record<string, { embarcado: number, anticipos: number, saldo: number }>> {
+    return this.http.get<Record<string, { embarcado: number, anticipos: number, saldo: number }>>(`${this.baseUrl}/contratos/saldos`);
+  }
+
   getContratos(): Observable<any> {
     return this.http.get(`${this.baseUrl}/contratos`);
   }

@@ -18,7 +18,7 @@ class CabeceraCorte extends Model
         'siembra_rebrote_id',
         'sello_id',
         'fecha_embarque',
-        //'cant_arboles',
+        'cant_arboles',
         'numero_viaje',
         'placa_carro',
         'contenedor',
