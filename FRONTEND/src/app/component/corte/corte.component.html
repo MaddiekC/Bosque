@@ -174,11 +174,11 @@
                             {{ corte.fecha_embarque | date: 'dd/MM/yyyy' }}
                         </td>
                         <!-- Columna Cant -->
-                        <td class="text-center">
+                        <td>
                             {{ corte.cant_arboles || corte.detalle_cortes_count | number: '1.0-0'}}
                         </td>
                         <!-- Columna N. viaje -->
-                        <td class="text-center">
+                        <td>
                             {{ corte.numero_viaje }}
                         </td>
                         <!-- Columna Placa carro -->
@@ -312,6 +312,9 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
             </div>
             <form #fForm="ngForm" class="modal-body">
+                <div *ngIf="saveCantError" class="alert alert-danger" role="alert">
+                    {{ saveCantError }}
+                </div>
                 <div class="d-flex flex-wrap gap-2" style="margin-top: 15px; margin-bottom: 15px;">
                     <div>
                         <label>Raleo:</label>
@@ -596,71 +599,81 @@
                         </div>
                     </div>
                 </div>
+                <!-- Tu tabla de detalle -->
+                <div class="table-scroll">
+                    <table class="table table-bordered table-sm">
+                        <thead class="table-light text-center">
+                            <tr>
+                                <th rowspan="2">#TROZAS</th>
+                                <th colspan="2">CIRCUNFERENCIA</th>
+                                <th colspan="2">LARGO</th>
+                                <th rowspan="2">M³</th>
+                                <th colspan="2">VALOR</th>
+                            </tr>
+                            <tr class="text-center">
+                                <th>BRUTA</th>
+                                <th>NETA</th>
+                                <th>BRUTO</th>
+                                <th>NETO</th>
+                                <th>M³</th>
+                                <th>TROZA</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr *ngFor="let d of listDetCortes">
+                                <td>
+                                    {{d.trozas}}
+                                </td>
+                                <td>
+                                    {{d.circ_bruta}}
+                                </td>
+                                <td>
+                                    {{d.circ_neta}}
+                                </td>
+                                <td>
+                                    {{d.largo_bruto | number:'1.2-2' }}
+                                </td>
+                                <td>
+                                    {{d.largo_neto | number:'1.2-2' }}
+                                </td>
+                                <td>
+                                    {{d.m_cubica | number:'1.4-4' }}
+                                </td>
+                                <td>
+                                    {{d.valor_mcubico | currency }}
+                                </td>
+                                <td>
+                                    {{d.valor_troza | currency }}
+                                </td>
+                            </tr>
+                        </tbody>
+                        <tfoot>
+                            <tr>
+                                <td colspan="1"><strong>TOTAL:</strong></td>
+                                <td><strong>{{ totalCircBruta }}</strong></td>
+                                <td><strong>{{ totalCircNeta }}</strong></td>
+                                <td><strong>{{ totalLargoBruto | number:'1.2-2'}}</strong></td>
+                                <td><strong>{{ totalLargoNeto | number:'1.2-2'}}</strong></td>
+                                <td><strong>{{ totalMCubica | number:'1.2-2'}}</strong></td>
+                                <td><strong>{{ totalValorMCubico | currency}}</strong></td>
+                                <td><strong>{{ totalValorTroza | currency}}</strong></td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer">
                 <!-- Botón PDF -->
-                <div class="col-sm-3">
+                <div class="col-sm-3" style="margin-right: auto;">
                     <button class="btn btn-success mb-3" style="background: none; color: green; border: none;"
                         (click)="exportToPDF2()" title="Descargar registro">
                         <i class="bi bi-file-earmark-pdf-fill fs-4"></i>
                     </button>
                 </div>
-                <!-- Tu tabla de detalle -->
-                <table class="table table-bordered table-sm">
-                    <thead class="table-light">
-                        <tr>
-                            <th>#TROZAS</th>
-                            <th>CIRCUNFERENCIA BRUTA</th>
-                            <th>CIRCUNFERENCIA NETA</th>
-                            <th>LARGO BRUTO (m)</th>
-                            <th>LARGO NETO (m)</th>
-                            <th>M³</th>
-                            <th>VALOR M³</th>
-                            <th>VALOR TROZA</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr *ngFor="let d of listDetCortes">
-                            <td>
-                                {{d.trozas}}
-                            </td>
-                            <td>
-                                {{d.circ_bruta}}
-                            </td>
-                            <td>
-                                {{d.circ_neta}}
-                            </td>
-                            <td>
-                                {{d.largo_bruto | number:'1.2-2' }}
-                            </td>
-                            <td>
-                                {{d.largo_neto | number:'1.2-2' }}
-                            </td>
-                            <td>
-                                {{d.m_cubica | number:'1.4-4' }}
-                            </td>
-                            <td>
-                                {{d.valor_mcubico | number:'1.2-2' }}
-                            </td>
-                            <td>
-                                {{d.valor_troza | number:'1.2-2' }}
-                            </td>
-                        </tr>
-                    </tbody>
-                    <tfoot>
-                        <tr>
-                            <td colspan="1"><strong>Total:</strong></td>
-                            <td><strong>{{ totalCircBruta }}</strong></td>
-                            <td><strong>{{ totalCircNeta }}</strong></td>
-                            <td><strong>{{ totalLargoBruto | number:'1.2-2'}}</strong></td>
-                            <td><strong>{{ totalLargoNeto | number:'1.2-2'}}</strong></td>
-                            <td><strong>{{ totalMCubica | number:'1.2-2'}}</strong></td>
-                            <td><strong>{{ totalValorMCubico | currency}}</strong></td>
-                            <td><strong>{{ totalValorTroza | currency}}</strong></td>
-                        </tr>
-                    </tfoot>
-                </table>
-            </div>
-            <div class="modal-footer">
-                <button class="btn btn-secondary" data-bs-dismiss="modal" (click)="closeDetailModal()">Cerrar</button>
+                <div>
+                    <button class="btn btn-secondary" data-bs-dismiss="modal"
+                        (click)="closeDetailModal()">Cerrar</button>
+                </div>
             </div>
         </div>
     </div>
@@ -677,6 +690,9 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
+                <div *ngIf="saveDetError" class="alert alert-danger" role="alert">
+                    {{ saveDetError }}
+                </div>
                 <div *ngIf="selectedCorte" class="mb-3">
                     <div class="row g-2">
                         <div class="col-sm-3">
@@ -729,7 +745,7 @@
                 </div>
                 <!-- Tu tabla de detalle -->
                 <table class="table table-bordered table-sm">
-                    <thead class="table-light">
+                    <thead class="table-light text-center">
                         <tr>
                             <th>#TROZAS</th>
                             <th>CIRCUNFERENCIA BRUTA</th>
@@ -765,7 +781,7 @@
 
             </div>
             <div class="modal-footer">
-                <button class="btn btn-primary" (click)="onSaveDet()" data-bs-dismiss="modal">
+                <button class="btn btn-primary" (click)="onSaveDet()">
                     Aceptar
                 </button>
                 <button class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>

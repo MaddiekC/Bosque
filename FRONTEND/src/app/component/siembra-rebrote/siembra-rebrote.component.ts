@@ -277,21 +277,6 @@ export class SiembraRebroteComponent implements AfterViewInit {
   }
 
   onSave() {
-    // // 1) Chequeo de campos vacíos
-    // const f = this.nuevaSiembraRebrote;
-    // if (
-    //   !f.bosque_id ||
-    //   !f.tipo_id ||
-    //   !f.tipo_arbol_id ||
-    //   !f.fecha ||
-    //   f.hectarea_usada === null || f.hectarea_usada === undefined ||
-    //   f.arb_iniciales === null || f.arb_iniciales === undefined ||
-    //   !f.dist_siembra.trim()
-    // ) {
-    //   alert('Por favor completa todos los campos obligatorios antes de guardar.');
-    //   return;
-    // }
-
     // 2) Chequeo de hectáreas disponibles
     const nueva = Number(this.nuevaSiembraRebrote.hectarea_usada);
     const disponibleRestante = this.hectareaDisponible - this.hectareaUsadaAntes;
@@ -371,7 +356,7 @@ export class SiembraRebroteComponent implements AfterViewInit {
       columns,
       body: rows,
       headStyles: {
-        fillColor: [0, 127, 0],    
+        fillColor: [0, 127, 0],
         textColor: 255
       },
       showHead: 'everyPage'

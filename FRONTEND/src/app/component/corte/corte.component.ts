@@ -7,6 +7,7 @@ import { FormsModule } from '@angular/forms';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { forkJoin } from 'rxjs';
+import { AuthserviceService } from '../../auth/authservice.service';
 
 declare const bootstrap: any;
 
@@ -80,6 +81,8 @@ export class CorteComponent {
     supervisor: ''
   };
 
+  SaldoDisponible = 0;
+
   listDetCortes: any[] = [];
   selectedCorteId: number | null = null;
   selectedCorte: any = null;
@@ -90,6 +93,8 @@ export class CorteComponent {
   listCorte: any[] = [];
   cortesFiltrados: any[] = [];
 
+  saveCantError: string | null = null;
+  saveDetError: string | null = null;
   filtroSiembraRebrote: number | null = null;
   filtroSR: string = '';
   filtroBosque: number | null = null;
@@ -114,6 +119,7 @@ export class CorteComponent {
   totalValorTroza: number = 0;
   corteValorTroza: Record<number, number> = {};
 
+  username: string = '';
   // Datos para los select
   bosques: any[] = [];
   contrato: any[] = [];
@@ -125,14 +131,23 @@ export class CorteComponent {
   corteEditando: Corte | null = null;
   siemRebFiltered: any[] = [];
 
-  constructor(private corteService: ApiService, private route: ActivatedRoute) { }
+  constructor(private corteService: ApiService, private route: ActivatedRoute, private authService: AuthserviceService) { }
 
   ngOnInit(): void {
+    const u = this.authService.getUserInfo();      // string | null
+    this.username = u ?? 'Invitado';
+    console.log('Usuario:', this.username);
+
     const idSiemRebParam = this.route.snapshot.paramMap.get('idSiembraRebrote');
-    console.log(idSiemRebParam);
+    const idBosqueParam = this.route.snapshot.paramMap.get('bosqueId');
+    console.log('Ruta', idSiemRebParam, idBosqueParam);
     if (idSiemRebParam) {
       this.filtroSiembraRebrote = +idSiemRebParam; // lo conviertes a número y aplicas como filtro
       console.log('filtroSiembraRebrote', this.filtroSiembraRebrote);
+    }
+    if (idBosqueParam) {
+      this.filtroBosque = +idBosqueParam;
+      console.log('filtroBosque', this.filtroBosque)
     }
 
     this.corteService.getCabeceraCortes().subscribe(
@@ -393,6 +408,7 @@ export class CorteComponent {
   }
 
   onSave() {
+    this.saveCantError = null;
     console.log('Nuevo corte:', this.nuevoCorte);
     this.corteService.postCabeceraCorte(this.nuevoCorte)
       .subscribe({
@@ -407,9 +423,36 @@ export class CorteComponent {
           const modalEl = document.getElementById('miModal')!;
           const modal = bootstrap.Modal.getInstance(modalEl);
           modal?.hide();
+          this.saveCantError = null;
         },
         error: err => {
-          console.error(err);
+          let msg = 'Error al guardar los detalles';
+          if (err && err.status === 422) {
+            if (err.error) {
+              if (typeof err.error === 'string') {
+                msg = err.error;
+              } else if (err.error.message) {
+                msg = err.error.message;
+              } else if (err.error.errors) {
+                // compone mensaje desde array de errores
+                const vals = Object.values(err.error.errors)
+                  .flat()
+                  .map((v: any) => String(v));
+                msg = vals.join(' - ') || msg;
+              }
+            }
+          } else if (err && err.message) {
+            msg = err.message;
+          }
+
+          // muestra en la UI
+          this.saveCantError = msg;
+
+          // opcional: desplazar scroll al top del modal para que se vea el alert
+          try {
+            const modalBody = document.querySelector('#miModal .modal-body') as HTMLElement | null;
+            if (modalBody) modalBody.scrollTop = 0;
+          } catch { }
         }
       });
   }
@@ -600,7 +643,7 @@ export class CorteComponent {
   }
 
   onSaveDet() {
-    // aquí envías this.detalles junto al contrato
+    this.saveDetError = null;
     console.log('Guardando detalles:', this.nuevoDetCorte);
 
     this.corteService.postDetalleCorte({ detalles: this.nuevoDetCorte }).subscribe(
@@ -631,54 +674,162 @@ export class CorteComponent {
         }, err => {
           console.error('No pude obtener valorTrozaAll:', err);
         });
+        // cerrar modal manualmente (solo si éxito)
+        const modalEl = document.getElementById('detModal')!;
+        bootstrap.Modal.getInstance(modalEl)?.hide();
+        // limpiar error
+        this.saveDetError = null;
       },
-      error => {
-        console.error('Error al guardar los detalles:', error);
+      err => {
+        console.error('Error al guardar los detalles:', err);
+        let msg = 'Error al guardar los detalles';
+        if (err && err.status === 422) {
+          // tu backend devuelve { message: '...' } o { errors: {...} }
+          if (err.error) {
+            if (typeof err.error === 'string') {
+              msg = err.error;
+            } else if (err.error.message) {
+              msg = err.error.message;
+            } else if (err.error.errors) {
+              // compone mensaje desde array de errores
+              const vals = Object.values(err.error.errors)
+                .flat()
+                .map((v: any) => String(v));
+              msg = vals.join(' - ') || msg;
+            }
+          }
+        } else if (err && err.message) {
+          msg = err.message;
+        }
+
+        // muestra en la UI
+        this.saveDetError = msg;
+
+        // opcional: desplazar scroll al top del modal para que se vea el alert
+        try {
+          const modalBody = document.querySelector('#detModal .modal-body') as HTMLElement | null;
+          if (modalBody) modalBody.scrollTop = 0;
+        } catch { }
       }
     );
   }
   exportToPDF() {
-    const doc = new jsPDF();
+    const doc = new jsPDF({ unit: 'pt', format: 'a4', orientation: 'portrait' });
+    const pageSize = doc.internal.pageSize as any;
+    const pageWidth = pageSize.getWidth();
+    const pageHeight = pageSize.getHeight();
+
+    // Márgenes reducidos para aprovechar el ancho
+    const marginLeft = 20;
+    const marginRight = 20;
+    const usableWidth = pageWidth - marginLeft - marginRight;
+
+    const headerY = 36;
+    const margin = 40;
+    const username = this.username ?? 'Invitado';
+    const generatedAt = new Date().toLocaleString('es-ES');
+
+    // Prepara filas (asegura valores string)
+    const rows = this.cortesFiltrados.map(corte => ({
+      bosque: this.getBosqueId(corte.bosque_id) || '',
+      contrato: ((this.getClienteId(this.getContratoId(corte.contrato_id)) || '') +
+        (this.getContratoAnio(this.getContratoId(corte.contrato_id)) ? (' - ' + this.getContratoAnio(this.getContratoId(corte.contrato_id))) : '')) || '',
+      raleoTipo: this.getRaleoId(corte.raleo_tipo_id) || '',
+      siembraRebrote: ((this.getSiemRebTipo(this.getSiemRebId(corte.siembra_rebrote_id)) || '') +
+        (this.getSiemRebAnio(corte.siembra_rebrote_id) ? (' - ' + this.getSiemRebAnio(corte.siembra_rebrote_id)) : '')) || '',
+      selloTipo: this.getSelloTipoId(corte.sello_id) || '',
+      fechaEmbarque: corte.fecha_embarque ? new Date(corte.fecha_embarque).toLocaleDateString('es-ES') : '',
+      cantArboles: corte.cant_arboles ?? '',
+      numeroViaje: corte.numero_viaje ?? ''
+    }));
+
     const columns = [
       { header: 'Bosque', dataKey: 'bosque' },
       { header: 'Contrato', dataKey: 'contrato' },
-      { header: 'Raleo Tipo', dataKey: 'raleoTipo' },
+      { header: 'Raleo', dataKey: 'raleoTipo' },
       { header: 'Siembra/Rebrote', dataKey: 'siembraRebrote' },
-      { header: 'Sello Tipo', dataKey: 'selloTipo' },
-      { header: 'Fecha Embarque', dataKey: 'fechaEmbarque' },
-      { header: 'Cantidad Árboles', dataKey: 'cantArboles' },
-      { header: 'Número de Viaje', dataKey: 'numeroViaje' },
-      // { header: 'Placa Carro', dataKey: 'placaCarro' },
-      // { header: 'Contenedor', dataKey: 'contenedor' },
-      // { header: 'Conductor', dataKey: 'conductor' },
-      // { header: 'Supervisor', dataKey: 'supervisor' }
+      { header: 'Sello', dataKey: 'selloTipo' },
+      { header: 'Fecha', dataKey: 'fechaEmbarque' },
+      { header: 'Árboles', dataKey: 'cantArboles' },
+      { header: 'N° Viaje', dataKey: 'numeroViaje' }
     ];
-    const rows = this.cortesFiltrados.map(corte => ({
-      bosque: this.getBosqueId(corte.bosque_id),
-      contrato: this.getClienteId(this.getContratoId(corte.contrato_id)) + ' - ' + this.getContratoAnio(this.getContratoId(corte.contrato_id)),
-      raleoTipo: this.getRaleoId(corte.raleo_tipo_id),
-      siembraRebrote: this.getSiemRebTipo(this.getSiemRebId(corte.siembra_rebrote_id)) + ' - ' + this.getSiemRebAnio(corte.siembra_rebrote_id),
-      selloTipo: this.getSelloTipoId(corte.sello_id),
-      fechaEmbarque: corte.fecha_embarque,
-      cantArboles: corte.cant_arboles,
-      numeroViaje: corte.numero_viaje,
-      // placaCarro: corte.placa_carro,
-      // contenedor: corte.contenedor,
-      // conductor: corte.conductor,
-      // supervisor: corte.supervisor
-    }));
-    doc.text('Reporte de Cortes', 14, 10);
-    doc.setFontSize(10);
+
+    // Asignar anchos compactos que sumen usableWidth (ajusta si necesitas)
+    const columnWidths: Record<number, number> = {
+      0: 55,   // Bosque
+      1: 100,  // Contrato (mayor, permitirá wrap)
+      2: 60,   // Raleo
+      3: 88,  // Siembra/Rebrote
+      4: 50,   // Sello
+      5: 50,   // Fecha
+      6: 35,   // Árboles
+      7: 30    // N° Viaje
+    };
+    // Si por alguna razón la suma difiere, auto-ajusta último ancho:
+    const totalAssigned = Object.values(columnWidths).reduce((a, b) => a + b, 0);
+    const diff = Math.round(usableWidth - totalAssigned);
+    if (diff !== 0) {
+      // añadir la diferencia a la columna contrato (índice 1)
+      columnWidths[1] = (columnWidths[1] || 100) + diff;
+    }
+
+    // Header/footer dibujados en cada página
+    const drawHeader = (data: any) => {
+      // Título
+      doc.setFontSize(12);
+      doc.setFont('bold');
+      doc.text('Reporte de Cortes', marginLeft, 18);
+
+      // Info a la derecha (fecha + usuario)
+      doc.setFontSize(8);
+      doc.setFont('normal');
+      const gen = `Generado: ${generatedAt}`;
+      const usr = `Usuario: ${username}`;
+      doc.text(gen, pageWidth - marginRight - doc.getTextWidth(gen), 14);
+      doc.text(usr, pageWidth - marginRight - doc.getTextWidth(usr), 28);
+
+      // Línea divisoria
+      doc.setDrawColor(200);
+      doc.setLineWidth(0.5);
+      doc.line(marginLeft, headerY, pageWidth - marginRight, headerY);
+    };
+
+    // Construye body como array de arrays (autoTable fácil)
+    const body = rows.map(r => columns.map((c) => (r as any)[c.dataKey]));
+
     autoTable(doc, {
-      columns,
-      body: rows,
-      headStyles: {
-        fillColor: [0, 127, 0],
-        textColor: 255
+      startY: headerY + 6,
+      head: [columns.map(c => c.header)],
+      body: body,
+      margin: { left: marginLeft, right: marginRight, top: headerY + 6 },
+      styles: {
+        fontSize: 10,
+        cellPadding: 3,
+        overflow: 'linebreak', // wrapping
+        halign: 'left',
+        valign: 'middle',
+      },
+      headStyles: { fillColor: [34, 139, 34], textColor: 255, halign: 'center' },
+      columnStyles: Object.fromEntries(Object.entries(columnWidths).map(([k, w]) => [Number(k), { cellWidth: Number(w) }])),
+      tableWidth: usableWidth,
+      didDrawPage: (data) => {
+        // número de página actual que te da autoTable
+        const page = data.pageNumber;
+        const pageText = `Página ${page}`;
+        const footerText = `Usuario: ${username} · Generado: ${generatedAt}`;
+
+        // footer a la derecha y texto a la izquierda
+        doc.setFontSize(9);
+        doc.text(pageText, pageWidth - margin - doc.getTextWidth(pageText), pageHeight - 20);
+        doc.text(footerText, margin, pageHeight - 20);
+
+        // (si quieres header por página, también lo dibujas aquí)
+        drawHeader(data);
       },
       showHead: 'everyPage'
     });
-    doc.save('reporte_cortes.pdf');
+    const filename = `reporte_cortes.pdf`;
+    doc.save(filename);
   }
 
   exportToPDF2() {
@@ -693,26 +844,81 @@ export class CorteComponent {
       return;
     }
 
-    const fmtCurrency = (v: number) => {
+    const fmtCurrency = (v: any) => {
+      const n = Number(v) || 0;
       try {
-        return new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'USD' }).format(Number(v) || 0);
+        return new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'USD', minimumFractionDigits: 2 }).format(n);
       } catch {
-        return (Number(v) || 0).toFixed(2);
+        return n.toFixed(2);
       }
     };
-    const fmtDate = (d: any) => d ? new Date(d).toLocaleDateString() : '';
+    const fmtNumber = (v: any, min = 0, max = 4) => {
+      const n = Number(v) || 0;
+      try {
+        return new Intl.NumberFormat('es-ES', { minimumFractionDigits: min, maximumFractionDigits: max }).format(n);
+      } catch {
+        return n.toFixed(max);
+      }
+    };
+    const fmtDate = (d: any) => d ? new Date(d).toLocaleDateString('es-ES') : '';
 
-    const doc = new jsPDF();
+    const doc = new jsPDF({ unit: 'pt', format: 'a4' });
+    const pageWidth = (doc.internal.pageSize as any).width || doc.internal.pageSize.getWidth();
+    const pageHeight = (doc.internal.pageSize as any).height || doc.internal.pageSize.getHeight();
+    const margin = 40;
 
-    // Título principal
-    doc.setFontSize(14);
-    doc.text(`Corte - ID ${corte.id}`, 14, 14);
+    // Header/foot layout
+    const headerTop = 22;        // y inicial del header
+    const lineHeight = 10;      // separación compacta
+    const headerHeight = headerTop + lineHeight * 3 + 8; // reservar espacio para header
+    const topMargin = headerHeight + 10;
 
-    // Información del corte
+    const title = `Corte - ID ${corte.id}`;
+    const subtitle = `${this.getClienteId(this.getContratoId(corte.contrato_id)) || ''}` +
+      (this.getContratoAnio(this.getContratoId(corte.contrato_id)) ? (' - ' + this.getContratoAnio(this.getContratoId(corte.contrato_id))) : '');
+    const generatedAt = `Generado: ${new Date().toLocaleString('es-ES')}`;
+    const usuarioTexto = `Usuario: ${this.username ?? 'Invitado'}`;
+
+    // guardamos páginas en las que ya dibujamos el header para evitar duplicados
+    const drawnPages = new Set<number>();
+
+    const drawHeader = (data?: any) => {
+      // determinar número de página (autoTable pasa data.pageNumber)
+      const pageNumber = (data && data.pageNumber) ? data.pageNumber : ((doc as any).internal?.getNumberOfPages ? (doc as any).internal.getNumberOfPages() : 1);
+      if (drawnPages.has(pageNumber)) return; // ya dibujado en esta página
+
+      // dibujar header compacto
+      doc.setFontSize(14);
+      doc.setFont('helvetica', 'bold');
+      doc.text(title, margin, headerTop);
+
+      doc.setFontSize(9);
+      doc.setFont('helvetica', 'normal');
+      const wSub = doc.getTextWidth(subtitle);
+      if (wSub < pageWidth - margin * 2) {
+        doc.text(subtitle, pageWidth - margin - wSub, headerTop);
+      } else {
+        doc.text(subtitle, margin, headerTop + lineHeight);
+      }
+
+      const genY = headerTop + lineHeight;
+      const usrY = genY + lineHeight;
+      const genW = doc.getTextWidth(generatedAt);
+      const usrW = doc.getTextWidth(usuarioTexto);
+      doc.text(generatedAt, pageWidth - margin - genW, genY);
+      doc.text(usuarioTexto, pageWidth - margin - usrW, usrY);
+
+      // separador
+      doc.setDrawColor(200);
+      doc.setLineWidth(0.5);
+      doc.line(margin, usrY + 6, pageWidth - margin, usrY + 6);
+
+      drawnPages.add(pageNumber); // marcar como dibujado
+    };
+
     const cabeceraRows = [
       ['Bosque', this.getBosqueId(corte.bosque_id) || ''],
       ['Contrato', this.getClienteId(this.getContratoId(corte.contrato_id)) || ''],
-      // ['Año Contrato', this.getContratoAnio(this.getContratoId(corte.contrato_id)) || ''],
       ['Raleo Tipo', this.getRaleoId(corte.raleo_tipo_id) || ''],
       ['Siembra/Rebrote', this.getSiemRebTipo(this.getSiemRebId(corte.siembra_rebrote_id)) || ''],
       ['Año Siembra/Rebrote', this.getSiemRebAnio(corte.siembra_rebrote_id) || ''],
@@ -720,65 +926,162 @@ export class CorteComponent {
       ['Fecha Embarque', fmtDate(corte.fecha_embarque) || ''],
       ['Cantidad Árboles', corte.cant_arboles ?? ''],
       ['Número de Viaje', corte.numero_viaje ?? ''],
-      // ['Placa Carro', corte.placa_carro || ''],
-      // ['Contenedor', corte.contenedor || ''],
-      // ['Conductor', corte.conductor || ''],
-      // ['Supervisor', corte.supervisor || ''],
-      // ['Estado', corte.estado === 'A' ? 'Activo' : corte.estado === 'C' ? 'Cerrado' : (corte.estado ?? '')],
-      // ['Valor Troza', fmtCurrency(this.corteValorTroza[Number(corte.id)] || 0)],
       ['Total detalles', (this.listDetCortes || []).length.toString()]
-    ]
-
-    autoTable(doc, {
-      startY: 20,
-      head: [['Campo', 'Valor']],
-      body: cabeceraRows,
-      styles: { halign: 'left', fontSize: 10 },
-      headStyles: { fillColor: [0, 127, 0], textColor: 255 },
-      theme: 'grid'
-    });
-
-    // Espacio antes de la tabla de detalles
-    const afterHeaderY = (doc as any).lastAutoTable ? (doc as any).lastAutoTable.finalY + 6 : 46;
-
-    const detalleColumns = [
-      { header: 'Trozas', dataKey: 'trozas' },
-      { header: 'Circ. Bruta', dataKey: 'circ_bruta' },
-      { header: 'Circ. Neta', dataKey: 'circ_neta' },
-      { header: 'Largo Bruto', dataKey: 'largo_bruto' },
-      { header: 'Largo Neto', dataKey: 'largo_neto' },
-      { header: 'M³ Cúbica', dataKey: 'm_cubica' },
-      { header: 'Valor M³ Cúbico', dataKey: 'valor_mcubico' },
-      // { header: 'Valor Troza', dataKey: 'valor_troza' }
     ];
 
-    const detalleRows = (this.listDetCortes || []).map(det => ({
-      trozas: det.trozas ?? '',
-      circ_bruta: det.circ_bruta ?? '',
-      circ_neta: det.circ_neta ?? '',
-      largo_bruto: Number(det.largo_bruto) ?? '',
-      largo_neto: Number(det.largo_neto) ?? '',
-      m_cubica: Number(det.m_cubica) ?? '',
-      valor_mcubico: fmtCurrency(det.valor_mcubico),
-    }));
+    const detalleRows = (this.listDetCortes || []).map(det => ([
+      det.trozas ?? '',
+      fmtNumber(det.circ_bruta ?? '', 0, 2),
+      fmtNumber(det.circ_neta ?? '', 0, 2),
+      fmtNumber(det.largo_bruto ?? '', 2, 2),
+      fmtNumber(det.largo_neto ?? '', 2, 2),
+      fmtNumber(det.m_cubica ?? '', 4, 4),
+      fmtCurrency(det.valor_mcubico),
+      fmtCurrency(det.valor_troza)
+    ]));
 
-    doc.setFontSize(12);
-    doc.text('Detalles del corte', 14, afterHeaderY - 2);
+    const footRow = [
+      `TOTAL:`,
+      fmtNumber(this.totalCircBruta || 0, 0, 2),
+      fmtNumber(this.totalCircNeta || 0, 0, 2),
+      fmtNumber(this.totalLargoBruto || 0, 2, 2),
+      fmtNumber(this.totalLargoNeto || 0, 2, 2),
+      fmtNumber(this.totalMCubica || 0, 4, 4),
+      fmtCurrency(this.totalValorMCubico || 0),
+      fmtCurrency(this.totalValorTroza || 0)
+    ];
 
+    // (IMPORTANTE) dibujamos el header para la página 1 antes de las tablas
+    drawHeader({ pageNumber: 1 });
+
+    // tabla de cabecera (campo/valor)
+    autoTable(doc, {
+      startY: headerHeight + 6,
+      margin: { top: topMargin },
+      body: cabeceraRows,
+      theme: 'grid',
+      styles: { fontSize: 10, cellPadding: 6 },
+      headStyles: { fillColor: [34, 139, 34], textColor: 255, halign: 'center' },
+      columnStyles: {
+        0: { cellWidth: 120, halign: 'left', fontStyle: 'bold' },
+        1: { halign: 'left' }
+      },
+      didDrawPage: (data) => {
+        // se ejecutará en cada página que autoTable necesite para esta tabla,
+        // drawHeader se encargará de evitar duplicados.
+        drawHeader(data);
+      }
+    });
+
+    const afterHeaderY = (doc as any).lastAutoTable ? (doc as any).lastAutoTable.finalY + 12 : headerHeight + 60;
+
+    // multi-head + detalle (SIN foot)
+    const multiHead = [
+      ['TROZAS', 'CIRCUNFERENCIA', '', 'LARGO', '', 'M³', 'VALOR', ''],
+      ['', 'BRUTA', 'NETA', 'BRUTO', 'NETO', '', 'M³', 'TROZA']
+    ];
+
+    // MAIN table (sin foot)
     autoTable(doc, {
       startY: afterHeaderY,
-      columns: detalleColumns,
+      margin: { top: topMargin },
+      head: multiHead,
       body: detalleRows,
-      styles: { fontSize: 9 },
-      headStyles: { fillColor: [0, 127, 0], textColor: 255 },
+      theme: 'striped',
+      styles: { fontSize: 9, cellPadding: 5 },
+      headStyles: { fillColor: [34, 139, 34], textColor: 255 },
+      columnStyles: {
+        0: { halign: 'center', cellWidth: 50 },
+        1: { halign: 'right', cellWidth: 60 },
+        2: { halign: 'right', cellWidth: 60 },
+        3: { halign: 'right', cellWidth: 70 },
+        4: { halign: 'right', cellWidth: 70 },
+        5: { halign: 'right', cellWidth: 50 },
+        6: { halign: 'right', cellWidth: 80 },
+        7: { halign: 'right', cellWidth: 80 }
+      },
+      didParseCell: (data) => {
+        if (data.section === 'head' && data.row.index === 0) {
+          if (data.column.index === 1 || data.column.index === 3) {
+            data.cell.colSpan = 2;
+            data.cell.styles.halign = 'center';
+          }
+        }
+        if (data.section === 'head' && data.row.index === 1) {
+          data.cell.styles.halign = 'center';
+        }
+      },
+      didDrawPage: (data) => {
+        // footer y header por página; drawHeader evita duplicados
+        const page = data.pageNumber;
+        const pageText = `Página ${page}`;
+        const footerText = `${usuarioTexto} · ${generatedAt}`;
+
+        doc.setFontSize(9);
+        // Espaciado extra debajo del footer (por ejemplo, 10pt)
+        const footerY = pageHeight - 10;
+        doc.text(pageText, pageWidth - margin - doc.getTextWidth(pageText), footerY);
+        doc.text(footerText, margin, footerY);
+
+        drawHeader(data);
+      },
       showHead: 'everyPage'
     });
 
-    // Guardar con nombre que identifica el contrato
-    const filename = `corte${corte.id}_detalles.pdf`;
+    // --- AÑADIMOS la fila de totales SOLO en la última página ---
+    const lastTable = (doc as any).lastAutoTable;
+    const lastY = lastTable ? lastTable.finalY : (pageHeight - 60);
+    const lastPage = (doc as any).internal.getNumberOfPages ? (doc as any).internal.getNumberOfPages() : 1;
+
+    // ir a la última página
+    doc.setPage(lastPage);
+
+    // decidir startY para el total; si no cabe en la página actual, añadimos página
+    let footStartY = lastY + 10;
+    const neededHeight = 20 + 10; // aproximado alto de la fila de totales
+    if (footStartY + neededHeight > pageHeight - 30) {
+      doc.addPage();
+      // marcar header de la nueva página y dibujarlo
+      const newPageNum = (doc as any).internal.getNumberOfPages();
+      drawHeader({ pageNumber: newPageNum });
+      footStartY = margin;
+      doc.setPage(newPageNum);
+    }
+
+    // dibujar la fila de totales como una mini tabla (una sola fila)
+    autoTable(doc, {
+      startY: footStartY,
+      body: [footRow],
+      theme: 'grid',
+      styles: { fontSize: 9, cellPadding: 5 },
+      columnStyles: {
+        0: { halign: 'left', cellWidth: 50 },
+        1: { halign: 'right', cellWidth: 60 },
+        2: { halign: 'right', cellWidth: 60 },
+        3: { halign: 'right', cellWidth: 70 },
+        4: { halign: 'right', cellWidth: 70 },
+        5: { halign: 'right', cellWidth: 50 },
+        6: { halign: 'right', cellWidth: 80 },
+        7: { halign: 'right', cellWidth: 80 }
+      },
+      headStyles: { fillColor: [220, 220, 220], textColor: 50 },
+      footStyles: { fillColor: [220, 220, 220], textColor: 50, fontStyle: 'bold' },
+      showHead: 'never',
+      didDrawPage: (data) => {
+        // footer para la página de totales
+        const page = data.pageNumber;
+        const pageText = `Página ${page}`;
+        const footerText = `${usuarioTexto} · ${generatedAt}`;
+        doc.setFontSize(9);
+        //doc.text(pageText, pageWidth - margin - doc.getTextWidth(pageText), pageHeight - 20);
+        //doc.text(footerText, margin, pageHeight - 20);
+        drawHeader(data); // por si añadido página nueva (drawHeader controla duplicados)
+      }
+    });
+
+    const filename = `corte_${corte.id}_detalles.pdf`;
     doc.save(filename);
   }
-
 }
 
 

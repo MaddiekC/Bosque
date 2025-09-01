@@ -42,7 +42,7 @@ export const routes: Routes = [
         data: { title: 'Corte' }
       },
       {
-        path: 'corte/:idSiembraRebrote',
+        path: 'corte/:idSiembraRebrote/:bosqueId',
         loadComponent: () => import('./component/corte/corte.component').then(m => m.CorteComponent),
         data: { title: 'Corte filtrado' }
       },

@@ -11,7 +11,15 @@ class BosqueController extends Controller
     // Obtener todos los bosques con sus relaciones
     public function index()
     {
-        $bosques = Bosque::with(['seccion'])->where('estado', 'A')->get();
+        $bosques = Bosque::with(['seccion'])
+            ->where('estado', 'A')
+            ->orderByRaw("
+            CASE WHEN TRY_CAST(nombre AS INT) IS NOT NULL THEN 0 ELSE 1 END, 
+            TRY_CAST(nombre AS INT), 
+            nombre
+        ")
+            ->get();
+
         return response()->json($bosques);
     }
 

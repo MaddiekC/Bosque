@@ -9,6 +9,7 @@ import { HasPermissionDirective } from '../../services/has-permission.directive'
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { Modal } from 'bootstrap';
+import { AuthserviceService } from '../../auth/authservice.service';
 
 declare const bootstrap: any;
 
@@ -52,7 +53,7 @@ export class ContratoComponent implements AfterViewInit {
     factura: '',
     fecha: '',
   }
-
+  username: string = '';
   /// DETALLES
   nuevoDetContrato: detContrato[] = [{
     contrato_id: 0,
@@ -73,6 +74,7 @@ export class ContratoComponent implements AfterViewInit {
   ultimoAnticipo: Record<string, number> = {};
   totalAnticipos: number = 0;
   totalAnticipo: Record<number, number> = {};
+  corteValorTroza: Record<number, number> = {};
 
   contratoValorTroza: Record<number, number> = {};
   contratoSaldos: { [id: number]: { embarcado: number, anticipos: number, saldo: number } | undefined } = {};
@@ -112,12 +114,15 @@ export class ContratoComponent implements AfterViewInit {
     fecha: null
   };
 
-  //Edicion 
+  //Edicion
   contratoEditando: Contrato | null = null;
 
-  constructor(private contratoService: ApiService, private route: ActivatedRoute) { }
+  constructor(private contratoService: ApiService, private route: ActivatedRoute, private authService: AuthserviceService) { }
 
   ngOnInit(): void {
+    const u = this.authService.getUserInfo();      // string | null
+    this.username = u ?? 'Invitado';
+    console.log('Usuario:', this.username);
 
     this.contratoService.getContratos().subscribe(
       exito => {
@@ -216,6 +221,14 @@ export class ContratoComponent implements AfterViewInit {
         console.log(error);
       }
     );
+    this.contratoService.getValorTrozaAll2().subscribe(map => {
+      this.corteValorTroza = {};
+      Object.entries(map || {}).forEach(([k, v]) => {
+        this.corteValorTroza[Number(k)] = Number(v) || 0;
+      });
+    }, err => {
+      console.error('No pude obtener valorTrozaAll:', err);
+    });
   }
 
   ngAfterViewInit(): void {
@@ -439,11 +452,11 @@ export class ContratoComponent implements AfterViewInit {
         this.selectedContrato = null;
       }
     });
-    
+
     const modalEl = document.getElementById('detModal')!;
     const modal = new bootstrap.Modal(modalEl);
     modal.show();
-    
+
     // Inicializar la primera fila con el contrato actual
     this.nuevoDetContrato = [{
       contrato_id: contratoId,
@@ -456,8 +469,6 @@ export class ContratoComponent implements AfterViewInit {
       desde: 0,
       hasta: 0
     }];
-
-
   }
 
   addRow() {
@@ -667,6 +678,13 @@ export class ContratoComponent implements AfterViewInit {
         next: corte => {
           this.cortesFiltrados = Array.isArray(corte) ? corte : [];
           console.log('Corte encontrado:', corte);
+          this.contratoService.getContrato(contratoId).subscribe(
+            cab => this.selectedContrato = cab,
+            err => {
+              console.warn('No se pudo cargar cabecera:', err);
+              this.selectedContrato = null;
+            }
+          );
           const modalEl = document.getElementById('embarqueModal')!;
           new bootstrap.Modal(modalEl).show();
         },
@@ -692,6 +710,13 @@ export class ContratoComponent implements AfterViewInit {
           this.contratoService.getUltimoAnticipo(contratoId).subscribe(
             ultimo => {
               this.ultimoAnticipo[contratoId] = ultimo?.cantidad || 0;
+              this.contratoService.getContrato(contratoId).subscribe(
+                cab => this.selectedContrato = cab,
+                err => {
+                  console.warn('No se pudo cargar cabecera:', err);
+                  this.selectedContrato = null;
+                }
+              );
               this.showAnticipoModal();
             },
             error => {
@@ -775,7 +800,54 @@ export class ContratoComponent implements AfterViewInit {
       );
   }
   exportToPDF() {
-    const doc = new jsPDF();
+    const doc = new jsPDF({ unit: 'pt', format: 'a4' });
+    const pageSize = doc.internal.pageSize as any;
+    const pageWidth = pageSize.getWidth();
+    const pageHeight = pageSize.getHeight();
+    const margin = 40;
+
+    // Márgenes reducidos para aprovechar el ancho
+    const marginLeft = 20;
+    const marginRight = 20;
+    const usableWidth = pageWidth - marginLeft - marginRight;
+    const headerY = 36;
+
+    const fmtCurrency = (v: any) => {
+      const n = Number(v) || 0;
+      try {
+        return new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'USD', minimumFractionDigits: 2 }).format(n);
+      } catch {
+        return n.toFixed(2);
+      }
+    };
+
+    doc.setFontSize(14);
+    doc.setFont('bold');
+
+    doc.setFontSize(9);
+    doc.setFont('normal');
+
+    const username = this.username ?? 'Invitado';
+    const generatedAt = new Date().toLocaleString('es-ES');
+
+    // línea separadora ligera
+    doc.setDrawColor(200);
+    doc.setLineWidth(0.5);
+    doc.line(margin, 42, pageWidth - margin, 42);
+
+    const rows = this.contratosFiltrados.map(item => ({
+      cliente_id: this.getClienteId(item.cliente_id),
+      anio: item.anio,
+      fecha: new Date(item.fecha).toLocaleDateString(),
+      anticipo: fmtCurrency(this.contratoSaldos[item.id]?.anticipos ?? 0),
+      embarcado: fmtCurrency(this.contratoSaldos[item.id]?.embarcado ?? 0),
+      saldo: fmtCurrency(this.contratoSaldos[item.id]?.saldo ?? 0),
+      estado: item.estado === 'A'
+        ? 'Activo'
+        : item.estado === 'C'
+          ? 'Cerrado'
+          : ''
+    }));
     const columns = [
       { header: 'Estado', dataKey: 'estado' },
       { header: 'Cliente', dataKey: 'cliente_id' },
@@ -785,31 +857,66 @@ export class ContratoComponent implements AfterViewInit {
       { header: 'Embarcado', dataKey: 'embarcado' },
       { header: 'Saldo', dataKey: 'saldo' }
     ];
-    const rows = this.contratosFiltrados.map(item => ({
-      cliente_id: this.getClienteId(item.cliente_id),
-      anio: item.anio,
-      fecha: new Date(item.fecha).toLocaleDateString(),
-      anticipo: this.contratoSaldos[item.id]?.anticipos ?? 0,
-      embarcado: this.contratoSaldos[item.id]?.embarcado ?? 0,
-      saldo: this.contratoSaldos[item.id]?.saldo ?? 0,
-      estado: item.estado === 'A'
-        ? 'Activo'
-        : item.estado === 'C'
-          ? 'Cerrado'
-          : ''
-    }));
-    doc.text('Reporte de Contratos', 14, 10);
-    doc.setFontSize(10);
+
+    // Header/footer dibujados en cada página
+    const drawHeader = (data: any) => {
+      const page = data.pageNumber;
+      // Título
+      doc.setFontSize(12);
+      doc.setFont('bold');
+      doc.text('Reporte de Contrato', marginLeft, 18);
+
+      // Info a la derecha (fecha + usuario)
+      doc.setFontSize(8);
+      doc.setFont('normal');
+      const gen = `Generado: ${generatedAt}`;
+      const usr = `Usuario: ${username}`;
+      doc.text(gen, pageWidth - marginRight - doc.getTextWidth(gen), 14);
+      doc.text(usr, pageWidth - marginRight - doc.getTextWidth(usr), 28);
+
+      // Línea divisoria
+      doc.setDrawColor(200);
+      doc.setLineWidth(0.5);
+      doc.line(marginLeft, headerY, pageWidth - marginRight, headerY);
+    };
+
+    // Construye body como array de arrays (autoTable fácil)
+    const body = rows.map(r => columns.map((c) => (r as any)[c.dataKey]));
+
     autoTable(doc, {
-      columns,
-      body: rows,
-      headStyles: {
-        fillColor: [0, 127, 0],
-        textColor: 255
+      startY: headerY + 6,
+      head: [columns.map(c => c.header)],
+      body: body,
+      margin: { left: marginLeft, right: marginRight, top: headerY + 6 },
+      styles: {
+        fontSize: 10,
+        cellPadding: 3,
+        overflow: 'linebreak', // wrapping
+        halign: 'left',
+        valign: 'middle',
+      },
+      headStyles: { fillColor: [34, 139, 34], textColor: 255, halign: 'center' },
+      //columnStyles: Object.fromEntries(Object.entries(columnWidths).map(([k, w]) => [Number(k), { cellWidth: Number(w) }])),
+      tableWidth: usableWidth,
+      didDrawPage: (data) => {
+        // número de página actual que te da autoTable
+        const page = data.pageNumber;
+        const pageText = `Página ${page}`;
+        const footerText = `Usuario: ${username} · Generado: ${generatedAt}`;
+
+        // footer a la derecha y texto a la izquierda
+        doc.setFontSize(9);
+        doc.text(pageText, pageWidth - margin - doc.getTextWidth(pageText), pageHeight - 20);
+        doc.text(footerText, margin, pageHeight - 20);
+
+        // (si quieres header por página, también lo dibujas aquí)
+        drawHeader(data);
       },
       showHead: 'everyPage'
     });
-    doc.save('reporte_contratos.pdf');
+
+    const filename = `reporte_contrato.pdf`;
+    doc.save(filename);
   }
 
   exportToPDF2() {
@@ -824,51 +931,69 @@ export class ContratoComponent implements AfterViewInit {
       return;
     }
 
-    // Formateadores
-    const fmtCurrency = (v: number) => {
-      try {
-        return new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'USD' }).format(Number(v) || 0);
-      } catch {
-        return (Number(v) || 0).toFixed(2);
-      }
+    const fmtCurrency = (v: any) => {
+      const n = Number(v) || 0;
+      try { return new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'USD' }).format(n); }
+      catch { return n.toFixed(2); }
     };
     const fmtDate = (d: any) => d ? new Date(d).toLocaleDateString() : '';
 
-    const doc = new jsPDF();
+    const doc = new jsPDF({ unit: 'pt', format: 'a4' });
+    const pageWidth = (doc.internal.pageSize as any).width || doc.internal.pageSize.getWidth();
+    const pageHeight = (doc.internal.pageSize as any).height || doc.internal.pageSize.getHeight();
+    const margin = 40;
 
-    // Título principal
-    doc.setFontSize(14);
-    doc.text(`Contrato - ID ${contrato.id}`, 14, 14);
+    // Header/foot layout
+    const headerTop = 22;        // y inicial del header
+    const lineHeight = 10;      // separación compacta
+    const headerHeight = headerTop + lineHeight * 3 + 8; // reservar espacio para header
 
-    // Información del contrato (tabla pequeña)
+    const title = `Contrato - ID ${contrato.id}`;
+    //const subtitle = `Cliente: ${this.getClienteId(contrato.cliente_id) || ''}`;
+    const generatedAt = `Generado: ${new Date().toLocaleString()}`;
+    const usuarioTexto = `Usuario: ${this.username ?? 'Invitado'}`;
+
+    // Dibuja header (se llamará desde didDrawPage)
+    const drawHeader = (pageNumber?: number) => {
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(13);
+      doc.text(title, margin, headerTop);
+
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(9);
+
+      // // subtítulo (derecha si cabe)
+      // const subW = doc.getTextWidth(subtitle);
+      // if (subW < pageWidth - margin * 2 - 100) {
+      //   doc.text(subtitle, pageWidth - margin - subW, headerTop);
+      // } else {
+      //   doc.text(subtitle, margin, headerTop + lineHeight);
+      // }
+
+      // Fecha y usuario en dos líneas compactas a la derecha
+      const genY = headerTop + lineHeight;
+      const usrY = genY + lineHeight;
+      const genW = doc.getTextWidth(generatedAt);
+      const usrW = doc.getTextWidth(usuarioTexto);
+      doc.text(generatedAt, pageWidth - margin - genW, genY);
+      doc.text(usuarioTexto, pageWidth - margin - usrW, usrY);
+
+      // línea separadora
+      doc.setDrawColor(200);
+      doc.setLineWidth(0.6);
+      doc.line(margin, usrY + 6, pageWidth - margin, usrY + 6);
+    };
+
+    // Cabecera (campo/valor) — datos pequeños encima de la tabla
     const cabeceraRows = [
       ['Cliente', this.getClienteId(contrato.cliente_id) || ''],
       ['Año', contrato.anio ?? ''],
-      ['Fecha', (fmtDate(contrato.fecha) || contrato.fecha_embarque) ?? ''],
+      ['Fecha', fmtDate(contrato.fecha) ?? ''],
       ['Estado', contrato.estado === 'A' ? 'Activo' : contrato.estado === 'C' ? 'Cerrado' : (contrato.estado ?? '')],
       ['Total detalles', (this.listDetContrato || []).length.toString()]
     ];
 
-    autoTable(doc, {
-      startY: 20,
-      head: [['Campo', 'Valor']],
-      body: cabeceraRows,
-      styles: { halign: 'left', fontSize: 10 },
-      headStyles: { fillColor: [0, 127, 0], textColor: 255 },
-      theme: 'grid'
-    });
-
-    // Espacio antes de la tabla de detalles
-    const afterHeaderY = (doc as any).lastAutoTable ? (doc as any).lastAutoTable.finalY + 6 : 46;
-
-    // Tabla de detalles
-    const detailColumns = [
-      { header: 'Circunferencia', dataKey: 'circunferencia' },
-      { header: 'Precio / m³', dataKey: 'precioM3' },
-      { header: 'Largo (m)', dataKey: 'largo' },
-      { header: 'Característica', dataKey: 'caracteristica' }
-    ];
-
+    // Prepara filas de detalle
     const detailRows = (this.listDetContrato || []).map((item: any) => ({
       circunferencia: item.circunferencia ?? '',
       precioM3: typeof item.precioM3 !== 'undefined' ? fmtCurrency(item.precioM3) : '',
@@ -876,21 +1001,54 @@ export class ContratoComponent implements AfterViewInit {
       caracteristica: item.caracteristica ?? ''
     }));
 
-    doc.setFontSize(12);
-    doc.text('Detalles del contrato', 14, afterHeaderY - 2);
+    // Dibujar tabla cabecera (campo/valor)
+    autoTable(doc, {
+      startY: headerHeight + 6,
+      head: [['Campo', 'Valor']],
+      body: cabeceraRows,
+      theme: 'grid',
+      styles: { fontSize: 9, cellPadding: 6 },
+      headStyles: { fillColor: [34, 139, 34], textColor: 255 },
+      columnStyles: { 0: { cellWidth: 120, fontStyle: 'bold' }, 1: { cellWidth: pageWidth - margin * 2 - 120 } },
+      showHead: 'never', // no hace falta repetir en cada página
+      didDrawPage: (data) => {
+        // dibujar header en cada página
+        drawHeader(data.pageNumber);
+      }
+    });
+
+    // Y ahora la tabla de detalles, empezando después de la cabecera
+    const afterHeaderY = (doc as any).lastAutoTable ? (doc as any).lastAutoTable.finalY + 12 : headerHeight + 60;
 
     autoTable(doc, {
       startY: afterHeaderY,
-      columns: detailColumns,
-      body: detailRows,
-      styles: { fontSize: 9 },
-      headStyles: { fillColor: [0, 127, 0], textColor: 255 },
-      showHead: 'everyPage'
+      head: [['Circunferencia', 'Precio / m³', 'Largo (m)', 'Característica']],
+      body: detailRows.map(r => [r.circunferencia, r.precioM3, r.largo, r.caracteristica]),
+      styles: { fontSize: 10, cellPadding: 6 },
+      headStyles: { fillColor: [34, 139, 34], textColor: 255, halign: 'left' },
+      columnStyles: {
+        0: { cellWidth: 120, halign: 'left', fontStyle: 'bold' },
+        1: { halign: 'left' }
+      },
+      didDrawPage: (data) => {
+        // footer con número de página y footer info
+        const page = data.pageNumber;
+        const pageText = `Página ${page}`;
+        const footerText = `${usuarioTexto} · ${generatedAt}`;
+        doc.setFontSize(9);
+        doc.text(pageText, pageWidth - margin - doc.getTextWidth(pageText), pageHeight - 18);
+        doc.text(footerText, margin, pageHeight - 18);
+
+        // header también (asegura que siempre esté)
+        drawHeader(page);
+      },
+      showHead: 'everyPage',
+      margin: { top: headerHeight + 6, bottom: 30, left: margin, right: margin }
     });
 
-    // Guardar con nombre que identifica el contrato
+    // Guardar
     const filename = `contrato_${contrato.id}_detalles.pdf`;
     doc.save(filename);
   }
-
 }
+
