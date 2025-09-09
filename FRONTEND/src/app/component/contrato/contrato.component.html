@@ -83,6 +83,7 @@
                         <th>Embarcado</th>
                         <th>Saldo</th>
                         <th>Detalles</th>
+                        <th>Corte</th>
                         <th>...</th>
                     </tr>
                 </thead>
@@ -120,25 +121,25 @@
                         <td>
                             {{ contrato.fecha | date: 'dd/MM/yyyy' }}
                         </td>
-                        <td class="text-center">
+                        <td class="text-end">
                             <a class="btnSiembra-Rebrote" title="Anticipo"
                                 (click)="openAnticipoModal(contrato.id, contrato.estado)">
                                 <span class="badge bg-info"
-                                    style="background-color: #357ce7 !important; min-width: 80px; ">
+                                    style="background-color: #357ce7 !important; min-width: 80px; text-align: right;">
                                     {{ totalAnticipo[contrato.id] || 0 | currency }}
                                 </span></a>
                         </td>
-                        <td class="text-center">
+                        <td class="text-end">
                             <a class="btnSiembra-Rebrote" title="Embarque" (click)="openEmbarqueModal(contrato.id)">
                                 <span class="badge bg-success"
-                                    style="background-color: #e7a035 !important; min-width: 80px; ">
+                                    style="background-color: #e7a035 !important; min-width: 80px; text-align: right;">
                                     {{ (contratoValorTroza[contrato.id] || 0) | currency }}
                                 </span>
                             </a>
                         </td>
-                        <td class="text-center">
+                        <td class="text-end">
                             <a class="btnSiembra-Rebrote" title="Saldo">
-                                <span class="badge" style="min-width: 80px;" [ngClass]="{
+                                <span class="badge " style="min-width: 80px; text-align: right;" [ngClass]="{
     'bg-success': (contratoSaldos[contrato.id]?.saldo ?? 0) >= 0,
     'bg-danger': (contratoSaldos[contrato.id]?.saldo ?? 0) < 0
   }">
@@ -158,6 +159,12 @@
                                 <img src="/assets/images/archivoDetalles.png" width="24" height="24">
                             </a>
                         </td>
+                        <!-- Columna Corte -->
+                        <td class="text-center">
+                            <a class="btnSiembra-Rebrote" [routerLink]="['/corte', contrato.id]">
+                                <img src="/assets/images/corteWhite.png" width="24" height="24">
+                            </a>
+                        </td>
                         <!-- Acciones -->
                         <td class="d-flex justify-content-center align-items-center" *ngIf="contrato.estado === 'A'">
                             <button class="btn btnAngosto" ata-bs-toggle="tooltip" title="Editar registro"
@@ -174,7 +181,7 @@
                 <tfoot>
                     <tr>
                         <!-- Ajusta el colspan al número de columnas de tu tabla -->
-                        <td [attr.colspan]="11" class="text-center">
+                        <td [attr.colspan]="12" class="text-center">
                             <pagination-controls (pageChange)="paginaActual = $event" [autoHide]="true" [maxSize]="15"
                                 previousLabel="«" nextLabel="»">
                             </pagination-controls>
@@ -404,6 +411,13 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
+                    <div *ngIf="saveDetError" class="alert alert-danger d-flex align-items-start" role="alert"
+                        aria-live="assertive">
+                        <i class="bi bi-exclamation-triangle-fill me-2 fs-5" aria-hidden="true"></i>
+                        <div>
+                            <strong>¡Error!</strong> {{ saveDetError }}
+                        </div>
+                    </div>
                     <!-- Bloque info cabecera -->
                     <div *ngIf="selectedContrato" class="mb-3">
                         <div class="row g-2">
@@ -485,7 +499,7 @@
                 </div>
                 <div class="modal-footer">
                     <button class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                    <button class="btn btn-primary" (click)="onSaveDet()" data-bs-dismiss="modal">
+                    <button class="btn btn-primary" (click)="onSaveDet()">
                         Aceptar
                     </button>
                 </div>
@@ -516,6 +530,14 @@
                             <div class="col-sm-3">
                                 <small class="text-muted">Fecha</small>
                                 <div><strong>{{ selectedContrato.fecha}}</strong></div>
+                            </div>
+                            <!-- Botón PDF -->
+                            <div class="col-sm-3" style="margin-right: auto;">
+                                <button class="btn btn-success mb-3"
+                                    style="background: none; color: green; border: none;" (click)="expToPdfEmb()"
+                                    title="Descargar registro">
+                                    <i class="bi bi-file-earmark-pdf-fill fs-4"></i>
+                                </button>
                             </div>
                         </div>
                     </div>
@@ -564,7 +586,7 @@
                                         {{ getSiemRebTipo(getSiemRebId(corte.siembra_rebrote_id))}} - {{
                                         getSiemRebAnio(corte.siembra_rebrote_id)}}
                                     </td>
-                                    <!-- Columna Siembra rebrote -->
+                                    <!-- Columna Sello -->
                                     <td class="text-center">
                                         {{ getSelloTipoId(corte.sello_id) }}
                                     </td>
@@ -573,11 +595,11 @@
                                         {{ corte.fecha_embarque | date: 'dd/MM/yyyy' }}
                                     </td>
                                     <!-- Columna Cant -->
-                                    <td>
+                                    <td class="text-end">
                                         {{ corte.cant_arboles | number: '1.0-0'}}
                                     </td>
                                     <!-- Columna N. viaje -->
-                                    <td>
+                                    <td class="text-end">
                                         {{ corte.numero_viaje }}
                                     </td>
                                     <!-- Columna Placa carro -->
@@ -597,19 +619,16 @@
                                         {{ corte.supervisor }}
                                     </td>
                                     <!-- Columna ValorTroza -->
-                                    <td>
+                                    <td class="text-end">
                                         {{ (corteValorTroza[corte.id] || 0) | currency }}
                                     </td>
-                                    <!-- Columna Detalles -->
-                                    <!-- <td class="text-center">
-                                        <a class="btnSiembra-Rebrote"
-                                            title="Ver detalles" (click)="openDetailModal(corte.id)">
-                                            <img src="/assets/images/archivoDetalles.png" width="24" height="24">
-                                        </a>
-                                    </td> -->
                                 </tr>
                             </tbody>
                             <tfoot>
+                                <tr>
+                                    <td colspan="10"><strong>Total:</strong></td>
+                                    <td><strong>{{ totalEmbarcado | currency }}</strong></td>
+                                </tr>
                                 <tr>
                                     <!-- Ajusta el colspan al número de columnas de tu tabla -->
                                     <td [attr.colspan]="11" class="text-center">
@@ -655,22 +674,22 @@
                     <table class="table table-sm">
                         <thead>
                             <tr>
-                                <th>Factura</th>
-                                <th>Fecha</th>
-                                <th>Monto</th>
+                                <th class="text-center">Factura</th>
+                                <th class="text-center">Fecha</th>
+                                <th class="text-center">Monto</th>
                             </tr>
                         </thead>
                         <tbody>
                             <tr *ngFor="let a of listAnticipo">
                                 <td>{{ a.factura }}</td>
                                 <td>{{ a.fecha | date:'dd/MM/yyyy' }}</td>
-                                <td>{{ a.cantidad| currency }}</td>
+                                <td class="text-end pe-2">{{ a.cantidad| currency }}</td>
                             </tr>
                         </tbody>
                         <tfoot>
                             <tr>
                                 <td colspan="2"><strong>Total:</strong></td>
-                                <td><strong>{{ totalAnticipos | currency }}</strong></td>
+                                <td class="text-end pe-2"><strong>{{ totalAnticipos | currency }}</strong></td>
                             </tr>
                         </tfoot>
                     </table>

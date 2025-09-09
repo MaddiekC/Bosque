@@ -9,6 +9,7 @@ use App\Models\DetalleContrato;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use App\Models\SiembraRebrote;
+use App\Models\Anticipo;
 
 class DetalleCorteController extends Controller
 {
@@ -83,8 +84,6 @@ class DetalleCorteController extends Controller
             $cid = (int) $d['cabecera_corte_id'];
             $requestedPerCabecera[$cid] = ($requestedPerCabecera[$cid] ?? 0) + 1;
         }
-
-
         // --- 0) Conteos existentes por cabecera (antes de insertar)
         $existingCounts = DetalleCorte::whereIn('cabecera_corte_id', $cabeceraIds)
             ->where('estado', 'A')
@@ -114,6 +113,82 @@ class DetalleCorteController extends Controller
             $key = $cab->siembra_rebrote_id . ':' . $cab->bosque_id;
             $requestedPerSiembraBosque[$key] = ($requestedPerSiembraBosque[$key] ?? 0) + $qty;
         }
+
+        // -------------------------------------------------
+        // VALIDACIÓN ADICIONAL: no permitir si (existingValor + nuevoValor) > anticipo del contrato
+        // -------------------------------------------------
+
+        // 1) calcular el valor a agregar por contrato (simulando los cálculos)
+        $valorToAddPerContrato = []; // [contratoId => sumValorAAgregar]
+        foreach ($detalles as $det) {
+            $cabId = (int)$det['cabecera_corte_id'];
+            $cab = $cabeceras[$cabId] ?? null;
+            if (!$cab) {
+                return response()->json(['message' => "Cabecera_corte {$cabId} no encontrada"], 422);
+            }
+            $contratoId = $cab->contrato_id;
+            if (! $contratoId) {
+                return response()->json(['message' => "Cabecera_corte {$cabId} no tiene contrato asociado"], 422);
+            }
+
+            // reproducir cálculos (igual que harás cuando insertes)
+            $circNeta     = $det['circ_bruta'] - 2;
+            $largoNeto    = $det['largo_bruto'] - 0.05;
+            $volM3_raw = (($circNeta * $circNeta  * $largoNeto) / 16) / 10000;
+            $volM3        = (float) number_format($volM3_raw, 4, '.', '');
+
+            // obtener detalle contrato (precio) - necesario para pre-calcular valorTroza
+            $detContrato = DetalleContrato::where('contrato_id', $contratoId)
+                ->where('circunferencia', $circNeta)
+                ->where('largo', $det['largo_bruto'])
+                ->where('estado', 'A')
+                ->first();
+            if (! $detContrato) {
+                return response()->json([
+                    'message' => "Este contrato no tiene la circunferencia neta {$circNeta} o largo {$det['largo_bruto']} en sus detalles"
+                ], 422);
+            }
+            $precioM3 = $detContrato->precioM3;
+            $valorTroza = (float) number_format($precioM3 * $volM3, 2, '.', '');
+
+            $valorToAddPerContrato[$contratoId] = ($valorToAddPerContrato[$contratoId] ?? 0) + $valorTroza;
+        }
+
+        // 2) recuperar existingValor (sum valor_troza) por contrato para detalles activos
+        $existingValorPerContrato = DB::table('detalle_corte as det')
+            ->join('cabecera_corte as cab', 'det.cabecera_corte_id', '=', 'cab.id')
+            ->whereIn('cab.id', $cabeceraIds) // limitar a cabeceras que nos interesan (optimiza)
+            ->where('det.estado', 'A')
+            ->select('cab.contrato_id', DB::raw('COALESCE(SUM(det.valor_troza),0) as total_valor'))
+            ->groupBy('cab.contrato_id')
+            ->pluck('total_valor', 'contrato_id')
+            ->toArray();
+
+        // 3) obtener total anticipo por contrato (ajusta el modelo/nombre de campo según tu app)
+        $contratoIds = array_values(array_unique(array_column($cabeceras->toArray(), 'contrato_id')));
+        $totalAnticipoPerContrato = DB::table('anticipo')
+            ->whereIn('contrato_id', $contratoIds)
+            ->where('estado', 'A') // si aplicable
+            ->select('contrato_id', DB::raw('COALESCE(SUM(cantidad),0) as total_anticipo'))
+            ->groupBy('contrato_id')
+            ->pluck('total_anticipo', 'contrato_id')
+            ->toArray();
+
+        // 4) validar por contrato
+        $anticipoErrors = [];
+        foreach ($valorToAddPerContrato as $contratoId => $toAdd) {
+            $existing = isset($existingValorPerContrato[$contratoId]) ? (float)$existingValorPerContrato[$contratoId] : 0.0;
+            $anticipo = isset($totalAnticipoPerContrato[$contratoId]) ? (float)$totalAnticipoPerContrato[$contratoId] : 0.0;
+            if (($existing + $toAdd) > $anticipo) {
+                $anticipoErrors[] = "ValorTroza excede anticipo para contrato {$contratoId}. Anticipo: {$anticipo}, existente: {$existing}, solicitado: {$toAdd}";
+            }
+        }
+        if (!empty($anticipoErrors)) {
+            return response()->json(['message' => implode(' | ', $anticipoErrors)], 422);
+        }
+        // -------------------------------------------------
+        // (Si pasa la validación de anticipo, seguimos con tu transacción habitual)
+        // -------------------------------------------------
 
         // Ejecutar todo en transacción (validación con lock + inserts + updates)
         try {

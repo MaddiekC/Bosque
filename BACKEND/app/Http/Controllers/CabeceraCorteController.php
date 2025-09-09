@@ -16,6 +16,7 @@ class CabeceraCorteController extends Controller
         $cabeceraCortes = CabeceraCorte::with(['bosque', 'contrato.cliente', 'siembraRebrote', 'raleoTipo', 'sello'])
             ->withCount('detalleCortes')
             ->whereIn('estado', ['A', 'C'])
+             ->orderByDesc('created_at')  
             ->get();
         return response()->json($cabeceraCortes);
     }

@@ -42,6 +42,22 @@ class DetalleContratoController extends Controller
             'detalles.*.caracteristica' => 'required|string|max:255',
         ]);
         $user = $request->user();
+        // --- 1) Validación: duplicados dentro del payload (contrato_id + circunferencia) ---
+        $pairs = [];
+        $duplicates = [];
+        foreach ($request->input('detalles') as $det) {
+            $k = $det['contrato_id'] . '|' . $det['circunferencia'];
+            if (isset($pairs[$k])) {
+                $duplicates[] = $det['circunferencia'];
+            } else {
+                $pairs[$k] = true;
+            }
+        }
+        if (!empty($duplicates)) {
+            $du = implode(', ', array_unique($duplicates));
+            return response()->json(['message' => "Circunferencias duplicadas: {$du}"], 422);
+        }
+
         $creados = [];
 
         foreach ($request->input('detalles') as $det) {

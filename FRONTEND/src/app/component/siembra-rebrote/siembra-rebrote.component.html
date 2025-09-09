@@ -148,27 +148,27 @@
                             {{ siembraRebrote.anio}}
                         </td>
                         <!-- Columna Hectarea Usada -->
-                        <td>
+                        <td class="text-end">
                             {{ siembraRebrote.hectarea_usada }}
                         </td>
                         <!-- Columna Arboles Iniciales -->
-                        <td>
+                        <td class="text-end">
                             {{ siembraRebrote.arb_iniciales }}
                         </td>
                         <!-- Columna Arboles Cortados -->
-                        <td>
+                        <td class="text-end">
                             {{ siembraRebrote.arb_cortados }}
                         </td>
                         <!-- Columna distancia siembra -->
-                        <td>
+                        <td class="text-center">
                             <span>{{ siembraRebrote.dist_siembra }}</span>
                         </td>
                         <!-- Columna Saldo -->
-                        <td>
+                        <td class="text-end">
                             {{ siembraRebrote.saldo }}
                         </td>
 
-                        <!-- Columna Ver -->
+                        <!-- Columna Corte -->
                         <td class="text-center">
                             <a class="btnSiembra-Rebrote" [routerLink]="['/corte', siembraRebrote.id, siembraRebrote.bosque_id]">
                                 <img src="/assets/images/corteWhite.png" width="24" height="24">

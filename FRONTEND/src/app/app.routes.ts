@@ -46,6 +46,11 @@ export const routes: Routes = [
         loadComponent: () => import('./component/corte/corte.component').then(m => m.CorteComponent),
         data: { title: 'Corte filtrado' }
       },
+      {
+        path: 'corte/:contratoId',
+        loadComponent: () => import('./component/corte/corte.component').then(m => m.CorteComponent),
+        data: { title: 'Corte filtrado2' }
+      },
     ]
   },
   {

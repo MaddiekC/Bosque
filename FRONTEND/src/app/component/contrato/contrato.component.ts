@@ -9,6 +9,7 @@ import { HasPermissionDirective } from '../../services/has-permission.directive'
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { Modal } from 'bootstrap';
+import Swal from 'sweetalert2';
 import { AuthserviceService } from '../../auth/authservice.service';
 
 declare const bootstrap: any;
@@ -73,6 +74,8 @@ export class ContratoComponent implements AfterViewInit {
   listAnticipo: any[] = [];
   ultimoAnticipo: Record<string, number> = {};
   totalAnticipos: number = 0;
+  listEmbarcado: any[] = [];
+  totalEmbarcado: number = 0;
   totalAnticipo: Record<number, number> = {};
   corteValorTroza: Record<number, number> = {};
 
@@ -88,7 +91,8 @@ export class ContratoComponent implements AfterViewInit {
   filtroAnio: number | null = null;
   filtroFecha: Date | null = null;
   filtroEstado: string | null = null;
-
+  saveCantError: string | null = null;
+  saveDetError: string | null = null;
   // paginación
   paginaActual: number = 1;
   itemsPorPagina: number = 15;
@@ -274,22 +278,34 @@ export class ContratoComponent implements AfterViewInit {
   }
 
   eliminarContrato(id: number): void {
-    this.contratoService.putContratoInactive(id).subscribe(
-      exito => {
-        console.log(exito);
-        this.listContrato = this.listContrato.filter(contrato => contrato.id !== id);
-        this.getContratosFiltrados();
-
-        const totalItems = this.contratosFiltrados.length;
-        const totalPages = Math.ceil(totalItems / this.itemsPorPagina);
-        if (this.paginaActual > totalPages) {
-          this.paginaActual = totalPages || 1;
-        }
-      },
-      error => {
-        console.log(error);
+    this.contratoService.countCorteByContrato(id).subscribe(count => {
+      console.log(count)
+      if (count > 0) {
+        Swal.fire({
+          icon: 'error',
+          title: 'No se puede eliminar',
+          text: `Este contrato tiene ${count} corte(s) y no se puede eliminar.`,
+          confirmButtonColor: '#d33'
+        });
+        return;
       }
-    );
+      this.contratoService.putContratoInactive(id).subscribe(
+        exito => {
+          console.log(exito);
+          this.listContrato = this.listContrato.filter(contrato => contrato.id !== id);
+          this.getContratosFiltrados();
+
+          const totalItems = this.contratosFiltrados.length;
+          const totalPages = Math.ceil(totalItems / this.itemsPorPagina);
+          if (this.paginaActual > totalPages) {
+            this.paginaActual = totalPages || 1;
+          }
+        },
+        error => {
+          console.log(error);
+        }
+      );
+    });
   }
   //--------------------------------------------------------
 
@@ -381,11 +397,11 @@ export class ContratoComponent implements AfterViewInit {
         next: exito => {
           // formatear y añadir a la lista
           const nuevo = {
-            ...exito
+            ...exito,
+            detalles_count: 0
           };
           this.listContrato.push(nuevo);
           this.getContratosFiltrados();
-
           // cerrar el modal manualmente
           const modalEl = document.getElementById('miModal')!;
           const modal = bootstrap.Modal.getInstance(modalEl);
@@ -489,81 +505,39 @@ export class ContratoComponent implements AfterViewInit {
     this.nuevoDetContrato.splice(i, 1);
   }
 
-  private expandDetalles(detalles: detContrato[]): detContrato[] | null {
-    const out: detContrato[] = [];
-
-    for (const row of detalles) {
-      // Validaciones básicas:
-      if (row.useRange) {
-        const desde = Number(row.desde);
-        const hasta = Number(row.hasta);
-
-        if (!Number.isFinite(desde) || !Number.isFinite(hasta)) {
-          alert('Rango inválido: verifica "desde" y "hasta".');
-          return null;
-        }
-        if (desde > hasta) {
-          alert(`Rango inválido: "desde" (${desde}) no puede ser mayor que "hasta" (${hasta}).`);
-          return null;
-        }
-        // calcular cantidad que generará este rango
-        const count = Math.floor(hasta) - Math.ceil(desde) + 1;
-        if (count <= 0) {
-          alert('Rango inválido: no hay valores entre desde y hasta.');
-          return null;
-        }
-        if (count > this.MAX_EXPAND_COUNT) {
-          alert(`Rango demasiado grande (${count}) — máximo permitido por rango: ${this.MAX_EXPAND_COUNT}.`);
-          return null;
-        }
-
-        // expandir: una fila por valor entero de circunferencia
-        const start = Math.ceil(desde);
-        const end = Math.floor(hasta);
-        for (let c = start; c <= end; c++) {
-          out.push({
-            id: 0,
-            contrato_id: row.contrato_id,
-            circunferencia: c,
-            precioM3: Number(row.precioM3),
-            largo: Number(row.largo),
-            caracteristica: row.caracteristica
-          });
-        }
-      } else {
-        // fila individual
-        const circ = Number(row.circunferencia);
-        out.push({
-          id: 0,
-          contrato_id: row.contrato_id,
-          circunferencia: circ,
-          precioM3: Number(row.precioM3),
-          largo: Number(row.largo),
-          caracteristica: row.caracteristica
-        });
-        console.log('circ', circ);
-        if (!Number.isFinite(circ)) {
-          alert('Circunferencia inválida en una fila.');
-          return null;
-        };
-      }
-    }
-
-    // prevención adicional: no enviar demasiados registros totales
-    if (out.length > 2000) {
-      const confirmBig = confirm(`Se van a crear ${out.length} registros. ¿Deseas continuar?`);
-      if (!confirmBig) return null;
-    }
-
-    return out;
-  }
-
   onSaveDet() {
+    this.saveDetError = null;
     const detallesAEnviar: detContrato[] = [];
 
-    this.nuevoDetContrato.forEach(d => {
+    for (const d of this.nuevoDetContrato) {
       if (typeof d.desde !== 'undefined' && typeof d.hasta !== 'undefined') {
-        for (let c = d.desde; c <= d.hasta; c++) {
+        const desde = Number(d.desde);
+        const hasta = Number(d.hasta);
+
+        // 🔹 Validaciones
+        if (!Number.isFinite(desde) || !Number.isFinite(hasta)) {
+          this.saveDetError = 'Rango inválido: verifica "desde" y "hasta".';
+          setTimeout(() => this.saveDetError = null, 8000);
+          return;
+        }
+        if (desde > hasta) {
+          this.saveDetError = `Rango inválido: "desde" (${desde}) no puede ser mayor que "hasta" (${hasta}).`;
+          setTimeout(() => this.saveDetError = null, 8000);
+          return;
+        }
+        const count = Math.floor(hasta) - Math.ceil(desde) + 1;
+        if (count <= 0) {
+          this.saveDetError = 'Rango inválido: no hay valores entre desde y hasta.';
+          setTimeout(() => this.saveDetError = null, 8000);
+          return;
+        }
+        if (count > this.MAX_EXPAND_COUNT) {
+          this.saveDetError = `Rango demasiado grande (${count}) — máximo permitido por rango: ${this.MAX_EXPAND_COUNT}.`;
+          setTimeout(() => this.saveDetError = null, 8000);
+          return;
+        }
+        // generar filas
+        for (let c = Math.ceil(desde); c <= Math.floor(hasta); c++) {
           detallesAEnviar.push({
             contrato_id: this.selectedContratoId!,
             circunferencia: c,
@@ -574,18 +548,28 @@ export class ContratoComponent implements AfterViewInit {
           });
         }
       } else {
-        // Si no hay rango, agregar solo una fila con la circunferencia individual
+        // fila individual
+        const circ = Number(d.circunferencia);
+        if (!Number.isFinite(circ)) {
+          alert('Circunferencia inválida en una fila.');
+          return;
+        }
+
         detallesAEnviar.push({
           contrato_id: this.selectedContratoId!,
-          circunferencia: d.circunferencia,
+          circunferencia: circ,
           precioM3: d.precioM3,
           largo: d.largo,
           caracteristica: d.caracteristica,
           id: 0
         });
       }
-    });
-
+    }
+    // 🔹 Prevención adicional: no enviar demasiados registros
+    if (detallesAEnviar.length > 2000) {
+      const confirmBig = confirm(`Se van a crear ${detallesAEnviar.length} registros. ¿Deseas continuar?`);
+      if (!confirmBig) return;
+    }
     this.contratoService.postDetContrato({ detalles: detallesAEnviar }).subscribe(
       response => {
         console.log('Detalles guardados:', response);
@@ -615,17 +599,38 @@ export class ContratoComponent implements AfterViewInit {
           console.error('Error al obtener saldos:', err);
         });
         const modalEl = document.getElementById('detModal')!;
-        const modalInstance = Modal.getInstance(modalEl) as Modal ?? new Modal(modalEl);
-        modalInstance.hide();
+        bootstrap.Modal.getInstance(modalEl)?.hide();
 
+        this.saveDetError = null;
         this.selectedContratoId = null;
       },
-      error => {
-        console.error('Error al guardar los detalles:', error);
+      err => {
+        console.error('Error al guardar los detalles:', err);
+        let msg = 'Error al guardar los detalles';
+        if (err && err.status === 422) {
+          if (err.error) {
+            if (typeof err.error === 'string') {
+              msg = err.error;
+            } else if (err.error.message) {
+              msg = err.error.message;
+            } else if (err.error.errors) {
+              // compone mensaje desde array de errores
+              const vals = Object.values(err.error.errors)
+                .flat()
+                .map((v: any) => String(v));
+              msg = vals.join(' - ') || msg;
+            }
+          }
+        } else if (err && err.message) {
+          msg = err.message;
+        }
+
+        // muestra en la UI
+        this.saveDetError = msg;
+        setTimeout(() => this.saveDetError = null, 8000);
       }
     );
   }
-
 
   //-------------EMBARQUE----------------------
   getBosqueId(bosqueId: string) {
@@ -678,6 +683,23 @@ export class ContratoComponent implements AfterViewInit {
         next: corte => {
           this.cortesFiltrados = Array.isArray(corte) ? corte : [];
           console.log('Corte encontrado:', corte);
+          // Si ya tienes el mapa corteValorTroza en memoria, calcular total directamente:
+          if (Object.keys(this.corteValorTroza || {}).length > 0) {
+            this.computeTotalEmbarcadoFromCortes();
+          } else {
+            // Si no, pide los valores y luego calcula (defensivo)
+            this.contratoService.getValorTrozaAll2().subscribe(map => {
+              this.corteValorTroza = {};
+              Object.entries(map || {}).forEach(([k, v]) => {
+                this.corteValorTroza[Number(k)] = Number(v) || 0;
+              });
+              this.computeTotalEmbarcadoFromCortes();
+            }, err => {
+              console.error('No pude obtener valorTrozaAll2:', err);
+              // Aun así abrir modal (con total = 0)
+              this.totalEmbarcado = 0;
+            });
+          }
           this.contratoService.getContrato(contratoId).subscribe(
             cab => this.selectedContrato = cab,
             err => {
@@ -696,6 +718,17 @@ export class ContratoComponent implements AfterViewInit {
         }
       });
   }
+
+  /** Función pequeña que calcula totalEmbarcado sumando valorTroza por corte */
+  private computeTotalEmbarcadoFromCortes() {
+    // Asegúrate que cortesFiltrados y corteValorTroza existen
+    this.totalEmbarcado = (this.cortesFiltrados || []).reduce((acc: number, c: any) => {
+      const val = Number(this.corteValorTroza[c.id] || 0);
+      return acc + val;
+    }, 0);
+  }
+
+
   //--------------ANTICIPO---------------------
   openAnticipoModal(contratoId: number, estado: string) {
     this.selectedContratoId = contratoId;
@@ -799,18 +832,47 @@ export class ContratoComponent implements AfterViewInit {
         }
       );
   }
-  exportToPDF() {
+  async exportToPDF() {
+    // Helper: carga una imagen y devuelve dataURL (base64)
+    const loadImageAsDataURL = (url: string): Promise<string> => {
+      return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.crossOrigin = 'anonymous'; // importante si la sirves desde otro origen
+        img.onload = () => {
+          // dibuja en canvas para obtener dataURL
+          const canvas = document.createElement('canvas');
+          canvas.width = img.naturalWidth || img.width;
+          canvas.height = img.naturalHeight || img.height;
+          const ctx = canvas.getContext('2d')!;
+          ctx.drawImage(img, 0, 0);
+          try {
+            const dataUrl = canvas.toDataURL('image/png');
+            resolve(dataUrl);
+          } catch (e) {
+            reject(e);
+          }
+        };
+        img.onerror = (err) => reject(err);
+        // ruta relativa al build -> angular sirve assets desde /assets/...
+        img.src = `/assets/images/bosque.png`;
+      });
+    };
+
     const doc = new jsPDF({ unit: 'pt', format: 'a4' });
     const pageSize = doc.internal.pageSize as any;
     const pageWidth = pageSize.getWidth();
     const pageHeight = pageSize.getHeight();
-    const margin = 40;
 
     // Márgenes reducidos para aprovechar el ancho
     const marginLeft = 20;
     const marginRight = 20;
     const usableWidth = pageWidth - marginLeft - marginRight;
+
     const headerY = 36;
+    const margin = 40;
+
+    const username = this.username ?? 'Invitado';
+    const generatedAt = new Date().toLocaleString('es-ES');
 
     const fmtCurrency = (v: any) => {
       const n = Number(v) || 0;
@@ -820,20 +882,6 @@ export class ContratoComponent implements AfterViewInit {
         return n.toFixed(2);
       }
     };
-
-    doc.setFontSize(14);
-    doc.setFont('bold');
-
-    doc.setFontSize(9);
-    doc.setFont('normal');
-
-    const username = this.username ?? 'Invitado';
-    const generatedAt = new Date().toLocaleString('es-ES');
-
-    // línea separadora ligera
-    doc.setDrawColor(200);
-    doc.setLineWidth(0.5);
-    doc.line(margin, 42, pageWidth - margin, 42);
 
     const rows = this.contratosFiltrados.map(item => ({
       cliente_id: this.getClienteId(item.cliente_id),
@@ -858,13 +906,36 @@ export class ContratoComponent implements AfterViewInit {
       { header: 'Saldo', dataKey: 'saldo' }
     ];
 
+    // Carga la imagen antes de dibujar el header/tablas
+    let logoDataUrl: string | null = null;
+    try {
+      logoDataUrl = await loadImageAsDataURL('/assets/images/bosque.png');
+    } catch (e) {
+      console.warn('No se pudo cargar logo para el PDF:', e);
+      logoDataUrl = null;
+    }
+
     // Header/footer dibujados en cada página
     const drawHeader = (data: any) => {
-      const page = data.pageNumber;
+      if (logoDataUrl) {
+        // calcular tamaño deseado (p. ej. ancho 60pt)
+        const desiredWidth = 60;
+        // reconstruir tamaño manteniendo proporción: extrae info del dataURL
+        const img = new Image();
+        img.src = logoDataUrl;
+        // Usamos proporción aproximada - si quieres seguridad, podrías calcular con img.naturalWidth/naturalHeight después de load
+        const ratio = (img.naturalHeight && img.naturalWidth) ? (img.naturalHeight / img.naturalWidth) : 0.5;
+        const desiredHeight = ratio ? desiredWidth * ratio : 30;
+        // coloca logo a la izquierda, un poco arriba
+        doc.addImage(logoDataUrl, 'PNG', marginLeft, 8, desiredWidth, desiredHeight);
+        // desplaza texto del título a la derecha si hace falta
+      }
+
+      //const page = data.pageNumber;
       // Título
       doc.setFontSize(12);
       doc.setFont('bold');
-      doc.text('Reporte de Contrato', marginLeft, 18);
+      doc.text('Reporte de Contratos', marginLeft, 50);
 
       // Info a la derecha (fecha + usuario)
       doc.setFontSize(8);
@@ -884,7 +955,7 @@ export class ContratoComponent implements AfterViewInit {
     const body = rows.map(r => columns.map((c) => (r as any)[c.dataKey]));
 
     autoTable(doc, {
-      startY: headerY + 6,
+      startY: headerY + 22,
       head: [columns.map(c => c.header)],
       body: body,
       margin: { left: marginLeft, right: marginRight, top: headerY + 6 },
@@ -898,6 +969,12 @@ export class ContratoComponent implements AfterViewInit {
       headStyles: { fillColor: [34, 139, 34], textColor: 255, halign: 'center' },
       //columnStyles: Object.fromEntries(Object.entries(columnWidths).map(([k, w]) => [Number(k), { cellWidth: Number(w) }])),
       tableWidth: usableWidth,
+      columnStyles: {
+        // índices: 0 Estado,1 Cliente,2 Año,3 Fecha,4 Anticipo,5 Embarcado,6 Saldo
+        4: { halign: 'right' },   // Anticipo
+        5: { halign: 'right' },   // Embarcado
+        6: { halign: 'right' }    // Saldo
+      },
       didDrawPage: (data) => {
         // número de página actual que te da autoTable
         const page = data.pageNumber;
@@ -919,7 +996,7 @@ export class ContratoComponent implements AfterViewInit {
     doc.save(filename);
   }
 
-  exportToPDF2() {
+  async exportToPDF2() {
     if (!this.selectedContratoId) {
       alert('No hay contrato seleccionado para exportar.');
       return;
@@ -938,13 +1015,43 @@ export class ContratoComponent implements AfterViewInit {
     };
     const fmtDate = (d: any) => d ? new Date(d).toLocaleDateString() : '';
 
+    // Helper: carga una imagen y devuelve dataURL (base64)
+    const loadImageAsDataURL = (url: string): Promise<string> => {
+      return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.crossOrigin = 'anonymous'; // importante si la sirves desde otro origen
+        img.onload = () => {
+          // dibuja en canvas para obtener dataURL
+          const canvas = document.createElement('canvas');
+          canvas.width = img.naturalWidth || img.width;
+          canvas.height = img.naturalHeight || img.height;
+          const ctx = canvas.getContext('2d')!;
+          ctx.drawImage(img, 0, 0);
+          try {
+            const dataUrl = canvas.toDataURL('image/png');
+            resolve(dataUrl);
+          } catch (e) {
+            reject(e);
+          }
+        };
+        img.onerror = (err) => reject(err);
+        // ruta relativa al build -> angular sirve assets desde /assets/...
+        img.src = `/assets/images/bosque.png`;
+      });
+    };
     const doc = new jsPDF({ unit: 'pt', format: 'a4' });
-    const pageWidth = (doc.internal.pageSize as any).width || doc.internal.pageSize.getWidth();
-    const pageHeight = (doc.internal.pageSize as any).height || doc.internal.pageSize.getHeight();
+    const pageSize = doc.internal.pageSize as any;
+    const pageWidth = pageSize.getWidth();
+    const pageHeight = pageSize.getHeight();
+
     const margin = 40;
+    // Márgenes reducidos para aprovechar el ancho
+    const marginLeft = 35;
+    //const marginRight = 20;
+    //const usableWidth = pageWidth - marginLeft - marginRight;
 
     // Header/foot layout
-    const headerTop = 22;        // y inicial del header
+    const headerTop = 36;        // y inicial del header
     const lineHeight = 10;      // separación compacta
     const headerHeight = headerTop + lineHeight * 3 + 8; // reservar espacio para header
 
@@ -953,24 +1060,38 @@ export class ContratoComponent implements AfterViewInit {
     const generatedAt = `Generado: ${new Date().toLocaleString()}`;
     const usuarioTexto = `Usuario: ${this.username ?? 'Invitado'}`;
 
+    // Carga la imagen antes de dibujar el header/tablas
+    let logoDataUrl: string | null = null;
+    try {
+      logoDataUrl = await loadImageAsDataURL('/assets/images/bosque.png');
+    } catch (e) {
+      console.warn('No se pudo cargar logo para el PDF:', e);
+      logoDataUrl = null;
+    }
+
     // Dibuja header (se llamará desde didDrawPage)
     const drawHeader = (pageNumber?: number) => {
+      if (logoDataUrl) {
+        // calcular tamaño deseado (p. ej. ancho 60pt)
+        const desiredWidth = 60;
+        // reconstruir tamaño manteniendo proporción: extrae info del dataURL
+        const img = new Image();
+        img.src = logoDataUrl;
+        // Usamos proporción aproximada - si quieres seguridad, podrías calcular con img.naturalWidth/naturalHeight después de load
+        const ratio = (img.naturalHeight && img.naturalWidth) ? (img.naturalHeight / img.naturalWidth) : 0.5;
+        const desiredHeight = ratio ? desiredWidth * ratio : 30;
+        // coloca logo a la izquierda, un poco arriba
+        doc.addImage(logoDataUrl, 'PNG', marginLeft, 8, desiredWidth, desiredHeight);
+        // desplaza texto del título a la derecha si hace falta
+      }
+
       doc.setFont('helvetica', 'bold');
-      doc.setFontSize(13);
-      doc.text(title, margin, headerTop);
+      doc.setFontSize(12);
+      doc.text(title, marginLeft, 50);
 
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(9);
 
-      // // subtítulo (derecha si cabe)
-      // const subW = doc.getTextWidth(subtitle);
-      // if (subW < pageWidth - margin * 2 - 100) {
-      //   doc.text(subtitle, pageWidth - margin - subW, headerTop);
-      // } else {
-      //   doc.text(subtitle, margin, headerTop + lineHeight);
-      // }
-
-      // Fecha y usuario en dos líneas compactas a la derecha
       const genY = headerTop + lineHeight;
       const usrY = genY + lineHeight;
       const genW = doc.getTextWidth(generatedAt);
@@ -1028,7 +1149,8 @@ export class ContratoComponent implements AfterViewInit {
       headStyles: { fillColor: [34, 139, 34], textColor: 255, halign: 'left' },
       columnStyles: {
         0: { cellWidth: 120, halign: 'left', fontStyle: 'bold' },
-        1: { halign: 'left' }
+        1: { halign: 'right', cellWidth: 90 },
+        2: { halign: 'center' }
       },
       didDrawPage: (data) => {
         // footer con número de página y footer info
@@ -1048,6 +1170,184 @@ export class ContratoComponent implements AfterViewInit {
 
     // Guardar
     const filename = `contrato_${contrato.id}_detalles.pdf`;
+    doc.save(filename);
+  }
+
+  async expToPdfEmb() {
+    if (!this.selectedContratoId) {
+      alert('No hay contrato seleccionado para exportar.');
+      return;
+    }
+
+    const contrato = this.listContrato.find((c: any) => Number(c.id) === Number(this.selectedContratoId));
+    if (!contrato) {
+      alert('No se encontró la información del contrato seleccionado.');
+      return;
+    }
+
+    const fmtCurrency = (v: any) => {
+      const n = Number(v) || 0;
+      try { return new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'USD' }).format(n); }
+      catch { return n.toFixed(2); }
+    };
+    const fmtDate = (d: any) => d ? new Date(d).toLocaleDateString() : '';
+
+    // Helper: carga una imagen y devuelve dataURL (base64)
+    const loadImageAsDataURL = (url: string): Promise<string> => {
+      return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.crossOrigin = 'anonymous'; // importante si la sirves desde otro origen
+        img.onload = () => {
+          // dibuja en canvas para obtener dataURL
+          const canvas = document.createElement('canvas');
+          canvas.width = img.naturalWidth || img.width;
+          canvas.height = img.naturalHeight || img.height;
+          const ctx = canvas.getContext('2d')!;
+          ctx.drawImage(img, 0, 0);
+          try {
+            const dataUrl = canvas.toDataURL('image/png');
+            resolve(dataUrl);
+          } catch (e) {
+            reject(e);
+          }
+        };
+        img.onerror = (err) => reject(err);
+        // ruta relativa al build -> angular sirve assets desde /assets/...
+        img.src = `/assets/images/bosque.png`;
+      });
+    };
+    const doc = new jsPDF({ unit: 'pt', format: 'a4' });
+    const pageWidth = (doc.internal.pageSize as any).width || doc.internal.pageSize.getWidth();
+    const pageHeight = (doc.internal.pageSize as any).height || doc.internal.pageSize.getHeight();
+    const margin = 40;
+
+    // Márgenes reducidos para aprovechar el ancho
+    const marginLeft = 38;
+
+    // Header/foot layout
+    const headerTop = 60;        // y inicial del header
+    const lineHeight = 10;      // separación compacta
+    const headerHeight = headerTop + lineHeight * 3 + 8; // reservar espacio para header
+
+    const title = `Contrato - ID ${contrato.id}`;
+    //const subtitle = `Cliente: ${this.getClienteId(contrato.cliente_id) || ''}`;
+    const generatedAt = `Generado: ${new Date().toLocaleString()}`;
+    const usuarioTexto = `Usuario: ${this.username ?? 'Invitado'}`;
+
+    // Carga la imagen antes de dibujar el header/tablas
+    let logoDataUrl: string | null = null;
+    try {
+      logoDataUrl = await loadImageAsDataURL('/assets/images/bosque.png');
+    } catch (e) {
+      console.warn('No se pudo cargar logo para el PDF:', e);
+      logoDataUrl = null;
+    }
+
+    // Dibuja header (se llamará desde didDrawPage)
+    const drawHeader = (pageNumber?: number) => {
+      if (logoDataUrl) {
+        // calcular tamaño deseado (p. ej. ancho 60pt)
+        const desiredWidth = 60;
+        // reconstruir tamaño manteniendo proporción: extrae info del dataURL
+        const img = new Image();
+        img.src = logoDataUrl;
+        // Usamos proporción aproximada - si quieres seguridad, podrías calcular con img.naturalWidth/naturalHeight después de load
+        const ratio = (img.naturalHeight && img.naturalWidth) ? (img.naturalHeight / img.naturalWidth) : 0.5;
+        const desiredHeight = ratio ? desiredWidth * ratio : 30;
+        // coloca logo a la izquierda, un poco arriba
+        doc.addImage(logoDataUrl, 'PNG', marginLeft, 8, desiredWidth, desiredHeight);
+        // desplaza texto del título a la derecha si hace falta
+      }
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(13);
+      doc.text(title, margin, headerTop);
+
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(9);
+      const genY = headerTop + lineHeight;
+      const usrY = genY + lineHeight;
+      const genW = doc.getTextWidth(generatedAt);
+      const usrW = doc.getTextWidth(usuarioTexto);
+      doc.text(generatedAt, pageWidth - margin - genW, genY);
+      doc.text(usuarioTexto, pageWidth - margin - usrW, usrY);
+
+      // línea separadora
+      doc.setDrawColor(200);
+      doc.setLineWidth(0.6);
+      doc.line(margin, usrY + 6, pageWidth - margin, usrY + 6);
+    };
+
+    // Cabecera (campo/valor) — datos pequeños encima de la tabla
+    const cabeceraRows = [
+      ['Cliente', this.getClienteId(contrato.cliente_id) || ''],
+      ['Año', contrato.anio ?? ''],
+      ['Fecha', fmtDate(contrato.fecha) ?? ''],
+      ['Estado', contrato.estado === 'A' ? 'Activo' : contrato.estado === 'C' ? 'Cerrado' : (contrato.estado ?? '')],
+      ['Total detalles', (this.cortesFiltrados || []).length.toString()]
+    ];
+
+    // Prepara filas de detalle
+    const detailRows = (this.cortesFiltrados || []).map((item: any) => ({
+      bosque: this.getBosqueId(item.bosque_id) ?? '',
+      SiemReb: (this.getSiemRebTipo(this.getSiemRebId(item.siembra_rebrote_id)) ?? '') + '-' + (this.getSiemRebAnio(item.siembra_rebrote_id) ?? ''),
+      sello: this.getSelloTipoId(item.sello_id) ?? '',
+      fecha: item.fecha_embarque ?? '',
+      cantArb: item.cant_arboles ?? '',
+      numViaje: item.numero_viaje ?? '',
+      placaCarro: item.placa_carro ?? '',
+      contenedor: item.contenedor ?? '',
+      conductor: item.conductor ?? '',
+      supervisor: item.supervisor ?? '',
+      valorTroza: fmtCurrency(this.corteValorTroza[item.id] ?? '')
+    }));
+
+    // Dibujar tabla cabecera (campo/valor)
+    autoTable(doc, {
+      startY: headerHeight + 6,
+      head: [['Campo', 'Valor']],
+      body: cabeceraRows,
+      theme: 'grid',
+      styles: { fontSize: 9, cellPadding: 6 },
+      headStyles: { fillColor: [34, 139, 34], textColor: 255 },
+      columnStyles: { 0: { cellWidth: 120, fontStyle: 'bold' }, 1: { cellWidth: pageWidth - margin * 2 - 120 } },
+      showHead: 'never', // no hace falta repetir en cada página
+      didDrawPage: (data) => {
+        // dibujar header en cada página
+        drawHeader(data.pageNumber);
+      }
+    });
+
+    // Y ahora la tabla de detalles, empezando después de la cabecera
+    const afterHeaderY = (doc as any).lastAutoTable ? (doc as any).lastAutoTable.finalY + 12 : headerHeight + 60;
+
+    autoTable(doc, {
+      startY: afterHeaderY,
+      head: [['Bosque', 'SiemReb', 'Sello', 'Fecha', 'Cant. Árboles', 'N° Viaje', 'Placa Carro', 'Contenedor', 'Conductor', 'Supervisor', 'Valor Troza']],
+      body: detailRows.map(r => [r.bosque, r.SiemReb, r.sello, r.fecha, r.cantArb, r.numViaje, r.placaCarro, r.contenedor, r.conductor, r.supervisor, r.valorTroza]),
+      styles: { fontSize: 10, cellPadding: 6 },
+      headStyles: { fillColor: [34, 139, 34], textColor: 255, halign: 'left' },
+      columnStyles: {
+        0: { cellWidth: 50, halign: 'left', fontStyle: 'bold' },
+        1: { halign: 'left' }
+      },
+      didDrawPage: (data) => {
+        // footer con número de página y footer info
+        const page = data.pageNumber;
+        const pageText = `Página ${page}`;
+        const footerText = `${usuarioTexto} · ${generatedAt}`;
+        doc.setFontSize(9);
+        doc.text(pageText, pageWidth - margin - doc.getTextWidth(pageText), pageHeight - 18);
+        doc.text(footerText, margin, pageHeight - 18);
+
+        // header también (asegura que siempre esté)
+        drawHeader(page);
+      },
+      showHead: 'everyPage',
+      margin: { top: headerHeight + 6, bottom: 30, left: margin, right: margin }
+    });
+
+    // Guardar
+    const filename = `embarque${contrato.id}_detalles.pdf`;
     doc.save(filename);
   }
 }

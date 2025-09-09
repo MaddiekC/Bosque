@@ -7,6 +7,8 @@ import { FormsModule } from '@angular/forms';
 import { AfterViewInit } from '@angular/core';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { AuthserviceService } from '../../auth/authservice.service';
+import Swal from 'sweetalert2';
 
 declare const bootstrap: any;
 
@@ -36,6 +38,7 @@ export class SiembraRebroteComponent implements AfterViewInit {
   private modalInstance: any;
   private pendingDeleteId!: number;
 
+  username: string = '';
   listSiemReb: any[] = [];
   siembRebFiltrados: any[] = [];
   // valores de filtro
@@ -78,11 +81,13 @@ export class SiembraRebroteComponent implements AfterViewInit {
   // Edición
   siembraRebroteEditando: SiembraRebrote | null = null;
 
-  constructor(private SiembraRebService: ApiService, private route: ActivatedRoute) { }
-
-
+  constructor(private SiembraRebService: ApiService, private route: ActivatedRoute, private authService: AuthserviceService) { }
 
   ngOnInit(): void {
+    const u = this.authService.getUserInfo();      // string | null
+    this.username = u ?? 'Invitado';
+    console.log('Usuario:', this.username);
+
     const idBosqueParam = this.route.snapshot.paramMap.get('idBosque');
     console.log(idBosqueParam);
     if (idBosqueParam) {
@@ -191,7 +196,12 @@ export class SiembraRebroteComponent implements AfterViewInit {
   eliminarSiembraReb(id: number): void {
     this.SiembraRebService.countCorteBySR(id).subscribe(count => {
       if (count > 0) {
-        alert('Esta Siembra-Rebrote tiene ' + count + ' corte y no se puede eliminar.');
+        Swal.fire({
+          icon: 'error',
+          title: 'No se puede eliminar',
+          text: 'Esta Siembra-Rebrote tiene ' + count + ' corte y no se puede eliminar.',
+          confirmButtonColor: '#d33'
+        });
         return;
       }
       this.SiembraRebService.putSiembraRebroteInactive(id).subscribe(
@@ -259,7 +269,12 @@ export class SiembraRebroteComponent implements AfterViewInit {
       },
       err => {
         console.error('Error al editar:', err);
-        alert('Se ha sobrepasado las has.');
+        Swal.fire({
+          icon: 'error',
+          title: 'No se puede eliminar',
+          text: 'Se ha sobrepasado las has.',
+          confirmButtonColor: '#d33'
+        });
       }
     );
   }
@@ -282,7 +297,12 @@ export class SiembraRebroteComponent implements AfterViewInit {
     const disponibleRestante = this.hectareaDisponible - this.hectareaUsadaAntes;
 
     if (nueva > disponibleRestante) {
-      alert(`Error: Solo quedan ${disponibleRestante.toFixed(2)} ha disponibles. No puede agregar más.`);
+      Swal.fire({
+        icon: 'error',
+        title: 'No se puede eliminar',
+        text: `Error: Solo quedan ${disponibleRestante.toFixed(2)} ha disponibles. No puede agregar más.`,
+        confirmButtonColor: '#d33'
+      });
       return;
     }
     this.SiembraRebService.postSiembraRebrote(this.nuevaSiembraRebrote)
@@ -322,20 +342,45 @@ export class SiembraRebroteComponent implements AfterViewInit {
     }
   }
 
-  exportToPDF() {
-    const doc = new jsPDF();
-    const columns = [
-      { header: 'Bosque', dataKey: 'bosque_id' },
-      { header: 'Tipo', dataKey: 'tipo_id' },
-      { header: 'Tipo Árbol', dataKey: 'tipo_arbol_id' },
-      { header: 'Fecha', dataKey: 'fecha' },
-      { header: 'Año', dataKey: 'anio' },
-      { header: 'Hectárea Usada', dataKey: 'hectarea_usada' },
-      { header: 'Árboles Iniciales', dataKey: 'arb_iniciales' },
-      { header: 'Árboles Cortados', dataKey: 'arb_cortados' },
-      { header: 'Distancia Siembra', dataKey: 'dist_siembra' },
-      { header: 'Saldo', dataKey: 'saldo' }
-    ];
+  async exportToPDF() {
+    // Helper: carga una imagen y devuelve dataURL (base64)
+    const loadImageAsDataURL = (url: string): Promise<string> => {
+      return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.crossOrigin = 'anonymous'; // importante si la sirves desde otro origen
+        img.onload = () => {
+          // dibuja en canvas para obtener dataURL
+          const canvas = document.createElement('canvas');
+          canvas.width = img.naturalWidth || img.width;
+          canvas.height = img.naturalHeight || img.height;
+          const ctx = canvas.getContext('2d')!;
+          ctx.drawImage(img, 0, 0);
+          try {
+            const dataUrl = canvas.toDataURL('image/png');
+            resolve(dataUrl);
+          } catch (e) {
+            reject(e);
+          }
+        };
+        img.onerror = (err) => reject(err);
+        // ruta relativa al build -> angular sirve assets desde /assets/...
+        img.src = `/assets/images/bosque.png`;
+      });
+    };
+    const doc = new jsPDF({ unit: 'pt', format: 'a4', orientation: 'portrait' });
+    const pageSize = doc.internal.pageSize as any;
+    const pageWidth = pageSize.getWidth();
+    const pageHeight = pageSize.getHeight();
+
+    // Márgenes reducidos para aprovechar el ancho
+    const marginLeft = 20;
+    const marginRight = 20;
+    const usableWidth = pageWidth - marginLeft - marginRight;
+
+    const headerY = 60;
+    const margin = 40;
+    const username = this.username ?? 'Invitado';
+    const generatedAt = new Date().toLocaleString('es-ES');
 
     const rows = this.siembRebFiltrados.map(item => ({
       bosque_id: this.getBosqueNombre(item.bosque_id),
@@ -350,17 +395,107 @@ export class SiembraRebroteComponent implements AfterViewInit {
       saldo: item.saldo
     }));
 
-    doc.text('Reporte de Siembras/Rebrotes', 14, 10);
-    doc.setFontSize(10);
+    const columns = [
+      { header: 'Bosque', dataKey: 'bosque_id' },
+      { header: 'Tipo', dataKey: 'tipo_id' },
+      { header: 'Tipo Árbol', dataKey: 'tipo_arbol_id' },
+      { header: 'Fecha', dataKey: 'fecha' },
+      { header: 'Año', dataKey: 'anio' },
+      { header: 'Hectárea Usada', dataKey: 'hectarea_usada' },
+      { header: 'Árboles Iniciales', dataKey: 'arb_iniciales' },
+      { header: 'Árboles Cortados', dataKey: 'arb_cortados' },
+      { header: 'Distancia Siembra', dataKey: 'dist_siembra' },
+      { header: 'Saldo', dataKey: 'saldo' }
+    ];
+
+    // Carga la imagen antes de dibujar el header/tablas
+    let logoDataUrl: string | null = null;
+    try {
+      logoDataUrl = await loadImageAsDataURL('/assets/images/bosque.png');
+    } catch (e) {
+      console.warn('No se pudo cargar logo para el PDF:', e);
+      logoDataUrl = null;
+    }
+    const drawHeader = (data: any) => {
+      if (logoDataUrl) {
+        // calcular tamaño deseado (p. ej. ancho 60pt)
+        const desiredWidth = 60;
+        // reconstruir tamaño manteniendo proporción: extrae info del dataURL
+        const img = new Image();
+        img.src = logoDataUrl;
+        // Usamos proporción aproximada - si quieres seguridad, podrías calcular con img.naturalWidth/naturalHeight después de load
+        const ratio = (img.naturalHeight && img.naturalWidth) ? (img.naturalHeight / img.naturalWidth) : 0.5;
+        const desiredHeight = ratio ? desiredWidth * ratio : 30;
+        // coloca logo a la izquierda, un poco arriba
+        doc.addImage(logoDataUrl, 'PNG', marginLeft, 8, desiredWidth, desiredHeight);
+        // desplaza texto del título a la derecha si hace falta
+      }
+      // Título
+      doc.setFontSize(12);
+      doc.setFont('bold');
+      doc.text('Reporte de Siembras/Rebrotes', marginLeft, 50);
+
+      // Info a la derecha (fecha + usuario)
+      doc.setFontSize(8);
+      doc.setFont('normal');
+      const gen = `Generado: ${generatedAt}`;
+      const usr = `Usuario: ${username}`;
+      doc.text(gen, pageWidth - marginRight - doc.getTextWidth(gen), 14);
+      doc.text(usr, pageWidth - marginRight - doc.getTextWidth(usr), 28);
+
+      // Línea divisoria
+      doc.setDrawColor(200);
+      doc.setLineWidth(0.5);
+      doc.line(marginLeft, headerY, pageWidth - marginRight, headerY);
+    };
+
+    // Construye body como array de arrays (autoTable fácil)
+    const body = rows.map(r => columns.map((c) => (r as any)[c.dataKey]));
+
     autoTable(doc, {
-      columns,
-      body: rows,
-      headStyles: {
-        fillColor: [0, 127, 0],
-        textColor: 255
+      startY: headerY + 22,
+      head: [columns.map(c => c.header)],
+      body: body,
+      margin: { left: marginLeft, right: marginRight, top: headerY + 6 },
+      styles: {
+        fontSize: 10,
+        cellPadding: 3,
+        overflow: 'linebreak', // wrapping
+        halign: 'right',
+        valign: 'middle',
+      },
+      headStyles: { fillColor: [34, 139, 34], textColor: 255, halign: 'center' },
+      tableWidth: usableWidth,
+
+      columnStyles: {
+        0: { halign: 'left' },
+        1: { halign: 'left' },
+        2: { halign: 'center' },
+        3: { halign: 'center' },
+        4: { halign: 'right' },
+        5: { halign: 'right' },
+        6: { halign: 'right' },
+        7: { halign: 'right' },
+        8: { halign: 'center' },
+        9: { halign: 'right' },
+      },
+      didDrawPage: (data) => {
+        // número de página actual que te da autoTable
+        const page = data.pageNumber;
+        const pageText = `Página ${page}`;
+        const footerText = `Usuario: ${username} · Generado: ${generatedAt}`;
+
+        // footer a la derecha y texto a la izquierda
+        doc.setFontSize(9);
+        doc.text(pageText, pageWidth - margin - doc.getTextWidth(pageText), pageHeight - 20);
+        doc.text(footerText, margin, pageHeight - 20);
+
+        // (si quieres header por página, también lo dibujas aquí)
+        drawHeader(data);
       },
       showHead: 'everyPage'
     });
-    doc.save('siembra-rebrote.pdf');
+    const filename = `siembra-rebrote.pdf`;
+    doc.save(filename);
   }
 }

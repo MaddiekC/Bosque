@@ -93,6 +93,9 @@ Route::group(
         Route::post('/contratos', [ContratoController::class, 'store']); // Crear un contrato
         Route::put('/contratos/{id}', [ContratoController::class, 'update']); // Actualizar un contrato (PUT)
         Route::put('/contratos/{id}/inactive', [ContratoController::class, 'destroy']); // Marcar un contrato como inactivo
+        Route::get('corte/count-by-contrato/{id}', function ($id) {
+            return response()->json(\App\Models\CabeceraCorte::where('contrato_id', $id)->count());
+        });
         Route::put('/contratos/{id}/close', [ContratoController::class, 'closeAgreement']); // Marcar un contrato como cerrado
 
         Route::get('/detalle-contratos', [DetalleContratoController::class, 'index']); // Listar todos los detalles de contrato

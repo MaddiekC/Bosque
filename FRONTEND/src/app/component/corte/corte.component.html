@@ -174,11 +174,11 @@
                             {{ corte.fecha_embarque | date: 'dd/MM/yyyy' }}
                         </td>
                         <!-- Columna Cant -->
-                        <td>
+                        <td class="text-end">
                             {{ corte.cant_arboles || corte.detalle_cortes_count | number: '1.0-0'}}
                         </td>
                         <!-- Columna N. viaje -->
-                        <td>
+                        <td class="text-end">
                             {{ corte.numero_viaje }}
                         </td>
                         <!-- Columna Placa carro -->
@@ -197,7 +197,7 @@
                         <td class="text-center">
                             {{ corte.supervisor }}
                         </td>
-                        <td>
+                        <td class="text-end">
                             {{ (corteValorTroza[corte.id] || 0) | currency }}
                         </td>
                         <!-- Columna Detalles -->
@@ -316,11 +316,11 @@
                     {{ saveCantError }}
                 </div>
                 <div class="d-flex flex-wrap gap-2" style="margin-top: 15px; margin-bottom: 15px;">
-                    <div>
+                    <div style="width: 150px;">
                         <label>Raleo:</label>
                         <select class="form-select" [(ngModel)]="selectedRaleo" (ngModelChange)="onRaleoChange($event)"
                             name="raleo_tipo_id" required class="form-select form-select-sm">
-                            <option [ngValue]="null">-- Seleccione Raleo --</option>
+                            <option [ngValue]="null">-- Seleccione --</option>
                             <option *ngFor="let c of raleoTipo" [ngValue]="c.id">
                                 {{ c.nombre }}
                             </option>
@@ -336,6 +336,13 @@
                             </option>
                         </select>
                     </div>
+                    <div *ngIf="!isRaleoComercial() && selectedRaleo != null" style="width: 146px;">
+                        <label>Arboles</label>
+                        <input type="number" class="form-control form-control-sm" [(ngModel)]="nuevoCorte.cant_arboles"
+                            name="cant_arboles" required>
+                    </div>
+                </div>
+                <div class="d-flex flex-wrap gap-2" style="margin-top: 15px; margin-bottom: 15px;">
                     <div>
                         <label>Nombre del Bosque</label>
                         <select class="form-select form-select-sm" [(ngModel)]="nuevoCorte.bosque_id"
@@ -347,8 +354,6 @@
                             </option>
                         </select>
                     </div>
-                </div>
-                <div class="d-flex flex-wrap gap-2" style="margin-top: 15px; margin-bottom: 15px;">
                     <div style="margin-bottom: 15px;">
                         <label>Siembra Rebrote</label>
                         <select class="form-select form-select-sm" [(ngModel)]="nuevoCorte.siembra_rebrote_id"
@@ -359,11 +364,8 @@
                             </option>
                         </select>
                     </div>
-                    <div *ngIf="!isRaleoComercial() && selectedRaleo != null">
-                        <label>Arboles</label>
-                        <input type="number" class="form-control form-control-sm" [(ngModel)]="nuevoCorte.cant_arboles"
-                            name="cant_arboles" required>
-                    </div>
+                </div>
+                <div class="d-flex flex-wrap gap-2" style="margin-top: 15px; margin-bottom: 15px;">
                     <div style="margin-bottom: 15px;">
                         <label>Sello</label>
                         <select class="form-select form-select-sm" [(ngModel)]="nuevoCorte.sello_id" name="sello_id"
@@ -374,38 +376,36 @@
                             </option>
                         </select>
                     </div>
-                </div>
-                <div class="d-flex flex-wrap gap-2" style="margin-top: 15px; margin-bottom: 15px;">
                     <div>
                         <label>Fecha</label>
                         <input type="date" class="form-control form-control-sm" [(ngModel)]="nuevoCorte.fecha_embarque"
                             name="fecha" required>
                     </div>
-                    <div>
+                    <div style="width: 100px;">
                         <label>N. viaje</label>
                         <input type="number" class="form-control form-control-sm" [(ngModel)]="nuevoCorte.numero_viaje"
                             name="numero_viaje" required>
                     </div>
                 </div>
                 <div class="d-flex flex-wrap gap-2" style="margin-top: 15px; margin-bottom: 15px;">
-                    <div>
+                    <div style="width: 200px;">
                         <label>Placa de carro</label>
                         <input type="text" class="form-control form-control-sm" [(ngModel)]="nuevoCorte.placa_carro"
                             name="placa_carro" required>
                     </div>
-                    <div>
+                    <div style="width: 200px;">
                         <label>Contenedor</label>
                         <input type="text" class="form-control form-control-sm" [(ngModel)]="nuevoCorte.contenedor"
                             name="contenedor" required>
                     </div>
                 </div>
                 <div class="d-flex flex-wrap gap-2" style="margin-top: 15px; margin-bottom: 15px;">
-                    <div>
+                    <div style="width: 200px;">
                         <label>Conductor</label>
                         <input type="text" class="form-control form-control-sm" [(ngModel)]="nuevoCorte.conductor"
                             name="conductor" required>
                     </div>
-                    <div>
+                    <div style="width: 200px;">
                         <label>Supervisor</label>
                         <input type="text" class="form-control form-control-sm" [(ngModel)]="nuevoCorte.supervisor"
                             name="supervisor" required>
@@ -444,7 +444,7 @@
                                     </option>
                                 </select>
                             </div>
-                            <div>
+                            <!-- <div>
                                 <label>Nombre del Contrato</label>
                                 <select class="form-select form-select-sm" [(ngModel)]="corteEditando!.contrato_id"
                                     name="contrato_id" required class="form-select form-select-sm">
@@ -453,10 +453,10 @@
                                         {{ b.NombreComercial }}
                                     </option>
                                 </select>
-                            </div>
+                            </div> -->
                         </div>
                         <div class="d-flex flex-wrap gap-2" style="margin-top: 15px; margin-bottom: 15px;">
-                            <div style="margin-bottom: 15px;">
+                            <!-- <div style="margin-bottom: 15px;">
                                 <label>Tipo de raleo</label>
                                 <select class="form-select form-select-sm" [(ngModel)]="corteEditando!.raleo_tipo_id"
                                     name="raleo_tipo_id" required class="form-select form-select-sm">
@@ -465,7 +465,7 @@
                                         {{ b.nombre }}
                                     </option>
                                 </select>
-                            </div>
+                            </div> -->
                             <div style="margin-bottom: 15px;">
                                 <label>Siembra Rebrote</label>
                                 <select class="form-select form-select-sm"
@@ -624,25 +624,25 @@
                                 <td>
                                     {{d.trozas}}
                                 </td>
-                                <td>
+                                <td class="text-end">
                                     {{d.circ_bruta}}
                                 </td>
-                                <td>
+                                <td class="text-end">
                                     {{d.circ_neta}}
                                 </td>
-                                <td>
+                                <td class="text-end">
                                     {{d.largo_bruto | number:'1.2-2' }}
                                 </td>
-                                <td>
+                                <td class="text-end">
                                     {{d.largo_neto | number:'1.2-2' }}
                                 </td>
-                                <td>
+                                <td class="text-end">
                                     {{d.m_cubica | number:'1.4-4' }}
                                 </td>
-                                <td>
+                                <td class="text-end">
                                     {{d.valor_mcubico | currency }}
                                 </td>
-                                <td>
+                                <td class="text-end">
                                     {{d.valor_troza | currency }}
                                 </td>
                             </tr>
@@ -650,13 +650,14 @@
                         <tfoot>
                             <tr>
                                 <td colspan="1"><strong>TOTAL:</strong></td>
-                                <td><strong>{{ totalCircBruta }}</strong></td>
-                                <td><strong>{{ totalCircNeta }}</strong></td>
-                                <td><strong>{{ totalLargoBruto | number:'1.2-2'}}</strong></td>
-                                <td><strong>{{ totalLargoNeto | number:'1.2-2'}}</strong></td>
-                                <td><strong>{{ totalMCubica | number:'1.2-2'}}</strong></td>
-                                <td><strong>{{ totalValorMCubico | currency}}</strong></td>
-                                <td><strong>{{ totalValorTroza | currency}}</strong></td>
+                                <td class="text-end"><strong>{{ totalCircBruta }}</strong></td>
+                                <td class="text-end"><strong>{{ totalCircNeta }}</strong></td>
+                                <td class="text-end"><strong>{{ totalLargoBruto | number:'1.2-2'}}</strong></td>
+                                <td class="text-end"><strong>{{ totalLargoNeto | number:'1.2-2'}}</strong></td>
+                                <td class="text-end"><strong>{{ totalMCubica | number:'1.2-2'}}</strong></td>
+                                <td class="text-end"><strong>TOTAL:</strong></td>
+                                <!-- <td><strong>{{ totalValorMCubico | currency}}</strong></td> -->
+                                <td class="text-end"><strong>{{ totalValorTroza | currency}}</strong></td>
                             </tr>
                         </tfoot>
                     </table>
@@ -690,8 +691,12 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
-                <div *ngIf="saveDetError" class="alert alert-danger" role="alert">
-                    {{ saveDetError }}
+                <div *ngIf="saveDetError" class="alert alert-danger d-flex align-items-start" role="alert"
+                    aria-live="assertive">
+                    <i class="bi bi-exclamation-triangle-fill me-2 fs-5" aria-hidden="true"></i>
+                    <div>
+                        <strong>¡Error!</strong> {{ saveDetError }}
+                    </div>
                 </div>
                 <div *ngIf="selectedCorte" class="mb-3">
                     <div class="row g-2">
@@ -729,7 +734,7 @@
                             <div><strong>{{ selectedCorte.fecha_embarque | date:'dd/MM/yyyy' }}</strong></div>
                         </div>
                         <div class="col-sm-3 mt-2">
-                            <small class="text-muted">Árboles</small>
+                            <small class="text-muted;">Árboles</small>
                             <div><strong>{{ selectedCorte.cant_arboles || selectedCorte.detalle_cortes_count || 0
                                     }}</strong></div>
                         </div>

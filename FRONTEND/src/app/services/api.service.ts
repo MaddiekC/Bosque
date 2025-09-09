@@ -70,7 +70,7 @@ export class ApiService {
   getDetalleCorte(cabecera_corte_id: number): Observable<any> {
     return this.http.get(`${this.baseUrl}/detalle-cortes/${cabecera_corte_id}`);
   }
-  getValorTrozaAll2() : Observable<Record<number, number>> {
+  getValorTrozaAll2(): Observable<Record<number, number>> {
     return this.http.get<Record<number, number>>(`${this.baseUrl}/detalle-cortes/valor-troza-all`);
   }
   countDetalleCorte(cabecera_corte_id: number): Observable<any> {
@@ -141,6 +141,9 @@ export class ApiService {
   }
   putContratoInactive(id: number): Observable<any> {
     return this.http.put(`${this.baseUrl}/contratos/${id}/inactive`, {});
+  }
+  countCorteByContrato(id: number): Observable<number> {
+    return this.http.get<number>(`${this.baseUrl}/corte/count-by-contrato/${id}`);
   }
   putContratoClose(id: number): Observable<any> {
     return this.http.put(`${this.baseUrl}/contratos/${id}/close`, {});

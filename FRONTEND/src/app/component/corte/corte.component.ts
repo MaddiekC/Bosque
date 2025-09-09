@@ -140,6 +140,7 @@ export class CorteComponent {
 
     const idSiemRebParam = this.route.snapshot.paramMap.get('idSiembraRebrote');
     const idBosqueParam = this.route.snapshot.paramMap.get('bosqueId');
+    const idContratoParam = this.route.snapshot.paramMap.get('contratoId');
     console.log('Ruta', idSiemRebParam, idBosqueParam);
     if (idSiemRebParam) {
       this.filtroSiembraRebrote = +idSiemRebParam; // lo conviertes a número y aplicas como filtro
@@ -148,6 +149,10 @@ export class CorteComponent {
     if (idBosqueParam) {
       this.filtroBosque = +idBosqueParam;
       console.log('filtroBosque', this.filtroBosque)
+    }
+    if (idContratoParam) {
+      this.filtroContrato = +idContratoParam;
+      console.log('filtroContrato', this.filtroContrato)
     }
 
     this.corteService.getCabeceraCortes().subscribe(
@@ -704,6 +709,7 @@ export class CorteComponent {
 
         // muestra en la UI
         this.saveDetError = msg;
+        setTimeout(() => this.saveDetError = null, 8000);
 
         // opcional: desplazar scroll al top del modal para que se vea el alert
         try {
@@ -713,7 +719,32 @@ export class CorteComponent {
       }
     );
   }
-  exportToPDF() {
+  async exportToPDF() {
+    // Helper: carga una imagen y devuelve dataURL (base64)
+    const loadImageAsDataURL = (url: string): Promise<string> => {
+      return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.crossOrigin = 'anonymous'; // importante si la sirves desde otro origen
+        img.onload = () => {
+          // dibuja en canvas para obtener dataURL
+          const canvas = document.createElement('canvas');
+          canvas.width = img.naturalWidth || img.width;
+          canvas.height = img.naturalHeight || img.height;
+          const ctx = canvas.getContext('2d')!;
+          ctx.drawImage(img, 0, 0);
+          try {
+            const dataUrl = canvas.toDataURL('image/png');
+            resolve(dataUrl);
+          } catch (e) {
+            reject(e);
+          }
+        };
+        img.onerror = (err) => reject(err);
+        // ruta relativa al build -> angular sirve assets desde /assets/...
+        img.src = `/assets/images/bosque.png`;
+      });
+    };
+
     const doc = new jsPDF({ unit: 'pt', format: 'a4', orientation: 'portrait' });
     const pageSize = doc.internal.pageSize as any;
     const pageWidth = pageSize.getWidth();
@@ -724,7 +755,7 @@ export class CorteComponent {
     const marginRight = 20;
     const usableWidth = pageWidth - marginLeft - marginRight;
 
-    const headerY = 36;
+    const headerY = 60;
     const margin = 40;
     const username = this.username ?? 'Invitado';
     const generatedAt = new Date().toLocaleString('es-ES');
@@ -756,8 +787,8 @@ export class CorteComponent {
 
     // Asignar anchos compactos que sumen usableWidth (ajusta si necesitas)
     const columnWidths: Record<number, number> = {
-      0: 55,   // Bosque
-      1: 100,  // Contrato (mayor, permitirá wrap)
+      0: 70,   // Bosque
+      1: 70,  // Contrato (mayor, permitirá wrap) 
       2: 60,   // Raleo
       3: 88,  // Siembra/Rebrote
       4: 50,   // Sello
@@ -773,12 +804,35 @@ export class CorteComponent {
       columnWidths[1] = (columnWidths[1] || 100) + diff;
     }
 
+    // Carga la imagen antes de dibujar el header/tablas
+    let logoDataUrl: string | null = null;
+    try {
+      logoDataUrl = await loadImageAsDataURL('/assets/images/bosque.png');
+    } catch (e) {
+      console.warn('No se pudo cargar logo para el PDF:', e);
+      logoDataUrl = null;
+    }
+
     // Header/footer dibujados en cada página
     const drawHeader = (data: any) => {
+      if (logoDataUrl) {
+        // calcular tamaño deseado (p. ej. ancho 60pt)
+        const desiredWidth = 60;
+        // reconstruir tamaño manteniendo proporción: extrae info del dataURL
+        const img = new Image();
+        img.src = logoDataUrl;
+        // Usamos proporción aproximada - si quieres seguridad, podrías calcular con img.naturalWidth/naturalHeight después de load
+        const ratio = (img.naturalHeight && img.naturalWidth) ? (img.naturalHeight / img.naturalWidth) : 0.5;
+        const desiredHeight = ratio ? desiredWidth * ratio : 30;
+        // coloca logo a la izquierda, un poco arriba
+        doc.addImage(logoDataUrl, 'PNG', marginLeft, 8, desiredWidth, desiredHeight);
+        // desplaza texto del título a la derecha si hace falta
+      }
+
       // Título
       doc.setFontSize(12);
       doc.setFont('bold');
-      doc.text('Reporte de Cortes', marginLeft, 18);
+      doc.text('Reporte de Cortes', marginLeft, 50);
 
       // Info a la derecha (fecha + usuario)
       doc.setFontSize(8);
@@ -798,7 +852,7 @@ export class CorteComponent {
     const body = rows.map(r => columns.map((c) => (r as any)[c.dataKey]));
 
     autoTable(doc, {
-      startY: headerY + 6,
+      startY: headerY + 22,
       head: [columns.map(c => c.header)],
       body: body,
       margin: { left: marginLeft, right: marginRight, top: headerY + 6 },
@@ -806,12 +860,23 @@ export class CorteComponent {
         fontSize: 10,
         cellPadding: 3,
         overflow: 'linebreak', // wrapping
-        halign: 'left',
+        halign: 'right',
         valign: 'middle',
       },
       headStyles: { fillColor: [34, 139, 34], textColor: 255, halign: 'center' },
-      columnStyles: Object.fromEntries(Object.entries(columnWidths).map(([k, w]) => [Number(k), { cellWidth: Number(w) }])),
       tableWidth: usableWidth,
+
+      columnStyles: {
+        // indices: 0 Bosque, 1 Contrato, 2 Raleo, 3 Siembra/Rebrote, 4 Sello, 5 Fecha, 6 Árboles, 7 N° Viaje
+        0: { cellWidth: columnWidths[0], halign: 'left' },
+        1: { cellWidth: columnWidths[1], halign: 'left' }, // <- CONTRATO a la derecha
+        2: { cellWidth: columnWidths[2], halign: 'left' },
+        3: { cellWidth: columnWidths[3], halign: 'left' },
+        4: { cellWidth: columnWidths[4], halign: 'left' },
+        5: { cellWidth: columnWidths[5], halign: 'left' },
+        6: { cellWidth: columnWidths[6], halign: 'right' }, // opcional: números a la derecha
+        7: { cellWidth: columnWidths[7], halign: 'right' }  // opcional: números a la derecha
+      },
       didDrawPage: (data) => {
         // número de página actual que te da autoTable
         const page = data.pageNumber;
@@ -832,7 +897,7 @@ export class CorteComponent {
     doc.save(filename);
   }
 
-  exportToPDF2() {
+  async exportToPDF2() {
     if (!this.selectedCorteId) {
       alert('No hay corte seleccionado para exportar.');
       return;
@@ -862,15 +927,43 @@ export class CorteComponent {
     };
     const fmtDate = (d: any) => d ? new Date(d).toLocaleDateString('es-ES') : '';
 
+    // Helper: carga una imagen y devuelve dataURL (base64)
+    const loadImageAsDataURL = (url: string): Promise<string> => {
+      return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.crossOrigin = 'anonymous'; // importante si la sirves desde otro origen
+        img.onload = () => {
+          // dibuja en canvas para obtener dataURL
+          const canvas = document.createElement('canvas');
+          canvas.width = img.naturalWidth || img.width;
+          canvas.height = img.naturalHeight || img.height;
+          const ctx = canvas.getContext('2d')!;
+          ctx.drawImage(img, 0, 0);
+          try {
+            const dataUrl = canvas.toDataURL('image/png');
+            resolve(dataUrl);
+          } catch (e) {
+            reject(e);
+          }
+        };
+        img.onerror = (err) => reject(err);
+        // ruta relativa al build -> angular sirve assets desde /assets/...
+        img.src = `/assets/images/bosque.png`;
+      });
+    };
     const doc = new jsPDF({ unit: 'pt', format: 'a4' });
-    const pageWidth = (doc.internal.pageSize as any).width || doc.internal.pageSize.getWidth();
-    const pageHeight = (doc.internal.pageSize as any).height || doc.internal.pageSize.getHeight();
+    const pageSize = doc.internal.pageSize as any;
+    const pageWidth = pageSize.getWidth();
+    const pageHeight = pageSize.getHeight();
+
     const margin = 40;
+    const marginLeft = 35;
 
     // Header/foot layout
-    const headerTop = 22;        // y inicial del header
+    const headerTop = 60;        // y inicial del header
     const lineHeight = 10;      // separación compacta
     const headerHeight = headerTop + lineHeight * 3 + 8; // reservar espacio para header
+
     const topMargin = headerHeight + 10;
 
     const title = `Corte - ID ${corte.id}`;
@@ -882,13 +975,35 @@ export class CorteComponent {
     // guardamos páginas en las que ya dibujamos el header para evitar duplicados
     const drawnPages = new Set<number>();
 
+    // Carga la imagen antes de dibujar el header/tablas
+    let logoDataUrl: string | null = null;
+    try {
+      logoDataUrl = await loadImageAsDataURL('/assets/images/bosque.png');
+    } catch (e) {
+      console.warn('No se pudo cargar logo para el PDF:', e);
+      logoDataUrl = null;
+    }
     const drawHeader = (data?: any) => {
+      if (logoDataUrl) {
+        // calcular tamaño deseado (p. ej. ancho 60pt)
+        const desiredWidth = 60;
+        // reconstruir tamaño manteniendo proporción: extrae info del dataURL
+        const img = new Image();
+        img.src = logoDataUrl;
+        // Usamos proporción aproximada - si quieres seguridad, podrías calcular con img.naturalWidth/naturalHeight después de load
+        const ratio = (img.naturalHeight && img.naturalWidth) ? (img.naturalHeight / img.naturalWidth) : 0.5;
+        const desiredHeight = ratio ? desiredWidth * ratio : 30;
+        // coloca logo a la izquierda, un poco arriba
+        doc.addImage(logoDataUrl, 'PNG', marginLeft, 8, desiredWidth, desiredHeight);
+        // desplaza texto del título a la derecha si hace falta
+      }
+
       // determinar número de página (autoTable pasa data.pageNumber)
       const pageNumber = (data && data.pageNumber) ? data.pageNumber : ((doc as any).internal?.getNumberOfPages ? (doc as any).internal.getNumberOfPages() : 1);
       if (drawnPages.has(pageNumber)) return; // ya dibujado en esta página
 
       // dibujar header compacto
-      doc.setFontSize(14);
+      doc.setFontSize(12);
       doc.setFont('helvetica', 'bold');
       doc.text(title, margin, headerTop);
 
@@ -947,7 +1062,8 @@ export class CorteComponent {
       fmtNumber(this.totalLargoBruto || 0, 2, 2),
       fmtNumber(this.totalLargoNeto || 0, 2, 2),
       fmtNumber(this.totalMCubica || 0, 4, 4),
-      fmtCurrency(this.totalValorMCubico || 0),
+      'TOTAL:',
+      // fmtCurrency(this.totalValorMCubico || 0),
       fmtCurrency(this.totalValorTroza || 0)
     ];
 
@@ -1078,7 +1194,6 @@ export class CorteComponent {
         drawHeader(data); // por si añadido página nueva (drawHeader controla duplicados)
       }
     });
-
     const filename = `corte_${corte.id}_detalles.pdf`;
     doc.save(filename);
   }
