@@ -140,12 +140,13 @@ class DetalleCorteController extends Controller
             // obtener detalle contrato (precio) - necesario para pre-calcular valorTroza
             $detContrato = DetalleContrato::where('contrato_id', $contratoId)
                 ->where('circunferencia', $circNeta)
-                ->where('largo', $det['largo_bruto'])
+                //->where('largo', $det['largo_bruto'])
                 ->where('estado', 'A')
                 ->first();
             if (! $detContrato) {
                 return response()->json([
-                    'message' => "Este contrato no tiene la circunferencia neta {$circNeta} o largo {$det['largo_bruto']} en sus detalles"
+                    //'message' => "Este contrato no tiene la circunferencia neta {$circNeta} o largo {$det['largo_bruto']} en sus detalles"
+                    'message' => "Este contrato no tiene la circunferencia neta {$circNeta} en sus detalles"
                 ], 422);
             }
             $precioM3 = $detContrato->precioM3;

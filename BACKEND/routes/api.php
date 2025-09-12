@@ -120,7 +120,6 @@ Route::group(
         Route::put('/parametros/{id}/inactive', [ParametroController::class, 'destroy']); // Marcar un parámetro como inactivo
         Route::get('/parametros/categoria/{categoria}', [ParametroController::class, 'getByCategoria']); // Obtener parámetros por categoría
 
-
     }
 );
 

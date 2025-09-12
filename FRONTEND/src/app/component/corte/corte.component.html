@@ -4,13 +4,20 @@
         <!-- Fila de filtros -->
         <table class="table table-striped table-hover table-sm w-100%" style="table-layout: fixed;">
             <colgroup>
-                <col style="width: 4%;">
+                <col style="width: 3%;">
                 <col style="width: 4%;"> <!-- Cerrar -->
-                <col style="width: 17%;"> <!-- Cliente -->
-                <col style="width: 7%;"> <!-- Año -->
-                <col style="width: 8%;"> <!-- Fecha -->
-                <col style="width: 6%;">
-                <col style="width: 6%;">
+                <col style="width: 13%;"> <!-- Cliente -->
+                <col style="width: 4%;"> <!-- Año -->
+                <!-- <col style="width: 8%;">  -->
+                <col style="width: 8%;">
+                <col style="width: 4%;">
+                <col style="width: 4%;">
+                <col>
+                <col>
+                <col>
+                <col>
+                <col>
+                <col>
                 <col>
                 <col>
                 <col>
@@ -60,31 +67,16 @@
                         </option>
                     </select>
                 </th>
-                <!-- <th>
-                    <label for="SiembraRebrote" style="background-color: transparent">Siembra Rebrote:</label>
-                    <input class="form-control form-control-sm" placeholder="Todo"
-                        [(ngModel)]="filtroSR" (ngModelChange)="getCortesFiltrados()">
-                </th> -->
-                <th class="p-1 flex-fill">
-                    <label for="SelloTipo" style="background-color: transparent">Sello:</label>
-                    <select class="form-select form-select-sm" [(ngModel)]="filtroSelloTipo"
-                        (ngModelChange)="getCortesFiltrados()">
-                        <option [ngValue]="null">Todo</option>
-                        <option *ngFor="let s of selloTipo" [ngValue]="s.id">
-                            {{ s.nombre }}
-                        </option>
-                    </select>
-                </th>
                 <th class="p-1 flex-fill">
                     <label for="Fecha" style="background-color: transparent">Fecha:</label>
                     <input type="date" class="form-control form-control-sm" placeholder="Filtrar Fecha"
                         [(ngModel)]="filtroFecha" (ngModelChange)="getCortesFiltrados()">
                 </th>
-                <!-- <th class="p-1 flex-fill">
-                    <label for="NumeroViaje" style="background-color: transparent">NumeroViaje:</label>
-                    <input type="number" min="0" step="1" class="form-control form-control-sm" placeholder="Filtrar"
-                        [(ngModel)]="filtroNumeroViaje" (ngModelChange)="getCortesFiltrados()">
-                </th> -->
+                <th class="p-1 flex-fill">
+                    <label for="Naviera" style="background-color: transparent">Naviera:</label>
+                    <input type="text" class="form-control form-control-sm" placeholder="Filtrar Naviera"
+                        [(ngModel)]="filtroNaviera" (ngModelChange)="getCortesFiltrados()">
+                </th>
             </tr>
         </table>
 
@@ -108,25 +100,34 @@
                     <col> <!--  -->
                     <col>
                     <col>
+                    <col>
                 </colgroup>
                 <thead class="table-success" style="text-align: center;">
                     <tr>
-                        <th>Cerrar</th>
-                        <th>Bosque</th>
-                        <th>Contrato</th>
-                        <th>Raleo</th>
-                        <th>Siembra Rebrote</th>
-                        <th>Sello</th>
-                        <th>Fecha</th>
-                        <th>Árboles</th>
-                        <th>N. viaje</th>
-                        <th>Placa</th>
-                        <th>Contenedor</th>
-                        <th>Conductor</th>
-                        <th>Supervisor</th>
-                        <th>Valor Troza</th>
-                        <th>Detalles</th>
-                        <th>...</th>
+                        <th rowspan="2">Cerrar</th>
+                        <th rowspan="2">Bosque</th>
+                        <th rowspan="2">Contrato</th>
+                        <th rowspan="2">Raleo</th>
+                        <th rowspan="2">Siembra Rebrote</th>
+                        <!-- <th>Sello</th> -->
+                        <th rowspan="2">Fecha</th>
+                        <th rowspan="2">Naviera</th>
+                        <th rowspan="2">N. envío</th>
+                        <th rowspan="2">N. viaje</th>
+                        <th rowspan="2">Placa</th>
+                        <th rowspan="2">Contenedor</th>
+                        <th rowspan="2">Supervisor</th>
+                        <th class="sello-header" colspan="3">Sello Empresa</th>
+                        <th rowspan="2">Árboles</th>
+                        <th rowspan="2">Valor Troza</th>
+                        <th rowspan="2">Detalles</th>
+                        <th rowspan="2">...</th>
+                    </tr>
+                    <!-- Fila 2: los 3 tipos de sello -->
+                    <tr>
+                        <th>Sello Empresa</th>
+                        <th>Sello Rastreo</th>
+                        <th>Sello Inspección</th>
                     </tr>
                 </thead>
                 <!-- Visualizar -->
@@ -166,16 +167,20 @@
                             getSiemRebAnio(corte.siembra_rebrote_id)}}
                         </td>
                         <!-- Columna Siembra rebrote -->
-                        <td class="text-center">
+                        <!-- <td class="text-center">
                             {{ getSelloTipoId(corte.sello_id) }}
-                        </td>
+                        </td> -->
                         <!-- Columna Fecha -->
                         <td class="text-center">
                             {{ corte.fecha_embarque | date: 'dd/MM/yyyy' }}
                         </td>
-                        <!-- Columna Cant -->
+                        <!-- Columna Conductor -->
+                        <td class="text-center">
+                            {{ corte.naviera }}
+                        </td>
+                        <!-- Columna N. envio -->
                         <td class="text-end">
-                            {{ corte.cant_arboles || corte.detalle_cortes_count | number: '1.0-0'}}
+                            {{ corte.numero_envio }}
                         </td>
                         <!-- Columna N. viaje -->
                         <td class="text-end">
@@ -189,13 +194,25 @@
                         <td class="text-center">
                             {{ corte.contenedor }}
                         </td>
-                        <!-- Columna Conductor -->
-                        <td class="text-center">
-                            {{ corte.conductor }}
-                        </td>
                         <!-- Columna Supervisor -->
                         <td class="text-center">
                             {{ corte.supervisor }}
+                        </td>
+                        <!-- Columna Sello Empresa -->
+                        <td class="text-center">
+                            {{ corte.sello_empresa}}
+                        </td>
+                        <!-- Columna Sello Rastreo -->
+                        <td class="text-center">
+                            {{ corte.sello_rastreo}}
+                        </td>
+                        <!-- Columna Sello Innspección -->
+                        <td class="text-center">
+                            {{ corte.sello_inspeccion}}
+                        </td>
+                        <!-- Columna Cant -->
+                        <td class="text-end">
+                            {{ corte.cant_arboles || corte.detalle_cortes_count | number: '1.0-0'}}
                         </td>
                         <td class="text-end">
                             {{ (corteValorTroza[corte.id] || 0) | currency }}
@@ -227,7 +244,7 @@
                 <tfoot>
                     <tr>
                         <!-- Ajusta el colspan al número de columnas de tu tabla -->
-                        <td [attr.colspan]="16" class="text-center">
+                        <td [attr.colspan]="19" class="text-center">
                             <pagination-controls (pageChange)="paginaActual = $event" [autoHide]="true" [maxSize]="15"
                                 previousLabel="«" nextLabel="»">
                             </pagination-controls>
@@ -366,7 +383,7 @@
                     </div>
                 </div>
                 <div class="d-flex flex-wrap gap-2" style="margin-top: 15px; margin-bottom: 15px;">
-                    <div style="margin-bottom: 15px;">
+                    <!-- <div style="margin-bottom: 15px;">
                         <label>Sello</label>
                         <select class="form-select form-select-sm" [(ngModel)]="nuevoCorte.sello_id" name="sello_id"
                             required class="form-select form-select-sm">
@@ -375,11 +392,16 @@
                                 {{ b.nombre }}
                             </option>
                         </select>
-                    </div>
+                    </div> -->
                     <div>
                         <label>Fecha</label>
                         <input type="date" class="form-control form-control-sm" [(ngModel)]="nuevoCorte.fecha_embarque"
                             name="fecha" required>
+                    </div>
+                    <div style="width: 100px;">
+                        <label>N. envío</label>
+                        <input type="number" class="form-control form-control-sm" [(ngModel)]="nuevoCorte.numero_envio"
+                            name="numero_envio" required>
                     </div>
                     <div style="width: 100px;">
                         <label>N. viaje</label>
@@ -388,27 +410,44 @@
                     </div>
                 </div>
                 <div class="d-flex flex-wrap gap-2" style="margin-top: 15px; margin-bottom: 15px;">
-                    <div style="width: 200px;">
-                        <label>Placa de carro</label>
-                        <input type="text" class="form-control form-control-sm" [(ngModel)]="nuevoCorte.placa_carro"
-                            name="placa_carro" required>
+                    <div style="width: 145px;">
+                        <label>Sello Empresa</label>
+                        <input type="text" class="form-control form-control-sm" [(ngModel)]="nuevoCorte.sello_empresa"
+                            name="sello_empresa">
                     </div>
-                    <div style="width: 200px;">
-                        <label>Contenedor</label>
-                        <input type="text" class="form-control form-control-sm" [(ngModel)]="nuevoCorte.contenedor"
-                            name="contenedor" required>
+                    <div style="width: 145px;">
+                        <label>Sello Rastreo</label>
+                        <input type="text" class="form-control form-control-sm" [(ngModel)]="nuevoCorte.sello_rastreo"
+                            name="sello_rastreo">
                     </div>
-                </div>
-                <div class="d-flex flex-wrap gap-2" style="margin-top: 15px; margin-bottom: 15px;">
-                    <div style="width: 200px;">
-                        <label>Conductor</label>
-                        <input type="text" class="form-control form-control-sm" [(ngModel)]="nuevoCorte.conductor"
-                            name="conductor" required>
+                    <div style="width: 145px;">
+                        <label>Sello Inspección</label>
+                        <input type="text" class="form-control form-control-sm"
+                            [(ngModel)]="nuevoCorte.sello_inspeccion" name="sello_inspeccion">
                     </div>
-                    <div style="width: 200px;">
-                        <label>Supervisor</label>
-                        <input type="text" class="form-control form-control-sm" [(ngModel)]="nuevoCorte.supervisor"
-                            name="supervisor" required>
+                    <div class="d-flex flex-wrap gap-2" style="margin-top: 15px; margin-bottom: 15px;">
+                        <div style="width: 200px;">
+                            <label>Placa de carro</label>
+                            <input type="text" class="form-control form-control-sm" [(ngModel)]="nuevoCorte.placa_carro"
+                                name="placa_carro" required>
+                        </div>
+                        <div style="width: 200px;">
+                            <label>Contenedor</label>
+                            <input type="text" class="form-control form-control-sm" [(ngModel)]="nuevoCorte.contenedor"
+                                name="contenedor" required>
+                        </div>
+                    </div>
+                    <div class="d-flex flex-wrap gap-2" style="margin-top: 15px; margin-bottom: 15px;">
+                        <div style="width: 200px;">
+                            <label>Naviera</label>
+                            <input type="text" class="form-control form-control-sm" [(ngModel)]="nuevoCorte.naviera"
+                                name="conductor">
+                        </div>
+                        <div style="width: 200px;">
+                            <label>Medidor</label>
+                            <input type="text" class="form-control form-control-sm" [(ngModel)]="nuevoCorte.supervisor"
+                                name="supervisor" required>
+                        </div>
                     </div>
                 </div>
             </form>
@@ -477,7 +516,7 @@
                                     </option>
                                 </select>
                             </div>
-                            <div style="margin-bottom: 15px;">
+                            <!-- <div style="margin-bottom: 15px;">
                                 <label>Sello</label>
                                 <select class="form-select form-select-sm" [(ngModel)]="corteEditando!.sello_id"
                                     name="sello_id" required class="form-select form-select-sm">
@@ -486,6 +525,21 @@
                                         {{ b.nombre }}
                                     </option>
                                 </select>
+                            </div> -->
+                            <div>
+                                <label>Sello Empresa</label>
+                                <input type="text" class="form-control form-control-sm"
+                                    [(ngModel)]="corteEditando!.sello_empresa" name="sello_empresa" required>
+                            </div>
+                            <div>
+                                <label>Sello Rastreo</label>
+                                <input type="text" class="form-control form-control-sm"
+                                    [(ngModel)]="corteEditando!.sello_rastreo" name="sello_rastreo" required>
+                            </div>
+                            <div>
+                                <label>Sello Inspección</label>
+                                <input type="text" class="form-control form-control-sm"
+                                    [(ngModel)]="corteEditando!.sello_inspeccion" name="sello_inspeccion" required>
                             </div>
                         </div>
                         <div class="d-flex flex-wrap gap-2" style="margin-top: 15px; margin-bottom: 15px;">
@@ -493,6 +547,11 @@
                                 <label>Fecha</label>
                                 <input type="date" class="form-control form-control-sm"
                                     [(ngModel)]="corteEditando!.fecha_embarque" name="fecha" required>
+                            </div>
+                            <div>
+                                <label>N. envio</label>
+                                <input type="number" class="form-control form-control-sm"
+                                    [(ngModel)]="corteEditando!.numero_envio" name="numero_envio" required>
                             </div>
                             <div>
                                 <label>N. viaje</label>
@@ -514,12 +573,12 @@
                         </div>
                         <div class="d-flex flex-wrap gap-2" style="margin-top: 15px; margin-bottom: 15px;">
                             <div>
-                                <label>Conductor</label>
+                                <label>Naviera</label>
                                 <input type="text" class="form-control form-control-sm"
-                                    [(ngModel)]="corteEditando!.conductor" name="conductor" required>
+                                    [(ngModel)]="corteEditando!.naviera" name="naviera">
                             </div>
                             <div>
-                                <label>Supervisor</label>
+                                <label>Medidor</label>
                                 <input type="text" class="form-control form-control-sm"
                                     [(ngModel)]="corteEditando!.supervisor" name="supervisor" required>
                             </div>
@@ -575,11 +634,22 @@
                             <div><strong>{{ getSiemRebTipo(getSiemRebId(selectedCorte.siembra_rebrote_id)) }} - {{
                                     getSiemRebAnio(selectedCorte.siembra_rebrote_id) }}</strong></div>
                         </div>
-                        <div class="col-sm-2">
+                        <!-- <div class="col-sm-2">
                             <small class="text-muted">Sello</small>
                             <div><strong>{{ getSelloTipoId(selectedCorte.sello_id) }}</strong></div>
+                        </div> -->
+                        <div class="col-sm-3 mt-2">
+                            <small class="text-muted">Sello Empresa</small>
+                            <div><strong>{{ selectedCorte.sello_empresa }}</strong></div>
                         </div>
-
+                        <div class="col-sm-3 mt-2">
+                            <small class="text-muted">Sello Rastreo</small>
+                            <div><strong>{{ selectedCorte.sello_rastreo}}</strong></div>
+                        </div>
+                        <div class="col-sm-3 mt-2">
+                            <small class="text-muted">Sello Inspección</small>
+                            <div><strong>{{ selectedCorte.sello_inspeccion }}</strong></div>
+                        </div>
                         <div class="col-sm-3 mt-2">
                             <small class="text-muted">Fecha embarque</small>
                             <div><strong>{{ selectedCorte.fecha_embarque | date:'dd/MM/yyyy' }}</strong></div>
@@ -588,6 +658,10 @@
                             <small class="text-muted">Árboles</small>
                             <div><strong>{{ selectedCorte.cant_arboles || selectedCorte.detalle_cortes_count || 0
                                     }}</strong></div>
+                        </div>
+                        <div class="col-sm-3 mt-2">
+                            <small class="text-muted">N. envío</small>
+                            <div><strong>{{ selectedCorte.numero_envio }}</strong></div>
                         </div>
                         <div class="col-sm-3 mt-2">
                             <small class="text-muted">N. viaje</small>
@@ -724,11 +798,22 @@
                             <div><strong>{{ getSiemRebTipo(getSiemRebId(selectedCorte.siembra_rebrote_id)) }} - {{
                                     getSiemRebAnio(selectedCorte.siembra_rebrote_id) }}</strong></div>
                         </div>
-                        <div class="col-sm-2">
+                        <!-- <div class="col-sm-2">
                             <small class="text-muted">Sello</small>
                             <div><strong>{{ getSelloTipoId(selectedCorte.sello_id) }}</strong></div>
+                        </div> -->
+                        <div class="col-sm-3 mt-2">
+                            <small class="text-muted">Sello Empresa</small>
+                            <div><strong>{{ selectedCorte.sello_empresa }}</strong></div>
                         </div>
-
+                        <div class="col-sm-3 mt-2">
+                            <small class="text-muted">Sello Rastreo</small>
+                            <div><strong>{{ selectedCorte.sello_rastreo}}</strong></div>
+                        </div>
+                        <div class="col-sm-3 mt-2">
+                            <small class="text-muted">Sello Inspección</small>
+                            <div><strong>{{ selectedCorte.sello_inspeccion }}</strong></div>
+                        </div>
                         <div class="col-sm-3 mt-2">
                             <small class="text-muted">Fecha embarque</small>
                             <div><strong>{{ selectedCorte.fecha_embarque | date:'dd/MM/yyyy' }}</strong></div>
@@ -739,8 +824,16 @@
                                     }}</strong></div>
                         </div>
                         <div class="col-sm-3 mt-2">
+                            <small class="text-muted">N. envío</small>
+                            <div><strong>{{ selectedCorte.numero_envio }}</strong></div>
+                        </div>
+                        <div class="col-sm-3 mt-2">
                             <small class="text-muted">N. viaje</small>
                             <div><strong>{{ selectedCorte.numero_viaje }}</strong></div>
+                        </div>
+                        <div class="col-sm-3 mt-2">
+                            <small class="text-muted">N. envío</small>
+                            <div><strong>{{ selectedCorte.numero_envio }}</strong></div>
                         </div>
                         <div class="col-sm-3 mt-2">
                             <small class="text-muted">Placa / Contenedor</small>

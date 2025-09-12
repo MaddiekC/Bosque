@@ -553,18 +553,17 @@
                                 <col> <!--  -->
                                 <col> <!--  -->
                                 <col> <!--  -->
-                                <col> <!--  -->
-                                <col> <!--  -->
-                                <col> <!--  -->
+                                <col> <!--  -->                                
                             </colgroup>
                             <thead class="table-warning" style="text-align: center;">
                                 <tr>
                                     <th>Bosque</th>
                                     <th>Siembra Rebrote</th>
-                                    <th>Sello</th>
+                                    <!-- <th>Sello</th> -->
                                     <th>Fecha</th>
                                     <th>Árboles</th>
                                     <th>N. viaje</th>
+                                    <th>N. envío</th>
                                     <th>Placa</th>
                                     <th>Contenedor</th>
                                     <th>Conductor</th>
@@ -587,9 +586,9 @@
                                         getSiemRebAnio(corte.siembra_rebrote_id)}}
                                     </td>
                                     <!-- Columna Sello -->
-                                    <td class="text-center">
+                                    <!-- <td class="text-center">
                                         {{ getSelloTipoId(corte.sello_id) }}
-                                    </td>
+                                    </td> -->
                                     <!-- Columna Fecha -->
                                     <td class="text-center">
                                         {{ corte.fecha_embarque | date: 'dd/MM/yyyy' }}
@@ -601,6 +600,9 @@
                                     <!-- Columna N. viaje -->
                                     <td class="text-end">
                                         {{ corte.numero_viaje }}
+                                    </td>
+                                    <td class="text-end">
+                                        {{ corte.numero_envio }}
                                     </td>
                                     <!-- Columna Placa carro -->
                                     <td class="text-center">

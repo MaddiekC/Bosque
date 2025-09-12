@@ -17,14 +17,18 @@ interface Corte {
   contrato_id: number,
   raleo_tipo_id: number,
   siembra_rebrote_id: number,
-  sello_id: number,
+  //sello_id: number,
   fecha_embarque: string,
   cant_arboles: number,
   numero_viaje: number,
+  numero_envio: number,
   placa_carro: string,
   contenedor: string,
-  conductor: string,
-  supervisor: string
+  naviera: string,
+  supervisor: string,
+  sello_empresa: string,
+  sello_rastreo: string,
+  sello_inspeccion: string,
 }
 interface detCorte {
   cabecera_corte_id: number,
@@ -71,14 +75,18 @@ export class CorteComponent {
     contrato_id: 0,
     raleo_tipo_id: 0,
     siembra_rebrote_id: 0,
-    sello_id: 0,
+    //sello_id: 0,
     fecha_embarque: '',
     cant_arboles: 0,
     numero_viaje: 0,
+    numero_envio: 0,
     placa_carro: '',
     contenedor: '',
-    conductor: '',
-    supervisor: ''
+    naviera: '',
+    supervisor: '',
+    sello_empresa: '',
+    sello_rastreo: '',
+    sello_inspeccion: ''
   };
 
   SaldoDisponible = 0;
@@ -102,7 +110,9 @@ export class CorteComponent {
   filtroRaleoTipo: number | null = null;
   filtroSelloTipo: number | null = null;
   filtroFecha: Date | null = null;
+  filtroNaviera: string = '';
   filtroNumeroViaje: number | null = null;
+  filtroNumeroEnvio: number | null = null;
 
   // paginación
   paginaActual: number = 1;
@@ -125,7 +135,8 @@ export class CorteComponent {
   contrato: any[] = [];
   raleoTipo: any[] = [];
   siemReb: any[] = [];
-  selloTipo: any[] = [];
+  //selloTipo: any[] = [];
+  tipoArbol: any[] = [];
   siembTipo: any[] = [];
   cliente: any[] = [];
   corteEditando: Corte | null = null;
@@ -217,15 +228,24 @@ export class CorteComponent {
         console.log(error);
       }
     );
-    this.corteService.getSelloTipo('sello').subscribe(
+    this.corteService.getTipoArbol('tipoArbol').subscribe(
       exito => {
-        console.log('sello', exito);
-        this.selloTipo = exito;
+        console.log(exito);
+        this.tipoArbol = exito;
       },
       error => {
         console.log(error);
       }
     );
+    // this.corteService.getSelloTipo('sello').subscribe(
+    //   exito => {
+    //     console.log('sello', exito);
+    //     this.selloTipo = exito;
+    //   },
+    //   error => {
+    //     console.log(error);
+    //   }
+    // );
     this.corteService.getValorTrozaAll2().subscribe(map => {
       this.corteValorTroza = {};
       Object.entries(map || {}).forEach(([k, v]) => {
@@ -264,14 +284,28 @@ export class CorteComponent {
 
   updateSiemRebFiltered(bosqueId: number | null) {
     if (bosqueId === null || bosqueId === undefined) {
-      //mostrar vacío hasta que se seleccione bosque
       this.siemRebFiltered = [];
       return;
     }
+
+    // Buscar el/los id(s) del parametro cuyo nombre es "Teca" dentro de tipoArbol
+    const tecaIds = (this.tipoArbol || [])
+      .filter((t: any) => (t.nombre || '').toString().trim().toLowerCase() === 'teca')
+      .map((t: any) => Number(t.id));
+
+    // Si no hay definiciones de "Teca" aún, dejamos vacío (evita mostrar siembras de otros tipos)
+    if (tecaIds.length === 0) {
+      this.siemRebFiltered = [];
+      return;
+    }
+
     this.siemRebFiltered = (this.siemReb || []).filter(s => {
-      // comprueba varias formas para robustez:
       const sBosqueId = s.bosque_id ?? s.idbosque ?? s.bosque?.id ?? null;
-      return sBosqueId !== null && Number(sBosqueId) === Number(bosqueId);
+      const tipoArbolId = s.tipo_arbol_id ?? s.tipo_id ?? null; // intenta ambas claves por robustez
+      return sBosqueId !== null
+        && Number(sBosqueId) === Number(bosqueId)
+        && tipoArbolId !== null
+        && tecaIds.includes(Number(tipoArbolId));
     });
   }
 
@@ -295,10 +329,10 @@ export class CorteComponent {
     const contratos = this.contrato?.find((b: any) => b.id == contratoId);
     return contratos ? contratos.anio : '';
   }
-  getSelloTipoId(selloTipoId: string) {
-    const selloTipos = this.selloTipo?.find((b: any) => b.id == selloTipoId);
-    return selloTipos ? selloTipos.nombre : '';
-  }
+  // getSelloTipoId(selloTipoId: string) {
+  //   const selloTipos = this.selloTipo?.find((b: any) => b.id == selloTipoId);
+  //   return selloTipos ? selloTipos.nombre : '';
+  // }
   getRaleoId(raleoTipoId: string) {
     const raleoTipos = this.raleoTipo?.find((b: any) => b.id == raleoTipoId);
     return raleoTipos ? raleoTipos.nombre : '';
@@ -328,8 +362,10 @@ export class CorteComponent {
       && (!this.filtroSR || b.siembra_rebrote_id.toString().toLowerCase().includes(this.filtroSR.toLowerCase()))
       && (!this.filtroContrato || b.contrato_id == this.filtroContrato)
       && (!this.filtroRaleoTipo || b.raleo_tipo_id == this.filtroRaleoTipo)
-      && (!this.filtroSelloTipo || b.sello_id == this.filtroSelloTipo)
+      //&& (!this.filtroSelloTipo || b.sello_id == this.filtroSelloTipo)
       && (!this.filtroNumeroViaje || b.numero_viaje == this.filtroNumeroViaje)
+      && (!this.filtroNumeroEnvio || b.numero_envio == this.filtroNumeroEnvio)
+      && (!this.filtroNaviera || b.naviera.toString().toLowerCase().includes(this.filtroNaviera.toLowerCase()))
       && (!this.filtroFecha || new Date(b.fecha_embarque).toDateString() === new Date(this.filtroFecha).toDateString())
     );
   }
@@ -768,10 +804,11 @@ export class CorteComponent {
       raleoTipo: this.getRaleoId(corte.raleo_tipo_id) || '',
       siembraRebrote: ((this.getSiemRebTipo(this.getSiemRebId(corte.siembra_rebrote_id)) || '') +
         (this.getSiemRebAnio(corte.siembra_rebrote_id) ? (' - ' + this.getSiemRebAnio(corte.siembra_rebrote_id)) : '')) || '',
-      selloTipo: this.getSelloTipoId(corte.sello_id) || '',
+      //selloTipo: this.getSelloTipoId(corte.sello_id) || '',
       fechaEmbarque: corte.fecha_embarque ? new Date(corte.fecha_embarque).toLocaleDateString('es-ES') : '',
       cantArboles: corte.cant_arboles ?? '',
-      numeroViaje: corte.numero_viaje ?? ''
+      numeroViaje: corte.numero_viaje ?? '',
+      numeroEnvio: corte.numero_envio ?? ''
     }));
 
     const columns = [
@@ -779,10 +816,11 @@ export class CorteComponent {
       { header: 'Contrato', dataKey: 'contrato' },
       { header: 'Raleo', dataKey: 'raleoTipo' },
       { header: 'Siembra/Rebrote', dataKey: 'siembraRebrote' },
-      { header: 'Sello', dataKey: 'selloTipo' },
+      //{ header: 'Sello', dataKey: 'selloTipo' },
       { header: 'Fecha', dataKey: 'fechaEmbarque' },
       { header: 'Árboles', dataKey: 'cantArboles' },
-      { header: 'N° Viaje', dataKey: 'numeroViaje' }
+      { header: 'N° Viaje', dataKey: 'numeroViaje' },
+      { header: 'N° Envío', dataKey: 'numeroEnvio' }
     ];
 
     // Asignar anchos compactos que sumen usableWidth (ajusta si necesitas)
@@ -791,10 +829,11 @@ export class CorteComponent {
       1: 70,  // Contrato (mayor, permitirá wrap) 
       2: 60,   // Raleo
       3: 88,  // Siembra/Rebrote
-      4: 50,   // Sello
-      5: 50,   // Fecha
-      6: 35,   // Árboles
-      7: 30    // N° Viaje
+      //4: 50,   // Sello
+      4: 50,   // Fecha
+      5: 35,   // Árboles
+      6: 30,    // N° Viaje
+      7: 30    // N° Envío
     };
     // Si por alguna razón la suma difiere, auto-ajusta último ancho:
     const totalAssigned = Object.values(columnWidths).reduce((a, b) => a + b, 0);
@@ -872,10 +911,11 @@ export class CorteComponent {
         1: { cellWidth: columnWidths[1], halign: 'left' }, // <- CONTRATO a la derecha
         2: { cellWidth: columnWidths[2], halign: 'left' },
         3: { cellWidth: columnWidths[3], halign: 'left' },
-        4: { cellWidth: columnWidths[4], halign: 'left' },
-        5: { cellWidth: columnWidths[5], halign: 'left' },
-        6: { cellWidth: columnWidths[6], halign: 'right' }, // opcional: números a la derecha
-        7: { cellWidth: columnWidths[7], halign: 'right' }  // opcional: números a la derecha
+        //4: { cellWidth: columnWidths[4], halign: 'left' },
+        4: { cellWidth: columnWidths[5], halign: 'left' },
+        5: { cellWidth: columnWidths[6], halign: 'right' }, // opcional: números a la derecha
+        6: { cellWidth: columnWidths[7], halign: 'right' },  // opcional: números a la derecha
+        7: { cellWidth: columnWidths[8], halign: 'right' }
       },
       didDrawPage: (data) => {
         // número de página actual que te da autoTable
@@ -1037,10 +1077,11 @@ export class CorteComponent {
       ['Raleo Tipo', this.getRaleoId(corte.raleo_tipo_id) || ''],
       ['Siembra/Rebrote', this.getSiemRebTipo(this.getSiemRebId(corte.siembra_rebrote_id)) || ''],
       ['Año Siembra/Rebrote', this.getSiemRebAnio(corte.siembra_rebrote_id) || ''],
-      ['Sello Tipo', this.getSelloTipoId(corte.sello_id) || ''],
+      //['Sello Tipo', this.getSelloTipoId(corte.sello_id) || ''],
       ['Fecha Embarque', fmtDate(corte.fecha_embarque) || ''],
       ['Cantidad Árboles', corte.cant_arboles ?? ''],
       ['Número de Viaje', corte.numero_viaje ?? ''],
+      ['Número de Envío', corte.numero_envio ?? ''],
       ['Total detalles', (this.listDetCortes || []).length.toString()]
     ];
 

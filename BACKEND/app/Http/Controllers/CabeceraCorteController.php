@@ -13,7 +13,7 @@ class CabeceraCorteController extends Controller
 {
     public function index()
     {
-        $cabeceraCortes = CabeceraCorte::with(['bosque', 'contrato.cliente', 'siembraRebrote', 'raleoTipo', 'sello'])
+        $cabeceraCortes = CabeceraCorte::with(['bosque', 'contrato.cliente', 'siembraRebrote', 'raleoTipo'])
             ->withCount('detalleCortes')
             ->whereIn('estado', ['A', 'C'])
              ->orderByDesc('created_at')  
@@ -23,7 +23,7 @@ class CabeceraCorteController extends Controller
 
     public function show($id)
     {
-        $cabeceraCorte = CabeceraCorte::with(['bosque', 'contrato', 'siembraRebrote', 'raleoTipo', 'sello'])
+        $cabeceraCorte = CabeceraCorte::with(['bosque', 'contrato', 'siembraRebrote', 'raleoTipo'])
             ->find($id);
 
         if (!$cabeceraCorte) {
@@ -36,7 +36,7 @@ class CabeceraCorteController extends Controller
 
     public function getContrato($contrato_id)
     {
-        $cabeceraCorte = CabeceraCorte::with(['bosque', 'siembraRebrote', 'raleoTipo', 'sello'])
+        $cabeceraCorte = CabeceraCorte::with(['bosque', 'siembraRebrote', 'raleoTipo'])
             ->where('contrato_id', $contrato_id)
             ->where('estado', 'A') // opcional: solo activas
             ->orderBy('fecha_embarque', 'desc')
@@ -54,14 +54,18 @@ class CabeceraCorteController extends Controller
                 //'contrato_id' => 'required|integer|exists:contrato,id',
                 'raleo_tipo_id' => 'required|integer|exists:parametro,id',
                 'siembra_rebrote_id' => 'nullable|integer|exists:siembra_rebrote,id',
-                'sello_id' => 'required|integer|exists:parametro,id',
+                //'sello_id' => 'required|integer|exists:parametro,id',
                 'fecha_embarque' => 'required|date',
                 //'cant_arboles' => 'nullable|integer|min:0',
                 'numero_viaje' => 'nullable|integer|min:1',
+                'numero_envio' => 'nullable|integer|min:1',
                 'placa_carro' => 'nullable|string|max:50',
                 'contenedor' => 'nullable|string|max:50',
-                'conductor' => 'nullable|string|max:200',
-                'supervisor' => 'nullable|string|max:200'
+                'naviera' => 'nullable|string|max:200',
+                'supervisor' => 'nullable|string|max:200',
+                'sello_empresa' => 'nullable|string|max:200',
+                'sello_rastreo' => 'nullable|string|max:200',
+                'sello_inspeccion' => 'nullable|string|max:200'
             ]);
 
             if ($validator->fails()) {
@@ -100,14 +104,18 @@ class CabeceraCorteController extends Controller
                         'contrato_id'  => $request->contrato_id,
                         'raleo_tipo_id' => $request->raleo_tipo_id,
                         'siembra_rebrote_id' => $request->siembra_rebrote_id,
-                        'sello_id' => $request->sello_id,
+                        //'sello_id' => $request->sello_id,
                         'fecha_embarque' => $request->fecha_embarque,
                         'cant_arboles'  => $request->cant_arboles,
                         'numero_viaje'  => $request->numero_viaje,
+                        'numero_envio'  => $request->numero_envio,
                         'placa_carro'   => $request->placa_carro,
                         'contenedor' => $request->contenedor,
-                        'conductor' => $request->conductor,
+                        'naviera' => $request->naviera,
                         'supervisor' => $request->supervisor,
+                        'sello_empresa' => $request->sello_empresa,
+                        'sello_rastreo' => $request->sello_rastreo,
+                        'sello_inspeccion' => $request->sello_inspeccion,
                         'usuario_creacion' => $user->username,
                         'estado' => 'A',
                     ]);
@@ -150,14 +158,18 @@ class CabeceraCorteController extends Controller
             'contrato_id' => 'required|integer|exists:contrato,id',
             'raleo_tipo_id' => 'required|integer|exists:parametro,id',
             'siembra_rebrote_id' => 'required|integer|exists:siembra_rebrote,id',
-            'sello_id' => 'required|integer|exists:parametro,id',
+            //'sello_id' => 'required|integer|exists:parametro,id',
             'fecha_embarque' => 'required|date',
             //'cant_arboles' => 'nullable|integer|min:1',
             'numero_viaje' => 'required|integer|min:1',
+            'numero_envio' => 'required|integer|min:1',
             'placa_carro' => 'required|string|max:50',
             'contenedor' => 'required|string|max:50',
-            'conductor' => 'required|string|max:200',
-            'supervisor' => 'required|string|max:200'
+            'naviera' => 'nullable|string|max:200',
+            'supervisor' => 'required|string|max:200',
+            'sello_empresa' => 'nullable|string|max:200',
+            'sello_rastreo' => 'nullable|string|max:200',
+            'sello_inspeccion' => 'nullable|string|max:200'
         ]);
 
         if ($validator->fails()) {
@@ -171,14 +183,18 @@ class CabeceraCorteController extends Controller
             'contrato_id',
             'raleo_tipo_id',
             'siembra_rebrote_id',
-            'sello_id',
+            //'sello_id',
             'fecha_embarque',
             'cant_arboles',
             'numero_viaje',
+            'numero_envio',
             'placa_carro',
             'contenedor',
-            'conductor',
-            'supervisor'
+            'naviera',
+            'supervisor',
+            'sello_empresa',
+            'sello_rastreo',
+            'sello_inspeccion'
         ]));
         $cabeceraCorte->updated_by = $user->username; // Asignar el usuario que hizo la edición
         $cabeceraCorte->save(); // Guardar cambios

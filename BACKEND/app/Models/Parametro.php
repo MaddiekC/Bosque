@@ -23,10 +23,10 @@ class Parametro extends Model
         return $this->hasMany(SiembraRebrote::class, 'tipo_id');
     }
 
-    public function sellos()
-    {
-        return $this->hasMany(CabeceraCorte::class, 'sello_id');
-    }
+    // public function sellos()
+    // {
+    //     return $this->hasMany(CabeceraCorte::class, 'sello_id');
+    // }
 
     public function raleoTipos()
     {
