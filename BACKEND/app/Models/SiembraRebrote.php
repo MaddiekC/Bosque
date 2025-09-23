@@ -47,4 +47,8 @@ class SiembraRebrote extends Model
     {
         return $this->hasMany(CabeceraCorte::class, 'siembra_rebrote_id');
     }
+        public function detalleCortes()
+    {
+        return $this->hasMany(CabeceraCorte::class, 'siembra_rebrote_id');
+    }
 }

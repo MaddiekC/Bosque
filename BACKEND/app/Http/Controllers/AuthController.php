@@ -83,4 +83,33 @@ class AuthController extends Controller
 
         return response()->json($perms);
     }
+
+    //  public function refresh(Request $request)
+    // {
+    //     try {
+    //         // intenta tomar el token de la petición (header Authorization: Bearer ...)
+    //         $token = JWTAuth::getToken();
+    //         if (! $token) {
+    //             return response()->json(['message' => 'Token not provided'], 401);
+    //         }
+
+    //         // refresh devuelve un nuevo token (siempre que el refresh TTL lo permita)
+    //         $newToken = JWTAuth::refresh($token);
+
+    //         // devolver en body y en header Authorization para que el cliente pueda leerlo fácilmente
+    //         return response()->json([
+    //             'access_token' => $newToken,
+    //             'token_type' => 'bearer'
+    //         ], 200)->header('Authorization', 'Bearer ' . $newToken);
+
+    //     } catch (TokenExpiredException $e) {
+    //         // el token está demasiado viejo para refrescarlo
+    //         return response()->json(['message' => 'Token expired and cannot be refreshed'], 401);
+    //     } catch (JWTException $e) {
+    //         // cualquier otro error relacionado con JWT (ej. token inválido)
+    //         return response()->json(['message' => 'Could not refresh token'], 401);
+    //     } catch (\Exception $e) {
+    //         return response()->json(['message' => 'Unexpected error refreshing token'], 500);
+    //     }
+    // }
 }

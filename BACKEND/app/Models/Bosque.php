@@ -36,4 +36,9 @@ class Bosque extends Model
     {
         return $this->hasMany(CabeceraCorte::class, 'bosque_id');
     }
+
+    public function detalleCortes()
+    {
+        return $this->hasMany(CabeceraCorte::class, 'bosque_id');
+    }
 }

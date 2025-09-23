@@ -51,12 +51,6 @@ class CabeceraCorte extends Model
         ->where('categoria', 'raleoTipo');
     }
     
-    // public function sello()
-    // {
-    //     return $this->belongsTo(Parametro::class, 'sello_id')
-    //     ->where('categoria', 'sello');
-    // }
-    
     public function detalleCortes()
     {
         return $this->hasMany(DetalleCorte::class, 'cabecera_corte_id');

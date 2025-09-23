@@ -23,12 +23,25 @@ class DetalleCorte extends Model
         'valor_mcubico',
         'valor_troza',
         'estado',
-        'usuario_creacion'
+        'usuario_creacion',
+        'bosque_id',
+        'siembra_rebrote_id'
     ];
 
     public function cabeceraCorte()
     {
         return $this->belongsTo(CabeceraCorte::class, 'cabecera_corte_id');
     }
+
+    public function bosque()
+    {
+        return $this->belongsTo(Bosque::class, 'bosque_id');
+    }
+    
+    public function siembraRebrote()
+    {
+        return $this->belongsTo(SiembraRebrote::class, 'siembra_rebrote_id');
+    }
+
 
 }

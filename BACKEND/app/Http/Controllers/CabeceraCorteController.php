@@ -11,13 +11,54 @@ use Illuminate\Support\Facades\Log;
 
 class CabeceraCorteController extends Controller
 {
+    // public function index()
+    // {
+    //     $cabeceraCortes = CabeceraCorte::with(['bosque', 'contrato.cliente', 'siembraRebrote', 'raleoTipo'])
+    //         ->withCount('detalleCortes')
+    //         ->whereIn('estado', ['A', 'C'])
+    //         ->orderByDesc('created_at')  
+    //         ->get();
+    //     return response()->json($cabeceraCortes);
+    // }
+
     public function index()
     {
+        // 1) Carga principal (igual que antes)
         $cabeceraCortes = CabeceraCorte::with(['bosque', 'contrato.cliente', 'siembraRebrote', 'raleoTipo'])
             ->withCount('detalleCortes')
             ->whereIn('estado', ['A', 'C'])
-             ->orderByDesc('created_at')  
+            ->orderByDesc('created_at')
             ->get();
+
+        if ($cabeceraCortes->isEmpty()) {
+            return response()->json($cabeceraCortes);
+        }
+
+        // 2) Recolectar ids para una sola consulta a detalle_corte
+        $cabIds = $cabeceraCortes->pluck('id')->all();
+
+        // 3) Obtener pares únicos por cabecera (evita N+1). Filtramos nulos para mayor limpieza.
+        $pares = DB::table('detalle_corte as d')
+            ->select('d.cabecera_corte_id', 'd.bosque_id', 'd.siembra_rebrote_id')
+            ->whereIn('d.cabecera_corte_id', $cabIds)
+            ->whereNotNull('d.bosque_id')
+            ->whereNotNull('d.siembra_rebrote_id')
+            ->groupBy('d.cabecera_corte_id', 'd.bosque_id', 'd.siembra_rebrote_id')
+            ->get()
+            ->groupBy('cabecera_corte_id'); // key = cabecera id -> colección de filas
+
+        // 4) Adjuntar al resultado
+        $cabeceraCortes->transform(function ($cab) use ($pares) {
+            $id = $cab->id;
+
+            if (isset($pares[$id]) && ($cab->bosque_id === null || $cab->siembra_rebrote_id === null)) {
+                // Recolectamos todos los bosque_id y siembra_rebrote_id distintos
+                $cab->bosque_id = $pares[$id]->pluck('bosque_id')->unique()->values()->all();
+                $cab->siembra_rebrote_id = $pares[$id]->pluck('siembra_rebrote_id')->unique()->values()->all();
+            }
+
+            return $cab;
+        });
         return response()->json($cabeceraCortes);
     }
 
@@ -50,7 +91,7 @@ class CabeceraCorteController extends Controller
     public function store(Request $request)
     { {
             $validator = Validator::make($request->all(), [
-                'bosque_id' => 'required|integer|exists:bosque,id',
+                'bosque_id' => 'nullable|integer|exists:bosque,id',
                 //'contrato_id' => 'required|integer|exists:contrato,id',
                 'raleo_tipo_id' => 'required|integer|exists:parametro,id',
                 'siembra_rebrote_id' => 'nullable|integer|exists:siembra_rebrote,id',
@@ -154,10 +195,10 @@ class CabeceraCorteController extends Controller
         }
 
         $validator = Validator::make($request->all(), [
-            'bosque_id' => 'required|integer|exists:bosque,id',
-            'contrato_id' => 'required|integer|exists:contrato,id',
+            'bosque_id' => 'nullable|integer|exists:bosque,id',
+            'contrato_id' => 'nullable|integer|exists:contrato,id',
             'raleo_tipo_id' => 'required|integer|exists:parametro,id',
-            'siembra_rebrote_id' => 'required|integer|exists:siembra_rebrote,id',
+            'siembra_rebrote_id' => 'nullable|integer|exists:siembra_rebrote,id',
             //'sello_id' => 'required|integer|exists:parametro,id',
             'fecha_embarque' => 'required|date',
             //'cant_arboles' => 'nullable|integer|min:1',
@@ -177,7 +218,7 @@ class CabeceraCorteController extends Controller
         }
         $user = $request->user();
 
-        
+
         $cabeceraCorte->fill($request->only([
             'bosque_id',
             'contrato_id',

@@ -29,7 +29,7 @@ use Illuminate\Support\Facades\Route;
     return $request->user();
 });*/
 
-
+//Route::post('/auth/refresh', [AuthController::class, 'refresh']);
 Route::group(
     [
         'prefix' => 'auth'
@@ -42,7 +42,8 @@ Route::group(
 
 Route::group(
     [
-        'middleware' => 'auth:api'
+        'middleware' =>  'auth:api'
+        //'middleware' =>  ['auth:api', 'jwt.refresh']
     ],
     function () {
         Route::get('/me/permissions', [AuthController::class, 'permissions']); // Transacciones
@@ -66,6 +67,7 @@ Route::group(
 
         Route::get('/detalle-cortes', [DetalleCorteController::class, 'index']); // Listar todos los detalles de corte
         Route::get('/detalle-cortes/valor-troza-all', [DetalleCorteController::class, 'valorTrozaAll']);
+        Route::get('/detalle-cortes/distinct/{cabecera_corte_id}', [DetalleCorteController::class, 'distinctBosqueSiembByCab']);
         Route::get('/detalle-cortes/{cabecera_corte_id}', [DetalleCorteController::class, 'show']); // Ver un detalle de corte por ID
         Route::get('detalle-cortes/count/{cabecera_corte_id}', [DetalleCorteController::class, 'count']); // Contar detalles de corte por cabecera
         Route::post('/detalle-cortes', [DetalleCorteController::class, 'store']); // Crear un detalle de corte

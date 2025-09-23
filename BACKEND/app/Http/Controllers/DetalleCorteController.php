@@ -9,7 +9,6 @@ use App\Models\DetalleContrato;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use App\Models\SiembraRebrote;
-use App\Models\Anticipo;
 
 class DetalleCorteController extends Controller
 {
@@ -19,6 +18,14 @@ class DetalleCorteController extends Controller
             ->where('estado', 'A')
             ->get();
         return response()->json($detallesCorte);
+    }
+
+    public function distinctBosqueSiembByCab(int $cabecera_corte_id)
+    {
+        return DetalleCorte::where('cabecera_corte_id', $cabecera_corte_id)
+            ->select('bosque_id', 'siembra_rebrote_id')
+            ->distinct()
+            ->get();
     }
 
     public function show($cabecera_corte_id)
@@ -71,6 +78,8 @@ class DetalleCorteController extends Controller
             'detalles.*.trozas'  => 'required|integer|min:1',
             'detalles.*.circ_bruta' => 'required|numeric|min:0',
             'detalles.*.largo_bruto' => 'required|numeric|min:0',
+            'detalles.*.bosque_id' => 'required|integer|min:1',
+            'detalles.*.siembra_rebrote_id' => 'nullable|integer|min:1',
         ]);
 
         $user     = $request->user();
@@ -106,11 +115,22 @@ class DetalleCorteController extends Controller
         }
 
         // 2) agrupar pedido por siembra_rebrote_id + bosque_id (solo para cabeceras que tienen siembra)
+        // $requestedPerSiembraBosque = [];
+        // foreach ($requestedPerCabecera as $cabId => $qty) {
+        //     $cab = $cabeceras[$cabId];
+        //     if (!$cab->siembra_rebrote_id) continue; // si no hay siembra (ej. basureo), no validar contra siembra
+        //     $key = $cab->siembra_rebrote_id . ':' . $cab->bosque_id;
+        //     $requestedPerSiembraBosque[$key] = ($requestedPerSiembraBosque[$key] ?? 0) + $qty;
+        // }
         $requestedPerSiembraBosque = [];
-        foreach ($requestedPerCabecera as $cabId => $qty) {
-            $cab = $cabeceras[$cabId];
-            if (!$cab->siembra_rebrote_id) continue; // si no hay siembra (ej. basureo), no validar contra siembra
-            $key = $cab->siembra_rebrote_id . ':' . $cab->bosque_id;
+        foreach ($detalles as $d => $qty) {
+            $sid = isset($d['siembra_rebrote_id']) && $d['siembra_rebrote_id'] !== null ? (int)$d['siembra_rebrote_id'] : null;
+            $bid = isset($d['bosque_id']) ? (int)$d['bosque_id'] : null;
+
+            // si no hay siembra, ignoramos 
+            if (!$sid) continue;
+
+            $key = $sid . ':' . $bid;
             $requestedPerSiembraBosque[$key] = ($requestedPerSiembraBosque[$key] ?? 0) + $qty;
         }
 
@@ -262,6 +282,8 @@ class DetalleCorteController extends Controller
                         'm_cubica'          => $volM3,
                         'valor_mcubico'     => $precioM3,
                         'valor_troza'       => $valorTroza,
+                        'bosque_id'         => $det['bosque_id'],
+                        'siembra_rebrote_id' => $det['siembra_rebrote_id'],
                         'usuario_creacion'  => $user->username,
                         'estado'            => 'A',
                     ]);
@@ -349,7 +371,9 @@ class DetalleCorteController extends Controller
             'largo_neto' => 'nullable|numeric|min:0',
             'm_cubica' => 'nullable|numeric|min:0',
             'valor_mcubico' => 'nullable|numeric|min:0',
-            'valor_troza' => 'nullable|numeric|min:0'
+            'valor_troza' => 'nullable|numeric|min:0',
+            'bosque_id' => 'required|integer|min:1',
+            'siembra_rebrote_id' => 'nullable|integer|min:1'
         ]);
 
         $detalleCorte->fill($request->only([
@@ -361,7 +385,9 @@ class DetalleCorteController extends Controller
             'largo_neto',
             'm_cubica',
             'valor_mcubico',
-            'valor_troza'
+            'valor_troza',
+            'bosque_id',
+            'siembra_rebrote_id'
         ]));
         $detalleCorte->updated_by = $user->username; // Asignar el usuario que hizo la edición
         $detalleCorte->save(); // Guardar cambios
