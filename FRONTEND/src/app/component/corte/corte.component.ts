@@ -39,7 +39,9 @@ interface detCorte {
   largo_neto: number,
   m_cubica: number,
   valor_mcubico: number,
-  valor_troza: number
+  valor_troza: number,
+  bosque_id: number,
+  siembra_rebrote_id: number,
 }
 
 @Component({
@@ -67,14 +69,16 @@ export class CorteComponent {
     largo_neto: 0,
     m_cubica: 0,
     valor_mcubico: 0,
-    valor_troza: 0
+    valor_troza: 0,
+    bosque_id: 0,
+    siembra_rebrote_id: 0,
   }];
 
   nuevoCorte: any = {
-    bosque_id: 0,
+    bosque_id: null,
     contrato_id: 0,
     raleo_tipo_id: 0,
-    siembra_rebrote_id: 0,
+    siembra_rebrote_id: null,
     //sello_id: 0,
     fecha_embarque: '',
     cant_arboles: 0,
@@ -90,6 +94,7 @@ export class CorteComponent {
   };
 
   SaldoDisponible = 0;
+  distinctBS: any[] = [];
 
   listDetCortes: any[] = [];
   selectedCorteId: number | null = null;
@@ -355,20 +360,75 @@ export class CorteComponent {
   }
 
   getCortesFiltrados() {
-    return this.cortesFiltrados = this.listCorte.filter(b =>
-      (!this.filtroSiembraRebrote
-        || +b.siembra_rebrote_id === this.filtroSiembraRebrote)
-      && (!this.filtroBosque || b.bosque_id == this.filtroBosque)
-      && (!this.filtroSR || b.siembra_rebrote_id.toString().toLowerCase().includes(this.filtroSR.toLowerCase()))
-      && (!this.filtroContrato || b.contrato_id == this.filtroContrato)
-      && (!this.filtroRaleoTipo || b.raleo_tipo_id == this.filtroRaleoTipo)
-      //&& (!this.filtroSelloTipo || b.sello_id == this.filtroSelloTipo)
-      && (!this.filtroNumeroViaje || b.numero_viaje == this.filtroNumeroViaje)
-      && (!this.filtroNumeroEnvio || b.numero_envio == this.filtroNumeroEnvio)
-      && (!this.filtroNaviera || b.naviera.toString().toLowerCase().includes(this.filtroNaviera.toLowerCase()))
-      && (!this.filtroFecha || new Date(b.fecha_embarque).toDateString() === new Date(this.filtroFecha).toDateString())
-    );
+    this.cortesFiltrados = (this.listCorte || []).filter(b => {
+      // normalizar campos que pueden ser number | string | array
+      const bosqueIds = this._asNumberArray(b.bosque_id);
+      const siembraIds = this._asNumberArray(b.siembra_rebrote_id);
+
+      // filtro por siembra_rebrote (si hay filtro)
+      if (this.filtroSiembraRebrote) {
+        if (!siembraIds.includes(Number(this.filtroSiembraRebrote))) return false;
+      }
+
+      // filtro por bosque (si hay filtro)
+      if (this.filtroBosque) {
+        if (!bosqueIds.includes(Number(this.filtroBosque))) return false;
+      }
+
+      // filtro por texto (siempre convierte los ids a string "25, 26" para búsqueda)
+      if (this.filtroSR) {
+        const siemStr = siembraIds.join(', ');
+        if (!siemStr.toLowerCase().includes(this.filtroSR.toLowerCase())) return false;
+      }
+
+      // resto de filtros existentes (sin cambios lógicos)
+      if (this.filtroContrato && b.contrato_id != this.filtroContrato) return false;
+      if (this.filtroRaleoTipo && b.raleo_tipo_id != this.filtroRaleoTipo) return false;
+      if (this.filtroNumeroViaje && b.numero_viaje != this.filtroNumeroViaje) return false;
+      if (this.filtroNumeroEnvio && b.numero_envio != this.filtroNumeroEnvio) return false;
+      if (this.filtroNaviera && !(b.naviera ?? '').toString().toLowerCase().includes(this.filtroNaviera.toLowerCase())) return false;
+      if (this.filtroFecha && new Date(b.fecha_embarque).toDateString() !== new Date(this.filtroFecha).toDateString()) return false;
+
+      return true;
+    });
+
+    return this.cortesFiltrados;
   }
+
+  // helper que normaliza number | "10,11" | '["10",11]' | [10,11] -> number[]
+  private _asNumberArray(val: any): number[] {
+    if (val === null || typeof val === 'undefined' || val === '') return [];
+
+    // ya es array
+    if (Array.isArray(val)) {
+      return Array.from(new Set(val.map(v => Number(v)).filter(n => Number.isFinite(n))));
+    }
+
+    // si viene como JSON string de un array: '["10", "11"]'
+    if (typeof val === 'string') {
+      const s = val.trim();
+
+      // intento parsear JSON por si backend mandó stringified array
+      if ((s.startsWith('[') && s.endsWith(']'))) {
+        try {
+          const parsed = JSON.parse(s);
+          if (Array.isArray(parsed)) {
+            return this._asNumberArray(parsed);
+          }
+        } catch { /* ignore parse error */ }
+      }
+
+      // si es cadena tipo "10, 11" o "10" -> split por comas
+      const parts = s.split(',').map(p => p.trim()).filter(p => p !== '');
+      const nums = parts.map(p => Number(p)).filter(n => Number.isFinite(n));
+      return Array.from(new Set(nums));
+    }
+
+    // si es número u otro tipo convertible
+    const maybeNum = Number(val);
+    return Number.isFinite(maybeNum) ? [maybeNum] : [];
+  }
+
 
   // 1) Se llama al hacer clic en el icono de papelera
   openConfirmModal(id: number) {
@@ -547,7 +607,13 @@ export class CorteComponent {
       raleo_tipo_id: id
     };
     // Si el raleo NO es comercial y ya había un contrato seleccionado, lo limpiamos
-    if (!this.isRaleoComercial()) {
+    if (this.isRaleoComercial()) {
+      this.nuevoCorte.bosque_id = null;
+      this.nuevoCorte.siembra_rebrote_id = null;
+      // limpiar dropdown filtrado para que no muestre opciones residuales
+      this.siemRebFiltered = [];
+    } else {
+      // Si NO es comercial -> limpiar contrato porque no aplica
       this.nuevoCorte.contrato_id = null;
     }
   }
@@ -570,9 +636,15 @@ export class CorteComponent {
     this.selectedCorteId = cabecera_corte_id;
     console.log('Corte ID seleccionado:', this.selectedCorteId);
 
-    this.corteService.getDetalleCorte(cabecera_corte_id)
-      .subscribe(response => {
-        this.listDetCortes = Array.isArray(response) ? response : [response];
+    // usamos forkJoin para pedir detalle, cabecera y las combinaciones únicas
+    forkJoin({
+      detalle: this.corteService.getDetalleCorte(cabecera_corte_id),
+      cab: this.corteService.getCabeceraCorte(cabecera_corte_id),
+      pares: this.corteService.getDistinctBSbyCab(cabecera_corte_id)
+    }).subscribe({
+      next: ({ detalle, cab, pares }) => {
+        // detalles (tabla)
+        this.listDetCortes = Array.isArray(detalle) ? detalle : [detalle];
         this.totalTrozas = this.listDetCortes.length;
         this.totalCircBruta = this.listDetCortes.reduce((acc, curr) => acc + (Number(curr.circ_bruta) || 0), 0);
         this.totalCircNeta = this.listDetCortes.reduce((acc, curr) => acc + (Number(curr.circ_neta) || 0), 0);
@@ -582,19 +654,22 @@ export class CorteComponent {
         this.totalValorMCubico = this.listDetCortes.reduce((acc, curr) => acc + (Number(curr.valor_mcubico) || 0), 0);
         this.totalValorTroza = this.listDetCortes.reduce((acc, curr) => acc + (Number(curr.valor_troza) || 0), 0);
 
-        this.corteService.getCabeceraCorte(cabecera_corte_id).subscribe(
-          cab => this.selectedCorte = cab,
-          err => {
-            console.warn('No se pudo cargar cabecera (no crítica):', err);
-            this.selectedCorte = null;
-          }
-        );
+        // cabecera
+        this.selectedCorte = cab || null;
 
-        // 2) abro el modal
+        // pares únicos bosque/siembra (esperamos [{ bosque_id, siembra_rebrote_id }, ...])
+        this.distinctBS = Array.isArray(pares) ? pares : (pares ? [pares] : []);
+
+        // abrir modal
         const modalEl = document.getElementById('verdetModal')!;
         const modal = new bootstrap.Modal(modalEl);
         modal.show();
-      });
+      },
+      error: err => {
+        console.error('Error cargando detalles/cabecera/pares únicos:', err);
+        alert('Error al cargar los datos del corte. Revisa la consola.');
+      }
+    });
   }
 
   closeDetailModal() {
@@ -629,7 +704,9 @@ export class CorteComponent {
           largo_neto: 0,
           m_cubica: 0,
           valor_mcubico: 0,
-          valor_troza: 0
+          valor_troza: 0,
+          bosque_id: 0,
+          siembra_rebrote_id: 0,
         }];
 
         const modalEl = document.getElementById('detModal')!;
@@ -649,7 +726,9 @@ export class CorteComponent {
             largo_neto: 0,
             m_cubica: 0,
             valor_mcubico: 0,
-            valor_troza: 0
+            valor_troza: 0,
+            bosque_id: 0,
+            siembra_rebrote_id: 0,
           }];
           const modalEl = document.getElementById('detModal')!;
           new bootstrap.Modal(modalEl).show();
@@ -675,7 +754,9 @@ export class CorteComponent {
       largo_neto: 0,
       m_cubica: 0,
       valor_mcubico: 0,
-      valor_troza: 0
+      valor_troza: 0,
+      bosque_id: 0,
+      siembra_rebrote_id: 0,
     });
   }
 
@@ -798,11 +879,11 @@ export class CorteComponent {
 
     // Prepara filas (asegura valores string)
     const rows = this.cortesFiltrados.map(corte => ({
-      bosque: this.getBosqueId(corte.bosque_id) || '',
+      bosque: this.formatBosques(corte.bosque_id) || '',
       contrato: ((this.getClienteId(this.getContratoId(corte.contrato_id)) || '') +
         (this.getContratoAnio(this.getContratoId(corte.contrato_id)) ? (' - ' + this.getContratoAnio(this.getContratoId(corte.contrato_id))) : '')) || '',
       raleoTipo: this.getRaleoId(corte.raleo_tipo_id) || '',
-      siembraRebrote: ((this.getSiemRebTipo(this.getSiemRebId(corte.siembra_rebrote_id)) || '') +
+      siembraRebrote: ((this.formatSiembras(corte.siembra_rebrote_id) || '') +
         (this.getSiemRebAnio(corte.siembra_rebrote_id) ? (' - ' + this.getSiemRebAnio(corte.siembra_rebrote_id)) : '')) || '',
       //selloTipo: this.getSelloTipoId(corte.sello_id) || '',
       fechaEmbarque: corte.fecha_embarque ? new Date(corte.fecha_embarque).toLocaleDateString('es-ES') : '',
@@ -991,6 +1072,7 @@ export class CorteComponent {
         img.src = `/assets/images/bosque.png`;
       });
     };
+
     const doc = new jsPDF({ unit: 'pt', format: 'a4' });
     const pageSize = doc.internal.pageSize as any;
     const pageWidth = pageSize.getWidth();
@@ -1072,11 +1154,11 @@ export class CorteComponent {
     };
 
     const cabeceraRows = [
-      ['Bosque', this.getBosqueId(corte.bosque_id) || ''],
+      ['Bosque', this.formatBosques(corte.bosque_id)],
       ['Contrato', this.getClienteId(this.getContratoId(corte.contrato_id)) || ''],
       ['Raleo Tipo', this.getRaleoId(corte.raleo_tipo_id) || ''],
-      ['Siembra/Rebrote', this.getSiemRebTipo(this.getSiemRebId(corte.siembra_rebrote_id)) || ''],
-      ['Año Siembra/Rebrote', this.getSiemRebAnio(corte.siembra_rebrote_id) || ''],
+      ['Siembra/Rebrote', this.formatSiembras(corte.siembra_rebrote_id)],
+      //['Año Siembra/Rebrote', this.getSiemRebAnio(corte.siembra_rebrote_id) || ''],
       //['Sello Tipo', this.getSelloTipoId(corte.sello_id) || ''],
       ['Fecha Embarque', fmtDate(corte.fecha_embarque) || ''],
       ['Cantidad Árboles', corte.cant_arboles ?? ''],
@@ -1238,6 +1320,29 @@ export class CorteComponent {
     const filename = `corte_${corte.id}_detalles.pdf`;
     doc.save(filename);
   }
+
+  formatBosques(val: any): string {
+    if (!val) return '';
+    if (Array.isArray(val)) {
+      return val.map(id => this.getBosqueId(id)).join(', ');
+    }
+    return this.getBosqueId(val);
+  }
+
+  formatSiembras(val: any): string {
+    if (!val) return '';
+    if (Array.isArray(val)) {
+      return val.map(id => {
+        const tipo = this.getSiemRebTipo(this.getSiemRebId(id));
+        const anio = this.getSiemRebAnio(id);
+        return `${tipo}${anio ? ' - ' + anio : ''}`;
+      }).join(', ');
+    }
+    const tipo = this.getSiemRebTipo(this.getSiemRebId(val));
+    const anio = this.getSiemRebAnio(val);
+    return `${tipo}${anio ? ' - ' + anio : ''}`;
+  }
+
 }
 
 

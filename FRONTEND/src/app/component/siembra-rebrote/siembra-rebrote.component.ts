@@ -38,6 +38,8 @@ export class SiembraRebroteComponent implements AfterViewInit {
   private modalInstance: any;
   private pendingDeleteId!: number;
 
+  saveError: string | null = null;
+  saveEditError: string | null = null;
   username: string = '';
   listSiemReb: any[] = [];
   siembRebFiltrados: any[] = [];
@@ -246,6 +248,7 @@ export class SiembraRebroteComponent implements AfterViewInit {
   }
 
   saveEdit() {
+    this.saveEditError = null;
     if (!this.siembraRebroteEditando) return;
     this.SiembraRebService.putSiembraRebrote(this.siembraRebroteEditando.id, this.siembraRebroteEditando).subscribe(
       updated => {
@@ -266,15 +269,32 @@ export class SiembraRebroteComponent implements AfterViewInit {
 
         // 3) Limpia el objeto de edición
         this.siembraRebroteEditando = null;
+        this.saveEditError = null;
       },
       err => {
         console.error('Error al editar:', err);
-        Swal.fire({
-          icon: 'error',
-          title: 'No se puede eliminar',
-          text: 'Se ha sobrepasado las has.',
-          confirmButtonColor: '#d33'
-        });
+        let msg = 'Error al guardar los detalles';
+        if (err && err.status === 422) {
+          // tu backend devuelve { message: '...' } o { errors: {...} }
+          if (err.error) {
+            if (typeof err.error === 'string') {
+              msg = err.error;
+            } else if (err.error.message) {
+              msg = err.error.message;
+            } else if (err.error.errors) {
+              // compone mensaje desde array de errores
+              const vals = Object.values(err.error.errors)
+                .flat()
+                .map((v: any) => String(v));
+              msg = vals.join(' - ') || msg;
+            }
+          }
+        } else if (err && err.message) {
+          msg = err.message;
+        }
+
+        // muestra en la UI
+        this.saveEditError = msg;
       }
     );
   }
@@ -297,12 +317,8 @@ export class SiembraRebroteComponent implements AfterViewInit {
     const disponibleRestante = this.hectareaDisponible - this.hectareaUsadaAntes;
 
     if (nueva > disponibleRestante) {
-      Swal.fire({
-        icon: 'error',
-        title: 'No se puede eliminar',
-        text: `Error: Solo quedan ${disponibleRestante.toFixed(2)} ha disponibles. No puede agregar más.`,
-        confirmButtonColor: '#d33'
-      });
+      this.saveError = `Solo quedan ${disponibleRestante.toFixed(2)} ha disponibles. No puede agregar más.`;
+      setTimeout(() => this.saveError = null, 8000);
       return;
     }
     this.SiembraRebService.postSiembraRebrote(this.nuevaSiembraRebrote)

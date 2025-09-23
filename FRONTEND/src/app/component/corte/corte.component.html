@@ -149,7 +149,7 @@
                         </td>
                         <!-- Columna Bosque-->
                         <td class="text-center">
-                            {{ getBosqueId(corte.bosque_id) }}
+                            {{ formatBosques(corte.bosque_id) }}
                         </td>
                         <!-- Columna 
                         -->
@@ -163,13 +163,8 @@
                         </td>
                         <!-- Columna Siembra rebrote -->
                         <td class="text-center">
-                            {{ getSiemRebTipo(getSiemRebId(corte.siembra_rebrote_id))}} - {{
-                            getSiemRebAnio(corte.siembra_rebrote_id)}}
+                            {{ formatSiembras(corte.siembra_rebrote_id) }}
                         </td>
-                        <!-- Columna Siembra rebrote -->
-                        <!-- <td class="text-center">
-                            {{ getSelloTipoId(corte.sello_id) }}
-                        </td> -->
                         <!-- Columna Fecha -->
                         <td class="text-center">
                             {{ corte.fecha_embarque | date: 'dd/MM/yyyy' }}
@@ -360,7 +355,7 @@
                     </div>
                 </div>
                 <div class="d-flex flex-wrap gap-2" style="margin-top: 15px; margin-bottom: 15px;">
-                    <div>
+                    <div *ngIf="!isRaleoComercial() && selectedRaleo != null">
                         <label>Nombre del Bosque</label>
                         <select class="form-select form-select-sm" [(ngModel)]="nuevoCorte.bosque_id"
                             (ngModelChange)="onBosqueChange($event)" name="bosque_id" required
@@ -371,7 +366,7 @@
                             </option>
                         </select>
                     </div>
-                    <div style="margin-bottom: 15px;">
+                    <div *ngIf="!isRaleoComercial() && selectedRaleo != null" style="margin-bottom: 15px;">
                         <label>Siembra Rebrote</label>
                         <select class="form-select form-select-sm" [(ngModel)]="nuevoCorte.siembra_rebrote_id"
                             name="siembra_rebrote_id" required class="form-select form-select-sm">
@@ -473,7 +468,7 @@
                 <div class="modal-body">
                     <form>
                         <div class="d-flex flex-wrap gap-2" style="margin-top: 15px; margin-bottom: 15px;">
-                            <div>
+                            <div *ngIf="corteEditando!.bosque_id >= 1">
                                 <label>Nombre del Bosque</label>
                                 <select class="form-select form-select-sm" [(ngModel)]="corteEditando!.bosque_id"
                                     name="bosque_id" required class="form-select form-select-sm">
@@ -505,7 +500,7 @@
                                     </option>
                                 </select>
                             </div> -->
-                            <div style="margin-bottom: 15px;">
+                            <div *ngIf="corteEditando!.bosque_id >= 1" style="margin-bottom: 15px;">
                                 <label>Siembra Rebrote</label>
                                 <select class="form-select form-select-sm"
                                     [(ngModel)]="corteEditando!.siembra_rebrote_id" name="siembra_rebrote_id" required
@@ -607,13 +602,15 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
+
+
                 <!-- Bloque info cabecera -->
                 <div *ngIf="selectedCorte" class="mb-3">
                     <div class="row g-2">
-                        <div class="col-sm-3">
+                        <!-- <div class="col-sm-3">
                             <small class="text-muted">Bosque</small>
                             <div><strong>{{ getBosqueId(selectedCorte.bosque_id) }}</strong></div>
-                        </div>
+                        </div> -->
                         <div class="col-sm-3">
                             <small class="text-muted">Contrato</small>
                             <div>
@@ -629,11 +626,11 @@
                             <small class="text-muted">Raleo</small>
                             <div><strong>{{ getRaleoId(selectedCorte.raleo_tipo_id) }}</strong></div>
                         </div>
-                        <div class="col-sm-2">
+                        <!-- <div class="col-sm-2">
                             <small class="text-muted">Siembra / Rebrote</small>
                             <div><strong>{{ getSiemRebTipo(getSiemRebId(selectedCorte.siembra_rebrote_id)) }} - {{
                                     getSiemRebAnio(selectedCorte.siembra_rebrote_id) }}</strong></div>
-                        </div>
+                        </div> -->
                         <!-- <div class="col-sm-2">
                             <small class="text-muted">Sello</small>
                             <div><strong>{{ getSelloTipoId(selectedCorte.sello_id) }}</strong></div>
@@ -670,6 +667,25 @@
                         <div class="col-sm-3 mt-2">
                             <small class="text-muted">Placa / Contenedor</small>
                             <div><strong>{{ selectedCorte.placa_carro }} / {{ selectedCorte.contenedor }}</strong></div>
+                        </div>
+                        <div class="col-sm-3 mt-2">
+                        <!-- Mostrar bosques/siembras únicos -->
+                        <div *ngIf="distinctBS && distinctBS.length" class="mb-3">
+                            <small class="text-muted">Bosque / SiembraRebrote</small>
+                            <div>
+                                <ng-container *ngFor="let p of distinctBS">
+                                    <div class="badge bg-light text-dark border">
+                                        <strong>{{ getBosqueId(p.bosque_id) }}</strong>
+                                        <span class="mx-1">-</span>
+                                        <span>
+                                            {{ getSiemRebTipo(getSiemRebId(p.siembra_rebrote_id)) }}
+                                            {{ getSiemRebAnio(p.siembra_rebrote_id) ? (' - ' +
+                                            getSiemRebAnio(p.siembra_rebrote_id)) : '' }}
+                                        </span>
+                                    </div>
+                                </ng-container>
+                            </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -774,10 +790,10 @@
                 </div>
                 <div *ngIf="selectedCorte" class="mb-3">
                     <div class="row g-2">
-                        <div class="col-sm-3">
+                        <!-- <div class="col-sm-3">
                             <small class="text-muted">Bosque</small>
                             <div><strong>{{ getBosqueId(selectedCorte.bosque_id) }}</strong></div>
-                        </div>
+                        </div> -->
                         <div class="col-sm-3">
                             <small class="text-muted">Contrato</small>
                             <div>
@@ -793,14 +809,10 @@
                             <small class="text-muted">Raleo</small>
                             <div><strong>{{ getRaleoId(selectedCorte.raleo_tipo_id) }}</strong></div>
                         </div>
-                        <div class="col-sm-2">
+                        <!-- <div class="col-sm-2">
                             <small class="text-muted">Siembra / Rebrote</small>
                             <div><strong>{{ getSiemRebTipo(getSiemRebId(selectedCorte.siembra_rebrote_id)) }} - {{
                                     getSiemRebAnio(selectedCorte.siembra_rebrote_id) }}</strong></div>
-                        </div>
-                        <!-- <div class="col-sm-2">
-                            <small class="text-muted">Sello</small>
-                            <div><strong>{{ getSelloTipoId(selectedCorte.sello_id) }}</strong></div>
                         </div> -->
                         <div class="col-sm-3 mt-2">
                             <small class="text-muted">Sello Empresa</small>
@@ -839,6 +851,29 @@
                             <small class="text-muted">Placa / Contenedor</small>
                             <div><strong>{{ selectedCorte.placa_carro }} / {{ selectedCorte.contenedor }}</strong></div>
                         </div>
+                    </div>
+                </div>
+                <div class="d-flex flex-wrap gap-2" style="margin-top: 15px; margin-bottom: 15px;">
+                    <div style="margin-bottom: 15px; width: 200px;">
+                        <label>Nombre del Bosque</label>
+                        <select class="form-select form-select-sm" [(ngModel)]="nuevoDetCorte[0].bosque_id"
+                            (ngModelChange)="onBosqueChange($event)" name="bosque_id" required
+                            class="form-select form-select-sm">
+                            <option [ngValue]="null">-- Seleccione --</option>
+                            <option *ngFor="let b of bosques" [ngValue]="b.id">
+                                {{ b.nombre }}
+                            </option>
+                        </select>
+                    </div>
+                    <div style="margin-bottom: 15px; width: 200px;">
+                        <label>Siembra Rebrote</label>
+                        <select class="form-select form-select-sm" [(ngModel)]="nuevoDetCorte[0].siembra_rebrote_id"
+                            name="siembra_rebrote_id" required class="form-select form-select-sm">
+                            <option [ngValue]="null">-- Seleccione --</option>
+                            <option *ngFor="let s of siemRebFiltered" [ngValue]="s.id">
+                                {{ getSiemRebTipo(s.tipo_id)}} - {{s.anio}}
+                            </option>
+                        </select>
                     </div>
                 </div>
                 <!-- Tu tabla de detalle -->

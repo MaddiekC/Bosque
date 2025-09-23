@@ -70,6 +70,9 @@ export class ApiService {
   getDetalleCorte(cabecera_corte_id: number): Observable<any> {
     return this.http.get(`${this.baseUrl}/detalle-cortes/${cabecera_corte_id}`);
   }
+  getDistinctBSbyCab(cabecera_corte_id: number): Observable<any> {
+    return this.http.get(`${this.baseUrl}/detalle-cortes/distinct/${cabecera_corte_id}`);
+  }
   getValorTrozaAll2(): Observable<Record<number, number>> {
     return this.http.get<Record<number, number>>(`${this.baseUrl}/detalle-cortes/valor-troza-all`);
   }

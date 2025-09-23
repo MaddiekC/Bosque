@@ -170,7 +170,8 @@
 
                         <!-- Columna Corte -->
                         <td class="text-center">
-                            <a class="btnSiembra-Rebrote" [routerLink]="['/corte', siembraRebrote.id, siembraRebrote.bosque_id]">
+                            <a class="btnSiembra-Rebrote"
+                                [routerLink]="['/corte', siembraRebrote.id, siembraRebrote.bosque_id]">
                                 <img src="/assets/images/corteWhite.png" width="24" height="24">
                             </a>
                         </td>
@@ -199,14 +200,15 @@
                 </tfoot>
             </table>
             <div class="d-flex align-items-center ">
-                <div style="margin-bottom: 14px;"> 
+                <div style="margin-bottom: 14px;">
                     <button data-bs-toggle="modal" data-bs-target="#miModal" ata-bs-toggle="tooltip"
                         style="border:none; background:none; " title="Agregar registro"> <img
                             src="/assets/images/nuevo.png" width="30" height="31" ata-bs-toggle="tooltip"
                             title="Agregar registro"></button>
                 </div>
                 <div>
-                    <button class="btn btn-success mb-3" style="background: none; color: green; border: none;" (click)="exportToPDF()" title="Descargar registro">
+                    <button class="btn btn-success mb-3" style="background: none; color: green; border: none;"
+                        (click)="exportToPDF()" title="Descargar registro">
                         <i class="bi bi-file-earmark-pdf-fill fs-4"></i>
                     </button>
                 </div>
@@ -240,6 +242,13 @@
             <div class="modal-header">
                 <h4 class="modal-title" id="miModalLabel">Registro de Siembra-Rebrote</h4>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <div *ngIf="saveError" class="alert alert-danger d-flex align-items-start" role="alert"
+                aria-live="assertive">
+                <i class="bi bi-exclamation-triangle-fill me-2 fs-5" aria-hidden="true"></i>
+                <div>
+                    <strong>¡Error!</strong> {{ saveError }}
+                </div>
             </div>
             <form #fForm="ngForm" class="modal-body">
                 Nombre del Bosque
@@ -328,6 +337,13 @@
                     <h5 class="modal-title">Editar Siembra-Rebrote</h5>
                 </div>
                 <div class="modal-body">
+                    <div *ngIf="saveEditError" class="alert alert-danger d-flex align-items-start" role="alert"
+                        aria-live="assertive">
+                        <i class="bi bi-exclamation-triangle-fill me-2 fs-5" aria-hidden="true"></i>
+                        <div>
+                            <strong>¡Error!</strong> {{ saveEditError }}
+                        </div>
+                    </div>
                     <form>
                         <div class="row">
                             <div class="col-md-6">
