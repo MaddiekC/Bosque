@@ -9,6 +9,7 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { AuthserviceService } from '../../auth/authservice.service';
 import Swal from 'sweetalert2';
+import { HasPermissionDirective } from '../../services/has-permission.directive';
 
 declare const bootstrap: any;
 interface Bosque {
@@ -21,7 +22,7 @@ interface Bosque {
 @Component({
   selector: 'app-bosque',
   standalone: true,
-  imports: [CommonModule, RouterModule, NgxPaginationModule, FormsModule],
+  imports: [CommonModule, RouterModule, NgxPaginationModule, FormsModule, HasPermissionDirective],
   templateUrl: './bosque.component.html',
   styleUrl: './bosque.component.css'
 })
@@ -272,7 +273,7 @@ export class BosqueComponent implements AfterViewInit {
     const usableWidth = pageWidth - marginLeft - marginRight;
 
     const headerY = 60;
-    const margin = 40;
+    //const margin = 40;
     const username = this.username ?? 'Invitado';
     const generatedAt = new Date().toLocaleString('es-ES');
 
@@ -287,6 +288,18 @@ export class BosqueComponent implements AfterViewInit {
       { header: 'Sección', dataKey: 'seccion_id' },
       { header: 'Hectáreas', dataKey: 'hectarea' }
     ];
+
+    // --- Cálculo total de hectáreas ---
+    const totalHectareas = rows.reduce((sum, r) => {
+      const raw = r.hectarea ?? 0;
+      const num = Number(String(raw).replace(',', '.')) || 0;
+      return sum + num;
+    }, 0);
+
+    const totalHectareasFormatted = new Intl.NumberFormat('es-ES', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    }).format(totalHectareas);
 
     // Carga la imagen antes de dibujar el header/tablas
     let logoDataUrl: string | null = null;
@@ -318,8 +331,8 @@ export class BosqueComponent implements AfterViewInit {
       // Info a la derecha (fecha + usuario)
       doc.setFontSize(8);
       doc.setFont('normal');
-      const gen = `Generado: ${generatedAt}`;
-      const usr = `Usuario: ${username}`;
+      const gen = ` ${generatedAt}`;
+      const usr = `${username}`;
       doc.text(gen, pageWidth - marginRight - doc.getTextWidth(gen), 14);
       doc.text(usr, pageWidth - marginRight - doc.getTextWidth(usr), 28);
 
@@ -331,6 +344,13 @@ export class BosqueComponent implements AfterViewInit {
 
     // Construye body como array de arrays (autoTable fácil)
     const body = rows.map(r => columns.map((c) => (r as any)[c.dataKey]));
+
+    const foot: any = [
+      [
+        { content: 'Total hectáreas:', colSpan: 2, styles: { halign: 'left', fontStyle: 'bold' } },
+        { content: totalHectareasFormatted, styles: { halign: 'right', fontStyle: 'bold' } }
+      ]
+    ];
 
     autoTable(doc, {
       startY: headerY + 22,
@@ -356,14 +376,73 @@ export class BosqueComponent implements AfterViewInit {
         // número de página actual que te da autoTable
         const page = data.pageNumber;
         const pageText = `Página ${page}`;
-        const footerText = `Usuario: ${username} · Generado: ${generatedAt}`;
+        const footerText = ``;
 
-        // footer a la derecha y texto a la izquierda
+        // footer alineado con los márgenes usados por la tabla
         doc.setFontSize(9);
-        doc.text(pageText, pageWidth - margin - doc.getTextWidth(pageText), pageHeight - 20);
-        doc.text(footerText, margin, pageHeight - 20);
+        // calcular X derecho usando marginRight
+        const xRight = pageWidth - marginRight - doc.getTextWidth(pageText);
+        doc.text(pageText, xRight, pageHeight - 20);
+        // texto a la izquierda usando marginLeft
+        doc.text(footerText, marginLeft, pageHeight - 20);
 
-        // (si quieres header por página, también lo dibujas aquí)
+        // dibujar header (usa drawHeader con el objeto data para consistencia)
+        drawHeader(data);
+      },
+      showHead: 'everyPage'
+    });
+
+
+    // --- AÑADIMOS la fila de totales SOLO en la última página ---
+    const lastTable = (doc as any).lastAutoTable;
+    const lastY = lastTable ? lastTable.finalY : (pageHeight - 60);
+    const lastPage = (doc as any).internal.getNumberOfPages ? (doc as any).internal.getNumberOfPages() : 1;
+
+    // ir a la última página
+    doc.setPage(lastPage);
+
+    // decidir startY para el total; si no cabe en la página actual, añadimos página
+    let footStartY = lastY + 10;
+    const neededHeight = 20 + 10; // aproximado alto de la fila de totales
+    if (footStartY + neededHeight > pageHeight - 30) {
+      doc.addPage();
+      // marcar header de la nueva página y dibujarlo
+      const newPageNum = (doc as any).internal.getNumberOfPages();
+      // dibuja header en la nueva página
+      drawHeader({ pageNumber: newPageNum, settings: { margin: { left: marginLeft, right: marginRight } } });
+      footStartY = headerY + 22; // colocar debajo del header en la nueva página
+      doc.setPage(newPageNum);
+    }
+
+    // Asegurar que la tabla de totales usa exactamente los mismos márgenes que la tabla principal
+    autoTable(doc, {
+      startY: footStartY,
+      body: foot,
+      theme: 'grid',
+      margin: { left: marginLeft, right: marginRight },
+      styles: {
+        fontSize: 10,
+        cellPadding: 3,
+        overflow: 'linebreak', // wrapping
+        halign: 'right',
+        valign: 'middle',
+      },
+      headStyles: { fillColor: [34, 139, 34], textColor: 255, halign: 'center' },
+      tableWidth: usableWidth,
+
+      columnStyles: {
+        0: { halign: 'left' },
+        1: { halign: 'center' },
+        2: { halign: 'right' },
+      },
+      didDrawPage: (data) => {
+        const pageText = ` `;
+        const footerText = ``;
+        doc.setFontSize(9);
+        const xRight = pageWidth - marginRight - doc.getTextWidth(pageText);
+        doc.text(pageText, xRight, pageHeight - 20);
+        doc.text(footerText, marginLeft, pageHeight - 20);
+
         drawHeader(data);
       },
       showHead: 'everyPage'

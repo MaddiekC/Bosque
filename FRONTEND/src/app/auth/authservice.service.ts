@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
-import { BehaviorSubject, Observable, tap } from 'rxjs';
+import { BehaviorSubject, map, Observable, tap, throwError } from 'rxjs';
 import { environment } from '../../environment/environment';
 import { jwtDecode } from 'jwt-decode';
 import { UserService } from './user.service';
@@ -135,31 +135,21 @@ export class AuthserviceService {
     }
     return null;
   }
-// refreshToken(): Observable<string | null> {
-//     // llama al endpoint de refresh. Ajusta la ruta si tu backend usa otra.
-//     return this.http.post<any>(`${this.baseUrl}/auth/refresh`, {}, { observe: 'response' })
-//       .pipe(
-//         map(resp => {
-//           // 1) Preferimos header Authorization si existe
-//           const authHeader = resp.headers.get('Authorization') || resp.headers.get('authorization');
-//           if (authHeader && authHeader.startsWith('Bearer ')) {
-//             const newToken = authHeader.substring(7);
-//             this.setToken(newToken);
-//             return newToken;
-//           }
-//           // 2) Si el body trae token (access_token o token)
-//           const body = resp.body || {};
-//           const newToken = body.access_token || body.token || null;
-//           if (newToken) {
-//             this.setToken(newToken);
-//             return newToken;
-//           }
-//           // 3) si no vino token, retornar null
-//           return null;
-//         }),
-//         // Si hay error, devolver null en vez de propagar (el interceptor decidirá qué hacer)
-//         // Si quieres propagar el error, elimina catchError y deja que el interceptor lo capture.
-//         // Aquí devolvemos null para que el interceptor trate el caso.
-//         // catchError(() => of(null))  <-- importarlo si lo activas
-//       );}
+  
+  refreshToken(): Observable<string> {
+    const token = this.getToken();
+    if (!token) return throwError(() => new Error('No token'));
+
+    const headers = { Authorization: `Bearer ${token}` };
+    return this.http.post<{ access_token: string, expires_in: number }>(
+      `${this.baseUrl}/auth/refresh`, {}, { headers }
+    ).pipe(
+      tap(res => {
+        localStorage.setItem(this.tokenKey, res.access_token);
+        this.loggedIn.next(true);
+      }),
+      map(res => res.access_token)
+    );
+  }
+
 }

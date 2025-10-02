@@ -9,6 +9,7 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { AuthserviceService } from '../../auth/authservice.service';
 import Swal from 'sweetalert2';
+import { HasPermissionDirective } from '../../services/has-permission.directive';
 
 declare const bootstrap: any;
 
@@ -29,7 +30,7 @@ interface SiembraRebrote {
 @Component({
   selector: 'app-siembra-rebrote',
   standalone: true,
-  imports: [CommonModule, RouterModule, NgxPaginationModule, FormsModule],
+  imports: [CommonModule, RouterModule, NgxPaginationModule, FormsModule, HasPermissionDirective],
   templateUrl: './siembra-rebrote.component.html',
   styleUrl: './siembra-rebrote.component.css'
 })
@@ -383,6 +384,7 @@ export class SiembraRebroteComponent implements AfterViewInit {
         img.src = `/assets/images/bosque.png`;
       });
     };
+
     const doc = new jsPDF({ unit: 'pt', format: 'a4', orientation: 'portrait' });
     const pageSize = doc.internal.pageSize as any;
     const pageWidth = pageSize.getWidth();
@@ -394,7 +396,6 @@ export class SiembraRebroteComponent implements AfterViewInit {
     const usableWidth = pageWidth - marginLeft - marginRight;
 
     const headerY = 60;
-    const margin = 40;
     const username = this.username ?? 'Invitado';
     const generatedAt = new Date().toLocaleString('es-ES');
 
@@ -402,13 +403,14 @@ export class SiembraRebroteComponent implements AfterViewInit {
       bosque_id: this.getBosqueNombre(item.bosque_id),
       tipo_id: this.getTipoNombre(item.tipo_id),
       tipo_arbol_id: this.getTipoArbolNombre(item.tipo_arbol_id),
-      fecha: new Date(item.fecha).toLocaleDateString(),
+      fecha: item.fecha ? new Date(item.fecha).toLocaleDateString() : '',
       anio: item.anio,
       hectarea_usada: item.hectarea_usada,
-      arb_iniciales: item.arb_iniciales,
-      arb_cortados: item.arb_cortados,
+      arb_iniciales: item.arb_iniciales ?? 0,
+      arb_raleados: item.arb_raleados ?? 0,
+      arb_cortados: item.arb_cortados ?? 0,
       dist_siembra: item.dist_siembra,
-      saldo: item.saldo
+      saldo: item.saldo ?? 0
     }));
 
     const columns = [
@@ -419,10 +421,31 @@ export class SiembraRebroteComponent implements AfterViewInit {
       { header: 'Año', dataKey: 'anio' },
       { header: 'Hectárea Usada', dataKey: 'hectarea_usada' },
       { header: 'Árboles Iniciales', dataKey: 'arb_iniciales' },
+      { header: 'Árboles Raleados', dataKey: 'arb_raleados' },
       { header: 'Árboles Cortados', dataKey: 'arb_cortados' },
       { header: 'Distancia Siembra', dataKey: 'dist_siembra' },
       { header: 'Saldo', dataKey: 'saldo' }
     ];
+
+    // --- Cálculo total de hectáreas y árboles ---
+    const sumInteger = (v: any) => {
+      if (v === null || v === undefined) return 0;
+      const s = String(v).replace(/\s/g, '').replace(',', '.');
+      return Math.round(Number(s) || 0);
+    };
+
+    const totalHectareas = rows.reduce((s, r) => s + (Number(String(r.hectarea_usada || 0).replace(',', '.')) || 0), 0);
+    const totalIniciales = rows.reduce((s, r) => s + sumInteger(r.arb_iniciales), 0);
+    const totalRaleados = rows.reduce((s, r) => s + sumInteger(r.arb_raleados), 0);
+    const totalCortados = rows.reduce((s, r) => s + sumInteger(r.arb_cortados), 0);
+
+    const fmtInteger = (n: number) => new Intl.NumberFormat('es-ES', { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(n);
+    const fmtDecimal = (n: number) => new Intl.NumberFormat('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n);
+
+    const totalHectareasFmt = fmtDecimal(totalHectareas);
+    const totalInicialesFmt = fmtInteger(totalIniciales);
+    const totalRaleadosFmt = fmtInteger(totalRaleados);
+    const totalCortadosFmt = fmtInteger(totalCortados);
 
     // Carga la imagen antes de dibujar el header/tablas
     let logoDataUrl: string | null = null;
@@ -432,34 +455,27 @@ export class SiembraRebroteComponent implements AfterViewInit {
       console.warn('No se pudo cargar logo para el PDF:', e);
       logoDataUrl = null;
     }
+
     const drawHeader = (data: any) => {
       if (logoDataUrl) {
-        // calcular tamaño deseado (p. ej. ancho 60pt)
         const desiredWidth = 60;
-        // reconstruir tamaño manteniendo proporción: extrae info del dataURL
         const img = new Image();
         img.src = logoDataUrl;
-        // Usamos proporción aproximada - si quieres seguridad, podrías calcular con img.naturalWidth/naturalHeight después de load
         const ratio = (img.naturalHeight && img.naturalWidth) ? (img.naturalHeight / img.naturalWidth) : 0.5;
         const desiredHeight = ratio ? desiredWidth * ratio : 30;
-        // coloca logo a la izquierda, un poco arriba
         doc.addImage(logoDataUrl, 'PNG', marginLeft, 8, desiredWidth, desiredHeight);
-        // desplaza texto del título a la derecha si hace falta
       }
-      // Título
       doc.setFontSize(12);
-      doc.setFont('bold');
+      doc.setFont('helvetica', 'bold');
       doc.text('Reporte de Siembras/Rebrotes', marginLeft, 50);
 
-      // Info a la derecha (fecha + usuario)
       doc.setFontSize(8);
-      doc.setFont('normal');
-      const gen = `Generado: ${generatedAt}`;
-      const usr = `Usuario: ${username}`;
+      doc.setFont('helvetica', 'normal');
+      const gen = ` ${generatedAt}`;
+      const usr = ` ${username}`;
       doc.text(gen, pageWidth - marginRight - doc.getTextWidth(gen), 14);
       doc.text(usr, pageWidth - marginRight - doc.getTextWidth(usr), 28);
 
-      // Línea divisoria
       doc.setDrawColor(200);
       doc.setLineWidth(0.5);
       doc.line(marginLeft, headerY, pageWidth - marginRight, headerY);
@@ -476,13 +492,12 @@ export class SiembraRebroteComponent implements AfterViewInit {
       styles: {
         fontSize: 10,
         cellPadding: 3,
-        overflow: 'linebreak', // wrapping
+        overflow: 'linebreak',
         halign: 'right',
         valign: 'middle',
       },
       headStyles: { fillColor: [34, 139, 34], textColor: 255, halign: 'center' },
       tableWidth: usableWidth,
-
       columnStyles: {
         0: { halign: 'left' },
         1: { halign: 'left' },
@@ -492,26 +507,82 @@ export class SiembraRebroteComponent implements AfterViewInit {
         5: { halign: 'right' },
         6: { halign: 'right' },
         7: { halign: 'right' },
-        8: { halign: 'center' },
-        9: { halign: 'right' },
+        8: { halign: 'right' },
+        9: { halign: 'center' },
+        10: { halign: 'right' }
       },
       didDrawPage: (data) => {
-        // número de página actual que te da autoTable
         const page = data.pageNumber;
         const pageText = `Página ${page}`;
-        const footerText = `Usuario: ${username} · Generado: ${generatedAt}`;
-
-        // footer a la derecha y texto a la izquierda
         doc.setFontSize(9);
-        doc.text(pageText, pageWidth - margin - doc.getTextWidth(pageText), pageHeight - 20);
-        doc.text(footerText, margin, pageHeight - 20);
-
-        // (si quieres header por página, también lo dibujas aquí)
+        const xRight = pageWidth - marginRight - doc.getTextWidth(pageText);
+        doc.text(pageText, xRight, pageHeight - 20);
+        doc.text('', marginLeft, pageHeight - 20);
         drawHeader(data);
       },
       showHead: 'everyPage'
     });
+
+    // --- DIBUJAR BLOQUE DE TOTALES COMO LÍNEAS DE TEXTO ---
+    // Obtener la posición final de la tabla
+    const lastTable = (doc as any).lastAutoTable;
+    const lastY = lastTable ? lastTable.finalY : (pageHeight - 60);
+    const lastPage = (doc as any).internal.getNumberOfPages ? (doc as any).internal.getNumberOfPages() : 1;
+
+    // Ir a la última página
+    doc.setPage(lastPage);
+
+    // Posición inicial para el bloque de totales
+    let y = lastY + 12;
+    const lineHeight = 14;
+
+    // Número de líneas a mostrar
+    const totalsLines = [
+      { label: '', value: '' },
+      { label: 'Total Hectáreas Usadas:', value: totalHectareasFmt },
+      { label: 'Total Árboles Iniciales:', value: totalInicialesFmt },
+      { label: 'Total Árboles Raleados:', value: totalRaleadosFmt },
+      { label: 'Total Árboles Cortados:', value: totalCortadosFmt }
+    ];
+
+    // Si no cabe en la página actual, crear una nueva
+    const neededHeight = totalsLines.length * lineHeight + 10;
+    if (y + neededHeight > pageHeight - 30) {
+      doc.addPage();
+      const newPage = (doc as any).internal.getNumberOfPages();
+      drawHeader({ pageNumber: newPage });
+      doc.setPage(newPage);
+      y = headerY + 22;
+    }
+
+    // Estilos: etiqueta a la izquierda (gris), valor a la derecha (negrita)
+    const xLeft = marginLeft;
+    const xRightBase = pageWidth - marginRight;
+
+    for (const item of totalsLines) {
+      // etiqueta en gris
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(10);
+      doc.setTextColor(100); // gris suave
+      doc.text(item.label, xLeft, y);
+
+      // valor en negrita y negro alineado a la derecha
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(0);
+      const valueText = String(item.value);
+      const xValue = xRightBase - doc.getTextWidth(valueText);
+      doc.text(valueText, xValue, y);
+
+      y += lineHeight;
+    }
+
+    // opcional: línea separadora después de los totales
+    doc.setDrawColor(200);
+    doc.setLineWidth(0.5);
+    doc.line(marginLeft, y + 4, pageWidth - marginRight, y + 4);
+
     const filename = `siembra-rebrote.pdf`;
     doc.save(filename);
   }
+
 }

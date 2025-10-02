@@ -4,47 +4,38 @@ export const MENU_CONFIG = [
     title: 'Inicio',
     icon: 'bi bi-house',
     route: '/',
-    //roles: [1],
-    //grupos: [1, 20],
   },
   {
     title: 'Inventario',
     icon: 'bi bi-box-seam',
-    //roles: [1],
     submenus: [
-      { title: 'Bosque', route: '/bosque', img: '/assets/images/bosque.png' },
-      { title: 'SiembraRebrote', route: '/siembra-rebrote', img: '/assets/images/siembraReb.png' },
-      // { title: 'Bosque', route: '/bosque', roles: [1], grupos: [1, 20], img: '/assets/images/bosque.png' },
-      // { title: 'SiembraRebrote', route: '/siembra-rebrote', roles: [1], grupos: [1, 20], img: '/assets/images/siembraReb.png' },
+      { title: 'Bosque', route: '/bosque', img: '/assets/images/bosque.png', permission: 3 },
+      { title: 'SiembraRebrote', route: '/siembra-rebrote', img: '/assets/images/siembraReb.png', permission: 4 },
     ],
   },
   {
     title: 'Contrato',
     icon: '	bi bi-file-earmark-text ',
     route: '/contrato',
-    //roles: [1]
+    permission: 5,
   },
   {
     title: 'Corte',
     img: '/assets/images/corteWhite.png',
     route: '/corte',
-    //roles: [1],
-    //grupos: [1, 20],
+    permission: 6,
   },
   {
     title: 'Reporte',
     icon: 'bi bi-bar-chart-line',
     route: '/reporte',
-    //roles: [1],
-    //grupos: [1, 20],
+    permission: 7,
   },
   {
     title: 'Gestión de Usuarios',
     icon: 'bi bi-people',
-    //roles: [1],
     submenus: [
-      { title: 'Ver usuarios', route: '/usuarios' },
-      // { title: 'Ver usuarios', route: '/usuarios', roles: [1], grupos: [1, 20] },
+      { title: 'Ver usuarios', route: '/usuarios', permission: 8 },
     ]
   }
 ];

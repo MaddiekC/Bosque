@@ -7,11 +7,6 @@ import { BehaviorSubject, Observable } from 'rxjs';
 export class PermissionService {
   private perms$ = new BehaviorSubject<number[]>([]);
 
-  /** Invocado tras la llamada al backend */
-  setPermissions(list: number[]) {
-    this.perms$.next(list);
-  } 
-
   has(code: number): boolean {
     return this.perms$.value.includes(code);
   }
@@ -20,5 +15,17 @@ export class PermissionService {
   get permissions$(): Observable<number[]> {
     return this.perms$.asObservable();
   }
-  constructor() { }
+  constructor() {
+    const saved = localStorage.getItem('perms');
+    if (saved) {
+      try {
+        this.perms$.next(JSON.parse(saved));
+        //console.log('Loaded perms from localStorage', this.perms$.value);
+      } catch { }
+    }
+  }
+  setPermissions(list: number[]) {
+    localStorage.setItem('perms', JSON.stringify(list));
+    this.perms$.next(list);
+  }
 }

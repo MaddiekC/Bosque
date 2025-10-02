@@ -5,11 +5,11 @@
         <table class="table table-striped table-hover table-sm w-100%" style="table-layout: fixed;">
             <colgroup>
                 <col style="width: 3%;">
-                <col style="width: 4%;"> <!-- Cerrar -->
+                <col style="width: 5%;"> <!-- Cerrar -->
                 <col style="width: 13%;"> <!-- Cliente -->
-                <col style="width: 4%;"> <!-- Año -->
+                <col style="width: 5%;"> <!-- Año -->
                 <!-- <col style="width: 8%;">  -->
-                <col style="width: 8%;">
+                <col style="width: 11%;">
                 <col style="width: 4%;">
                 <col style="width: 4%;">
                 <col>
@@ -120,8 +120,8 @@
                         <th class="sello-header" colspan="3">Sello Empresa</th>
                         <th rowspan="2">Árboles</th>
                         <th rowspan="2">Valor Troza</th>
-                        <th rowspan="2">Detalles</th>
-                        <th rowspan="2">...</th>
+                        <th *hasPermission="47" rowspan="2">Detalles</th>
+                        <th *hasPermission="38" rowspan="2">...</th>
                     </tr>
                     <!-- Fila 2: los 3 tipos de sello -->
                     <tr>
@@ -213,27 +213,32 @@
                             {{ (corteValorTroza[corte.id] || 0) | currency }}
                         </td>
                         <!-- Columna Detalles -->
-                        <td class="text-center">
+                        <td *hasPermission="47" class="text-center">
                             <a *ngIf="corte.estado === 'A'  && corte.contrato_id !== null " class="btnSiembra-Rebrote"
                                 title="Agregar detalles" (click)="openDetailModal2(corte.id)">
-                                <img src="/assets/images/agregarArchivo.png" width="24" height="24">
+                                <img *hasPermission="35" src="/assets/images/agregarArchivo.png" width="24" height="24">
                             </a>
                             <a *ngIf="corte.detalle_cortes_count > 0" class="btnSiembra-Rebrote" title="Ver detalles"
                                 (click)="openDetailModal(corte.id)">
-                                <img src="/assets/images/archivoDetalles.png" width="24" height="24">
+                                <img *hasPermission="37" src="/assets/images/archivoDetalles.png" width="24"
+                                    height="24">
                             </a>
                         </td>
                         <!-- Acciones -->
-                        <td class="d-flex justify-content-center align-items-center" *ngIf="corte.estado === 'A'">
-                            <button class="btn btnAngosto" data-bs-toggle="tooltip" title="Editar registro"
-                                style="background-color:#e7bd35 ;" (click)="startEdit(corte.id)">
-                                <i class="bi bi-pencil"></i>
-                            </button>
-                            <button class="btn btnAngosto " ata-bs-toggle="tooltip" title="Eliminar registro"
-                                style="background-color:#e7354d ;" (click)="openConfirmModal(corte.id)">
-                                <i class="bi bi-trash"></i>
-                            </button>
-                        </td>
+                        <div *hasPermission="38">
+                            <td class="d-flex justify-content-center align-items-center" *ngIf="corte.estado === 'A'">
+                                <button *hasPermission="39" class="btn btnAngosto" data-bs-toggle="tooltip"
+                                    title="Editar registro" style="background-color:#e7bd35 ;"
+                                    (click)="startEdit(corte.id)">
+                                    <i class="bi bi-pencil"></i>
+                                </button>
+                                <button *hasPermission="40" class="btn btnAngosto " ata-bs-toggle="tooltip"
+                                    title="Eliminar registro" style="background-color:#e7354d ;"
+                                    (click)="openConfirmModal(corte.id)">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </td>
+                        </div>
                     </tr>
                 </tbody>
                 <tfoot>
@@ -251,7 +256,7 @@
     </div>
     <div class="d-flex align-items-center ">
         <div style="margin-bottom: 14px;" class="dropdown">
-            <button data-bs-toggle="modal" data-bs-target="#miModal" title="Agregar registro"
+            <button *hasPermission="36" data-bs-toggle="modal" data-bs-target="#miModal" title="Agregar registro"
                 style="border:none; background:none;">
                 <img src="/assets/images/nuevo.png" width="30" height="31" alt="Agregar" title="Agregar registro">
             </button>
@@ -267,8 +272,9 @@
             </ul> -->
         </div>
         <div>
-            <button class="btn btn-success mb-3" style="background: none; color: green; border: none;"
-                (click)="exportToPDF()" title="Descargar registro">
+            <button *hasPermission="42" class="btn btn-success mb-3"
+                style="background: none; color: green; border: none;" (click)="exportToPDF()"
+                title="Descargar registro">
                 <i class="bi bi-file-earmark-pdf-fill fs-4"></i>
             </button>
         </div>
@@ -602,8 +608,6 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
-
-
                 <!-- Bloque info cabecera -->
                 <div *ngIf="selectedCorte" class="mb-3">
                     <div class="row g-2">
@@ -669,22 +673,22 @@
                             <div><strong>{{ selectedCorte.placa_carro }} / {{ selectedCorte.contenedor }}</strong></div>
                         </div>
                         <div class="col-sm-3 mt-2">
-                        <!-- Mostrar bosques/siembras únicos -->
-                        <div *ngIf="distinctBS && distinctBS.length" class="mb-3">
-                            <small class="text-muted">Bosque / SiembraRebrote</small>
-                            <div>
-                                <ng-container *ngFor="let p of distinctBS">
-                                    <div class="badge bg-light text-dark border">
-                                        <strong>{{ getBosqueId(p.bosque_id) }}</strong>
-                                        <span class="mx-1">-</span>
-                                        <span>
-                                            {{ getSiemRebTipo(getSiemRebId(p.siembra_rebrote_id)) }}
-                                            {{ getSiemRebAnio(p.siembra_rebrote_id) ? (' - ' +
-                                            getSiemRebAnio(p.siembra_rebrote_id)) : '' }}
-                                        </span>
-                                    </div>
-                                </ng-container>
-                            </div>
+                            <!-- Mostrar bosques/siembras únicos -->
+                            <div *ngIf="distinctBS && distinctBS.length" class="mb-3">
+                                <small class="text-muted">Bosque / SiembraRebrote</small>
+                                <div>
+                                    <ng-container *ngFor="let p of distinctBS">
+                                        <div class="badge bg-light text-dark border">
+                                            <strong>{{ getBosqueId(p.bosque_id) }}</strong>
+                                            <span class="mx-1">-</span>
+                                            <span>
+                                                {{ getSiemRebTipo(getSiemRebId(p.siembra_rebrote_id)) }}
+                                                {{ getSiemRebAnio(p.siembra_rebrote_id) ? (' - ' +
+                                                getSiemRebAnio(p.siembra_rebrote_id)) : '' }}
+                                            </span>
+                                        </div>
+                                    </ng-container>
+                                </div>
                             </div>
                         </div>
                     </div>

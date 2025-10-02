@@ -6,7 +6,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
-//use Tymon\JWTAuth\Exceptions\JWTException;
+use Tymon\JWTAuth\Exceptions\JWTException;
 use Tymon\JWTAuth\Facades\JWTAuth;
 use Illuminate\Http\JsonResponse;
 
@@ -84,32 +84,27 @@ class AuthController extends Controller
         return response()->json($perms);
     }
 
-    //  public function refresh(Request $request)
-    // {
-    //     try {
-    //         // intenta tomar el token de la petición (header Authorization: Bearer ...)
-    //         $token = JWTAuth::getToken();
-    //         if (! $token) {
-    //             return response()->json(['message' => 'Token not provided'], 401);
-    //         }
+    public function refresh(Request $request)
+    {
+        // toma el token del header Authorization
+        $token = JWTAuth::getToken();
 
-    //         // refresh devuelve un nuevo token (siempre que el refresh TTL lo permita)
-    //         $newToken = JWTAuth::refresh($token);
+        if (! $token) {
+            return response()->json(['error' => 'Token no proporcionado'], 400);
+        }
 
-    //         // devolver en body y en header Authorization para que el cliente pueda leerlo fácilmente
-    //         return response()->json([
-    //             'access_token' => $newToken,
-    //             'token_type' => 'bearer'
-    //         ], 200)->header('Authorization', 'Bearer ' . $newToken);
+        try {
+            // refresca el token (devuelve uno nuevo)
+            $newToken = JWTAuth::refresh($token);
+            $ttl = JWTAuth::factory()->getTTL(); // minutos
 
-    //     } catch (TokenExpiredException $e) {
-    //         // el token está demasiado viejo para refrescarlo
-    //         return response()->json(['message' => 'Token expired and cannot be refreshed'], 401);
-    //     } catch (JWTException $e) {
-    //         // cualquier otro error relacionado con JWT (ej. token inválido)
-    //         return response()->json(['message' => 'Could not refresh token'], 401);
-    //     } catch (\Exception $e) {
-    //         return response()->json(['message' => 'Unexpected error refreshing token'], 500);
-    //     }
-    // }
+            return response()->json([
+                'access_token' => $newToken,
+                'expires_in' => $ttl * 60
+            ]);
+        } catch (JWTException $e) {
+            // puede fallar si se pasó el refresh_ttl o token inválido
+            return response()->json(['error' => 'No se pudo refrescar el token'], 401);
+        }
+    }
 }

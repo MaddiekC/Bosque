@@ -51,10 +51,10 @@
                         <th style="padding-bottom:12px ;">Nombre</th>
                         <th style="padding-bottom:12px ;">Has</th>
                         <th style="padding-bottom:12px ;">Sección</th>
-                        <th style="white-space: normal;">
+                        <th *hasPermission="17" style="white-space: normal;">
                             Siembra<br>Rebrote
                         </th>
-                        <th>...</th>
+                        <th *hasPermission="12">...</th>
                     </tr>
                 </thead>
 
@@ -76,18 +76,18 @@
                         <td class="text-center">
                             {{getSeccionNombre(bosque.seccion_id) }}
                         </td>
-                        <td class="text-center">
-                            <a class="btnSiembra-Rebrote" [routerLink]="['/siembra-rebrote', bosque.id]">
+                        <td *hasPermission="17" class="text-center">
+                            <a  class="btnSiembra-Rebrote" [routerLink]="['/siembra-rebrote', bosque.id]">
                                 <img src="/assets/images/siembraReb.png" width="20" height="20">
                             </a>
                         </td>
                         <!-- Acciones -->
-                        <td class="d-flex justify-content-center align-items-center">
-                            <button class="btn btnAngosto " ata-bs-toggle="tooltip" title="Editar registro"
+                        <td *hasPermission="12" class="d-flex justify-content-center align-items-center">
+                            <button *hasPermission="13" class="btn btnAngosto " ata-bs-toggle="tooltip" title="Editar registro"
                                 style="background-color:#e7bd35 ;" (click)="startEdit(bosque.id)">
                                 <i class="bi bi-pencil"></i>
                             </button>
-                            <button class="btn btnAngosto " ata-bs-toggle="tooltip" title="Eliminar registro"
+                            <button *hasPermission="14" class="btn btnAngosto " ata-bs-toggle="tooltip" title="Eliminar registro"
                                 style="background-color:#e7354d ;" (click)="openConfirmModal(bosque.id)">
                                 <i class="bi bi-trash"></i>
                             </button>
@@ -107,13 +107,13 @@
             </table>
             <div class="d-flex align-items-center ">
                 <div style="margin-bottom: 14px;"> 
-                    <button data-bs-toggle="modal" data-bs-target="#miModal" ata-bs-toggle="tooltip"
+                    <button *hasPermission="15" data-bs-toggle="modal" data-bs-target="#miModal" ata-bs-toggle="tooltip"
                         style="border:none; background:none; " title="Agregar registro"> <img
                             src="/assets/images/nuevo.png" width="30" height="31" ata-bs-toggle="tooltip"
                             title="Agregar registro"></button>
                 </div>
                 <div>
-                    <button class="btn btn-success mb-3" style="background: none; color: green; border: none;" (click)="exportToPDF()" title="Descargar registro">
+                    <button *hasPermission="16" class="btn btn-success mb-3" style="background: none; color: green; border: none;" (click)="exportToPDF()" title="Descargar registro">
                         <i class="bi bi-file-earmark-pdf-fill fs-4"></i>
                     </button>
                 </div>

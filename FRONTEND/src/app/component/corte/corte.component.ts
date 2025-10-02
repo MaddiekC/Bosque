@@ -8,6 +8,7 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { forkJoin } from 'rxjs';
 import { AuthserviceService } from '../../auth/authservice.service';
+import { HasPermissionDirective } from '../../services/has-permission.directive';
 
 declare const bootstrap: any;
 
@@ -47,7 +48,7 @@ interface detCorte {
 @Component({
   selector: 'app-corte',
   standalone: true,
-  imports: [CommonModule, RouterModule, NgxPaginationModule, FormsModule],
+  imports: [CommonModule, RouterModule, NgxPaginationModule, FormsModule, HasPermissionDirective],
   templateUrl: './corte.component.html',
   styleUrl: './corte.component.css'
 })
@@ -957,8 +958,8 @@ export class CorteComponent {
       // Info a la derecha (fecha + usuario)
       doc.setFontSize(8);
       doc.setFont('normal');
-      const gen = `Generado: ${generatedAt}`;
-      const usr = `Usuario: ${username}`;
+      const gen = ` ${generatedAt}`;
+      const usr = ` ${username}`;
       doc.text(gen, pageWidth - marginRight - doc.getTextWidth(gen), 14);
       doc.text(usr, pageWidth - marginRight - doc.getTextWidth(usr), 28);
 
@@ -1002,7 +1003,7 @@ export class CorteComponent {
         // número de página actual que te da autoTable
         const page = data.pageNumber;
         const pageText = `Página ${page}`;
-        const footerText = `Usuario: ${username} · Generado: ${generatedAt}`;
+        const footerText = ` `;
 
         // footer a la derecha y texto a la izquierda
         doc.setFontSize(9);
@@ -1033,11 +1034,18 @@ export class CorteComponent {
     const fmtCurrency = (v: any) => {
       const n = Number(v) || 0;
       try {
-        return new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'USD', minimumFractionDigits: 2 }).format(n);
+        const abs = Math.abs(n);
+        const formatted = new Intl.NumberFormat('es-ES', {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2
+        }).format(abs);
+        // signo negativo antes del $ si aplica
+        return (n < 0 ? '-$' : '$') + formatted;
       } catch {
-        return n.toFixed(2);
+        return (n < 0 ? '-$' : '$') + Math.abs(n).toFixed(2);
       }
     };
+
     const fmtNumber = (v: any, min = 0, max = 4) => {
       const n = Number(v) || 0;
       try {
@@ -1091,8 +1099,8 @@ export class CorteComponent {
     const title = `Corte - ID ${corte.id}`;
     const subtitle = `${this.getClienteId(this.getContratoId(corte.contrato_id)) || ''}` +
       (this.getContratoAnio(this.getContratoId(corte.contrato_id)) ? (' - ' + this.getContratoAnio(this.getContratoId(corte.contrato_id))) : '');
-    const generatedAt = `Generado: ${new Date().toLocaleString('es-ES')}`;
-    const usuarioTexto = `Usuario: ${this.username ?? 'Invitado'}`;
+    const generatedAt = ` ${new Date().toLocaleString('es-ES')}`;
+    const usuarioTexto = ` ${this.username ?? 'Invitado'}`;
 
     // guardamos páginas en las que ya dibujamos el header para evitar duplicados
     const drawnPages = new Set<number>();
@@ -1216,7 +1224,7 @@ export class CorteComponent {
 
     // multi-head + detalle (SIN foot)
     const multiHead = [
-      ['TROZAS', 'CIRCUNFERENCIA', '', 'LARGO', '', 'M³', 'VALOR', ''],
+      ['TROZAS', 'CIRCUNFERENCIA', '', 'LARGO', '', 'M³', '', 'VALOR', ''],
       ['', 'BRUTA', 'NETA', 'BRUTO', 'NETO', '', 'M³', 'TROZA']
     ];
 
@@ -1254,7 +1262,7 @@ export class CorteComponent {
         // footer y header por página; drawHeader evita duplicados
         const page = data.pageNumber;
         const pageText = `Página ${page}`;
-        const footerText = `${usuarioTexto} · ${generatedAt}`;
+        const footerText = ` `;
 
         doc.setFontSize(9);
         // Espaciado extra debajo del footer (por ejemplo, 10pt)
@@ -1310,7 +1318,7 @@ export class CorteComponent {
         // footer para la página de totales
         const page = data.pageNumber;
         const pageText = `Página ${page}`;
-        const footerText = `${usuarioTexto} · ${generatedAt}`;
+        const footerText = ` `;
         doc.setFontSize(9);
         //doc.text(pageText, pageWidth - margin - doc.getTextWidth(pageText), pageHeight - 20);
         //doc.text(footerText, margin, pageHeight - 20);

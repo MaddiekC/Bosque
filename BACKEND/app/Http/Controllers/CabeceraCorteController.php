@@ -79,12 +79,37 @@ class CabeceraCorteController extends Controller
     {
         $cabeceraCorte = CabeceraCorte::with(['bosque', 'siembraRebrote', 'raleoTipo'])
             ->where('contrato_id', $contrato_id)
-            ->where('estado', 'A') // opcional: solo activas
+            ->whereIn('estado', ['A', 'C']) // opcional: solo activas
             ->orderBy('fecha_embarque', 'desc')
             ->get();
         if ($cabeceraCorte->isEmpty()) {
             return response()->json([], 200);
         }
+        // 2) Recolectar ids para una sola consulta a detalle_corte
+        $cabIds = $cabeceraCorte->pluck('id')->all();
+
+        // 3) Obtener pares únicos por cabecera (evita N+1). Filtramos nulos para mayor limpieza.
+        $pares = DB::table('detalle_corte as d')
+            ->select('d.cabecera_corte_id', 'd.bosque_id', 'd.siembra_rebrote_id')
+            ->whereIn('d.cabecera_corte_id', $cabIds)
+            ->whereNotNull('d.bosque_id')
+            ->whereNotNull('d.siembra_rebrote_id')
+            ->groupBy('d.cabecera_corte_id', 'd.bosque_id', 'd.siembra_rebrote_id')
+            ->get()
+            ->groupBy('cabecera_corte_id'); // key = cabecera id -> colección de filas
+
+        // 4) Adjuntar al resultado
+        $cabeceraCorte->transform(function ($cab) use ($pares) {
+            $id = $cab->id;
+
+            if (isset($pares[$id]) && ($cab->bosque_id === null || $cab->siembra_rebrote_id === null)) {
+                // Recolectamos todos los bosque_id y siembra_rebrote_id distintos
+                $cab->bosque_id = $pares[$id]->pluck('bosque_id')->unique()->values()->all();
+                $cab->siembra_rebrote_id = $pares[$id]->pluck('siembra_rebrote_id')->unique()->values()->all();
+            }
+
+            return $cab;
+        });
         return response()->json($cabeceraCorte);
     }
 
@@ -134,7 +159,7 @@ class CabeceraCorteController extends Controller
                         }
 
                         // disponible = arb_iniciales - arb_cortados
-                        $available = (int)($siembra->arb_iniciales ?? 0) - (int)($siembra->arb_cortados ?? 0);
+                        $available = (int)($siembra->arb_iniciales ?? 0) - ((int)($siembra->arb_cortados ?? 0) + (int)($siembra->arb_raleados ?? 0));
                         if ($cantArboles > $available) {
                             return response()->json(['errors' => ['cant_arboles' => ["La cantidad de árboles ({$cantArboles}) excede el saldo disponible ({$available})."]]], 422);
                         }
@@ -163,8 +188,14 @@ class CabeceraCorteController extends Controller
 
                     // si hay siembra, incrementamos arb_cortados en la siembra (diferencia = cantArboles)
                     if ($siembraId && $cabeceraCorte->cant_arboles) {
-                        $siembra->arb_cortados = (int)$siembra->arb_cortados + (int)$cabeceraCorte->cant_arboles;
-                        $siembra->saldo = (int)($siembra->arb_iniciales ?? 0) - (int)$siembra->arb_cortados;
+                        $c = (int) $cabeceraCorte->cant_arboles;
+
+                        if ((int)$cabeceraCorte->raleo_tipo_id === 7) {
+                            $siembra->arb_cortados = (int)($siembra->arb_cortados ?? 0) + $c;
+                        } else {
+                            $siembra->arb_raleados = (int)($siembra->arb_raleados ?? 0) + $c;
+                        }
+                        $siembra->saldo = (int)($siembra->arb_iniciales ?? 0) - ((int)$siembra->arb_cortados + (int)$siembra->arb_raleados);
                         $siembra->save();
                     }
 

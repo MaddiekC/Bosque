@@ -1,19 +1,19 @@
 <div class="d-flex justify-content-center align-items-center ">
-    <div class="container">
-        <!-- <h5 style="text-align: center;">Bienvenido</h5> -->
-        <button class="botones" [routerLink]="['/bosque']"><img src="/assets/images/bosque2.png" width="40"
-                height="40"></button>
-        <p style="font-size: medium;">Bosque</p>
-        <button class="botones" [routerLink]="['/siembra-rebrote']"><img src="/assets/images/siembraReb2.png" width="40"
-                height="40"></button>
-        <p style="font-size: medium;">Siembra-Rebrote</p>
-    </div>
-    <div class="container">
-        <button class="botones" [routerLink]="['/contrato']"><img src="/assets/images/contrato.png" width="40"
-                height="40"></button>
-        <p style="font-size: medium;">Contrato</p> 
-        <button class="botones" [routerLink]="['/reporte']"><img src="/assets/images/reporte.png" width="40"
-                height="40"></button>
-        <p style="font-size: medium;">Reporte</p>
-    </div>
+        <div class="container">
+                <button *hasPermission="9" class="botones" [routerLink]="['/bosque']"><img
+                                src="/assets/images/bosque2.png" width="100" height="100"></button>
+                <p *hasPermission="9" style="font-size: medium;">Bosque</p>
+
+                <button *hasPermission="11" class="botones" [routerLink]="['/siembra-rebrote']"><img
+                                src="/assets/images/siembraReb2.png" width="100" height="100"></button>
+                <p *hasPermission="11" style="font-size: medium;">Siembra-Rebrote</p>
+        </div>
+        <div class="container">
+                <button *hasPermission="10" class="botones" [routerLink]="['/contrato']"><img
+                                src="/assets/images/contrato.png" width="100" height="100"></button>
+                <p *hasPermission="10" style="font-size: medium;">Contrato</p>
+                <button *hasPermission="46" class="botones" [routerLink]="['/reporte']"><img
+                                src="/assets/images/reporte.png" width="100" height="100"></button>
+                <p *hasPermission="46" style="font-size: medium;">Reporte</p>
+        </div>
 </div>

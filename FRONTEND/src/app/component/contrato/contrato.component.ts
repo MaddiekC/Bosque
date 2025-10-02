@@ -8,7 +8,6 @@ import { AfterViewInit } from '@angular/core';
 import { HasPermissionDirective } from '../../services/has-permission.directive';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { Modal } from 'bootstrap';
 import Swal from 'sweetalert2';
 import { AuthserviceService } from '../../auth/authservice.service';
 
@@ -94,8 +93,10 @@ export class ContratoComponent implements AfterViewInit {
   saveCantError: string | null = null;
   saveDetError: string | null = null;
   // paginación
-  paginaActual: number = 1;
+  paginaCorte: number = 1;
   itemsPorPagina: number = 15;
+  paginaContratos = 1;
+  
 
   // listas de opciones para los selects
   bosques: any[] = [];
@@ -297,8 +298,8 @@ export class ContratoComponent implements AfterViewInit {
 
           const totalItems = this.contratosFiltrados.length;
           const totalPages = Math.ceil(totalItems / this.itemsPorPagina);
-          if (this.paginaActual > totalPages) {
-            this.paginaActual = totalPages || 1;
+          if (this.paginaContratos > totalPages) {
+            this.paginaContratos = totalPages || 1;
           }
         },
         error => {
@@ -338,8 +339,8 @@ export class ContratoComponent implements AfterViewInit {
         this.getContratosFiltrados();
         const totalItems = this.contratosFiltrados.length;
         const totalPages = Math.ceil(totalItems / this.itemsPorPagina);
-        if (this.paginaActual > totalPages) {
-          this.paginaActual = totalPages || 1;
+        if (this.paginaContratos > totalPages) {
+          this.paginaContratos = totalPages || 1;
         }
       },
       error => {
@@ -677,7 +678,8 @@ export class ContratoComponent implements AfterViewInit {
   //MODAL DE EMBARQUE
   openEmbarqueModal(contratoId: number) {
     this.selectedContratoId = contratoId;
-    console.log('Contrato ID seleccionado para anticipo:', this.selectedContratoId);
+    console.log('Contrato ID seleccionado:', this.selectedContratoId);
+    this.paginaCorte = 1;
     this.contratoService.getCabeceraCorteByContrato(contratoId)
       .subscribe({
         next: corte => {
@@ -940,8 +942,8 @@ export class ContratoComponent implements AfterViewInit {
       // Info a la derecha (fecha + usuario)
       doc.setFontSize(8);
       doc.setFont('normal');
-      const gen = `Generado: ${generatedAt}`;
-      const usr = `Usuario: ${username}`;
+      const gen = ` ${generatedAt}`;
+      const usr = ` ${username}`;
       doc.text(gen, pageWidth - marginRight - doc.getTextWidth(gen), 14);
       doc.text(usr, pageWidth - marginRight - doc.getTextWidth(usr), 28);
 
@@ -979,7 +981,7 @@ export class ContratoComponent implements AfterViewInit {
         // número de página actual que te da autoTable
         const page = data.pageNumber;
         const pageText = `Página ${page}`;
-        const footerText = `Usuario: ${username} · Generado: ${generatedAt}`;
+        const footerText = ` `;
 
         // footer a la derecha y texto a la izquierda
         doc.setFontSize(9);
@@ -1010,9 +1012,19 @@ export class ContratoComponent implements AfterViewInit {
 
     const fmtCurrency = (v: any) => {
       const n = Number(v) || 0;
-      try { return new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'USD' }).format(n); }
-      catch { return n.toFixed(2); }
+      try {
+        const abs = Math.abs(n);
+        const formatted = new Intl.NumberFormat('es-ES', {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2
+        }).format(abs);
+        // signo negativo antes del $ si aplica
+        return (n < 0 ? '-$' : '$') + formatted;
+      } catch {
+        return (n < 0 ? '-$' : '$') + Math.abs(n).toFixed(2);
+      }
     };
+
     const fmtDate = (d: any) => d ? new Date(d).toLocaleDateString() : '';
 
     // Helper: carga una imagen y devuelve dataURL (base64)
@@ -1057,8 +1069,8 @@ export class ContratoComponent implements AfterViewInit {
 
     const title = `Contrato - ID ${contrato.id}`;
     //const subtitle = `Cliente: ${this.getClienteId(contrato.cliente_id) || ''}`;
-    const generatedAt = `Generado: ${new Date().toLocaleString()}`;
-    const usuarioTexto = `Usuario: ${this.username ?? 'Invitado'}`;
+    const generatedAt = ` ${new Date().toLocaleString()}`;
+    const usuarioTexto = ` ${this.username ?? 'Invitado'}`;
 
     // Carga la imagen antes de dibujar el header/tablas
     let logoDataUrl: string | null = null;
@@ -1156,7 +1168,7 @@ export class ContratoComponent implements AfterViewInit {
         // footer con número de página y footer info
         const page = data.pageNumber;
         const pageText = `Página ${page}`;
-        const footerText = `${usuarioTexto} · ${generatedAt}`;
+        const footerText = ``;
         doc.setFontSize(9);
         doc.text(pageText, pageWidth - margin - doc.getTextWidth(pageText), pageHeight - 18);
         doc.text(footerText, margin, pageHeight - 18);
@@ -1231,8 +1243,8 @@ export class ContratoComponent implements AfterViewInit {
 
     const title = `Contrato - ID ${contrato.id}`;
     //const subtitle = `Cliente: ${this.getClienteId(contrato.cliente_id) || ''}`;
-    const generatedAt = `Generado: ${new Date().toLocaleString()}`;
-    const usuarioTexto = `Usuario: ${this.username ?? 'Invitado'}`;
+    const generatedAt = ` ${new Date().toLocaleString()}`;
+    const usuarioTexto = ` ${this.username ?? 'Invitado'}`;
 
     // Carga la imagen antes de dibujar el header/tablas
     let logoDataUrl: string | null = null;
@@ -1296,7 +1308,7 @@ export class ContratoComponent implements AfterViewInit {
       numViaje: item.numero_viaje ?? '',
       placaCarro: item.placa_carro ?? '',
       contenedor: item.contenedor ?? '',
-      conductor: item.conductor ?? '',
+      naviera: item.naviera ?? '',
       supervisor: item.supervisor ?? '',
       valorTroza: fmtCurrency(this.corteValorTroza[item.id] ?? '')
     }));
@@ -1322,8 +1334,8 @@ export class ContratoComponent implements AfterViewInit {
 
     autoTable(doc, {
       startY: afterHeaderY,
-      head: [['Bosque', 'SiemReb', 'Sello', 'Fecha', 'Cant. Árboles', 'N° Viaje', 'Placa Carro', 'Contenedor', 'Conductor', 'Supervisor', 'Valor Troza']],
-      body: detailRows.map(r => [r.bosque, r.SiemReb, r.sello, r.fecha, r.cantArb, r.numViaje, r.placaCarro, r.contenedor, r.conductor, r.supervisor, r.valorTroza]),
+      head: [['Bosque', 'SiemReb', 'Fecha', 'Naviera', 'N° Viaje', 'Contenedor', 'Supervisor', 'Cant. Árboles', 'Valor Troza']],
+      body: detailRows.map(r => [r.bosque, r.SiemReb, r.fecha, r.naviera, r.numViaje, r.contenedor, r.supervisor, r.cantArb, r.valorTroza]),
       styles: { fontSize: 10, cellPadding: 6 },
       headStyles: { fillColor: [34, 139, 34], textColor: 255, halign: 'left' },
       columnStyles: {
@@ -1334,7 +1346,7 @@ export class ContratoComponent implements AfterViewInit {
         // footer con número de página y footer info
         const page = data.pageNumber;
         const pageText = `Página ${page}`;
-        const footerText = `${usuarioTexto} · ${generatedAt}`;
+        const footerText = ` `;
         doc.setFontSize(9);
         doc.text(pageText, pageWidth - margin - doc.getTextWidth(pageText), pageHeight - 18);
         doc.text(footerText, margin, pageHeight - 18);
@@ -1349,6 +1361,28 @@ export class ContratoComponent implements AfterViewInit {
     // Guardar
     const filename = `embarque${contrato.id}_detalles.pdf`;
     doc.save(filename);
+  }
+
+  formatBosques(val: any): string {
+    if (!val) return '';
+    if (Array.isArray(val)) {
+      return val.map(id => this.getBosqueId(id)).join(', ');
+    }
+    return this.getBosqueId(val);
+  }
+
+  formatSiembras(val: any): string {
+    if (!val) return '';
+    if (Array.isArray(val)) {
+      return val.map(id => {
+        const tipo = this.getSiemRebTipo(this.getSiemRebId(id));
+        const anio = this.getSiemRebAnio(id);
+        return `${tipo}${anio ? ' - ' + anio : ''}`;
+      }).join(', ');
+    }
+    const tipo = this.getSiemRebTipo(this.getSiemRebId(val));
+    const anio = this.getSiemRebAnio(val);
+    return `${tipo}${anio ? ' - ' + anio : ''}`;
   }
 }
 

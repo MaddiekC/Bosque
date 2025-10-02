@@ -74,27 +74,27 @@
                 <thead class="table-success" style="text-align: center;">
                     <tr>
                         <th class="">#</th>
-                        <th>Cerrar</th>
+                        <th *hasPermission="24">Cerrar</th>
                         <th>Id</th>
                         <th>Cliente</th>
                         <th>Año</th>
                         <th>Fecha</th>
-                        <th>Anticipo</th>
-                        <th>Embarcado</th>
-                        <th>Saldo</th>
-                        <th>Detalles</th>
-                        <th>Corte</th>
-                        <th>...</th>
+                        <th *hasPermission="25">Anticipo</th>
+                        <th *hasPermission="26">Embarcado</th>
+                        <th *hasPermission="27">Saldo</th>
+                        <th *hasPermission="28">Detalles</th>
+                        <th *hasPermission="29">Corte</th>
+                        <th *hasPermission="30">...</th>
                     </tr>
                 </thead>
                 <!-- Visualizar -->
                 <tbody>
-                    <tr *ngFor="let contrato of contratosFiltrados| paginate: { itemsPerPage: itemsPorPagina, currentPage: paginaActual }; let i = index"
+                    <tr *ngFor="let contrato of contratosFiltrados| paginate: { itemsPerPage: itemsPorPagina, currentPage: paginaContratos, id: 'contratos' }; let i = index"
                         [ngClass]="{'table-warning': contrato.estado === 'C'}">
                         <td class="text-center">
-                            {{ (paginaActual - 1) * itemsPorPagina + (i + 1) }}
+                            {{ (paginaContratos - 1) * itemsPorPagina + (i + 1) }}
                         </td>
-                        <td class="d-flex justify-content-center align-items-center">
+                        <td *hasPermission="24" class="d-flex justify-content-center align-items-center">
                             <button class="btn btnAngosto "
                                 *ngIf="contrato.estado === 'A' && contrato.detalles_count > 0  && (totalAnticipo[contrato.id] || 0) > 0"
                                 ata-bs-toggle="tooltip" title="Cerrar contrato" style="background-color:#35e782 ;"
@@ -121,7 +121,7 @@
                         <td>
                             {{ contrato.fecha | date: 'dd/MM/yyyy' }}
                         </td>
-                        <td class="text-end">
+                        <td *hasPermission="25" class="text-end">
                             <a class="btnSiembra-Rebrote" title="Anticipo"
                                 (click)="openAnticipoModal(contrato.id, contrato.estado)">
                                 <span class="badge bg-info"
@@ -129,7 +129,7 @@
                                     {{ totalAnticipo[contrato.id] || 0 | currency }}
                                 </span></a>
                         </td>
-                        <td class="text-end">
+                        <td *hasPermission="26" class="text-end">
                             <a class="btnSiembra-Rebrote" title="Embarque" (click)="openEmbarqueModal(contrato.id)">
                                 <span class="badge bg-success"
                                     style="background-color: #e7a035 !important; min-width: 80px; text-align: right;">
@@ -137,7 +137,7 @@
                                 </span>
                             </a>
                         </td>
-                        <td class="text-end">
+                        <td *hasPermission="27" class="text-end">
                             <a class="btnSiembra-Rebrote" title="Saldo">
                                 <span class="badge " style="min-width: 80px; text-align: right;" [ngClass]="{
     'bg-success': (contratoSaldos[contrato.id]?.saldo ?? 0) >= 0,
@@ -149,41 +149,51 @@
                         </td>
                         <!-- Columna Ver -->
                         <td class="text-center">
-                            <a *ngIf=" contrato.detalles_count <= 0 && contrato.estado === 'A'"
-                                class="btnSiembra-Rebrote" title="Agregar detalles"
-                                (click)="openDetailModal2(contrato.id)">
-                                <img src="/assets/images/agregarArchivo.png" width="24" height="24">
-                            </a>
-                            <a *ngIf="contrato.detalles_count > 0" class="btnSiembra-Rebrote" title="Ver detalles"
-                                (click)="openDetailModal(contrato.id)">
-                                <img src="/assets/images/archivoDetalles.png" width="24" height="24">
-                            </a>
+                            <div *hasPermission="44">
+                                <a *ngIf=" contrato.detalles_count <= 0 && contrato.estado === 'A'"
+                                    class="btnSiembra-Rebrote" title="Agregar detalles"
+                                    (click)="openDetailModal2(contrato.id)">
+                                    <img src="/assets/images/agregarArchivo.png" width="24" height="24">
+                                </a>
+                            </div>
+                            <div *hasPermission="45">
+                                <a *ngIf="contrato.detalles_count > 0" class="btnSiembra-Rebrote" title="Ver detalles"
+                                    (click)="openDetailModal(contrato.id)">
+                                    <img src="/assets/images/archivoDetalles.png" width="24" height="24">
+                                </a>
+                            </div>
+
                         </td>
                         <!-- Columna Corte -->
-                        <td class="text-center">
+                        <td *hasPermission="29" class="text-center">
                             <a class="btnSiembra-Rebrote" [routerLink]="['/corte', contrato.id]">
                                 <img src="/assets/images/corteWhite.png" width="24" height="24">
                             </a>
                         </td>
                         <!-- Acciones -->
-                        <td class="d-flex justify-content-center align-items-center" *ngIf="contrato.estado === 'A'">
-                            <button class="btn btnAngosto" ata-bs-toggle="tooltip" title="Editar registro"
-                                style="background-color:#e7bd35 ;" (click)="startEdit(contrato.id)">
-                                <i class="bi bi-pencil"></i>
-                            </button>
-                            <button class="btn btnAngosto " ata-bs-toggle="tooltip" title="Eliminar registro"
-                                style="background-color:#e7354d ;" (click)="openConfirmModal(contrato.id)">
-                                <i class="bi bi-trash"></i>
-                            </button>
-                        </td>
+                        <div *hasPermission="30">
+                            <td class="d-flex justify-content-center align-items-center"
+                                *ngIf="contrato.estado === 'A'">
+                                <button *hasPermission="31" class="btn btnAngosto" ata-bs-toggle="tooltip"
+                                    title="Editar registro" style="background-color:#e7bd35 ;"
+                                    (click)="startEdit(contrato.id)">
+                                    <i class="bi bi-pencil"></i>
+                                </button>
+                                <button *hasPermission="32" class="btn btnAngosto " ata-bs-toggle="tooltip"
+                                    title="Eliminar registro" style="background-color:#e7354d ;"
+                                    (click)="openConfirmModal(contrato.id)">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </td>
+                        </div>
                     </tr>
                 </tbody>
                 <tfoot>
                     <tr>
                         <!-- Ajusta el colspan al número de columnas de tu tabla -->
                         <td [attr.colspan]="12" class="text-center">
-                            <pagination-controls (pageChange)="paginaActual = $event" [autoHide]="true" [maxSize]="15"
-                                previousLabel="«" nextLabel="»">
+                            <pagination-controls id="contratos" (pageChange)="paginaContratos = $event"
+                                [autoHide]="true" [maxSize]="15" previousLabel="«" nextLabel="»">
                             </pagination-controls>
                         </td>
                     </tr>
@@ -191,13 +201,13 @@
             </table>
             <div class="d-flex align-items-center ">
                 <div style="margin-bottom: 14px;">
-                    <button data-bs-toggle="modal" data-bs-target="#miModal" ata-bs-toggle="tooltip"
+                    <button *hasPermission="33" data-bs-toggle="modal" data-bs-target="#miModal" ata-bs-toggle="tooltip"
                         style="border:none; background:none; " title="Agregar registro"> <img
                             src="/assets/images/nuevo.png" width="30" height="31" ata-bs-toggle="tooltip"
                             title="Agregar registro"></button>
                 </div>
                 <div>
-                    <button class="btn btn-success mb-3" style="background: none; color: green; border: none;"
+                    <button *hasPermission="34" class="btn btn-success mb-3" style="background: none; color: green; border: none;"
                         title="Descargar registro" (click)="exportToPDF() ">
                         <i class="bi bi-file-earmark-pdf-fill fs-4"></i>
                     </button>
@@ -553,7 +563,7 @@
                                 <col> <!--  -->
                                 <col> <!--  -->
                                 <col> <!--  -->
-                                <col> <!--  -->                                
+                                <col> <!--  -->
                             </colgroup>
                             <thead class="table-warning" style="text-align: center;">
                                 <tr>
@@ -561,29 +571,28 @@
                                     <th>Siembra Rebrote</th>
                                     <!-- <th>Sello</th> -->
                                     <th>Fecha</th>
-                                    <th>Árboles</th>
+                                    <th>Naviera</th>
                                     <th>N. viaje</th>
                                     <th>N. envío</th>
                                     <th>Placa</th>
                                     <th>Contenedor</th>
-                                    <th>Conductor</th>
                                     <th>Supervisor</th>
+                                    <th>Árboles</th>
                                     <th>Valor Troza</th>
                                     <!-- <th>Detalles</th> -->
                                 </tr>
                             </thead>
                             <!-- Visualizar -->
                             <tbody>
-                                <tr *ngFor="let corte of cortesFiltrados| paginate: { itemsPerPage: itemsPorPagina, currentPage: paginaActual }; let i = index"
+                                <tr *ngFor="let corte of cortesFiltrados| paginate: { itemsPerPage: itemsPorPagina, currentPage: paginaCorte, id: 'embarques' }; let i = index"
                                     [ngClass]="{'table-warning': corte.estado === 'C'}">
                                     <!-- Columna Bosque-->
                                     <td class="text-center">
-                                        {{ getBosqueId(corte.bosque_id) }}
+                                        {{ formatBosques(corte.bosque_id) }}
                                     </td>
                                     <!-- Columna Siembra rebrote -->
                                     <td class="text-center">
-                                        {{ getSiemRebTipo(getSiemRebId(corte.siembra_rebrote_id))}} - {{
-                                        getSiemRebAnio(corte.siembra_rebrote_id)}}
+                                        {{ formatSiembras(corte.siembra_rebrote_id) }}
                                     </td>
                                     <!-- Columna Sello -->
                                     <!-- <td class="text-center">
@@ -593,9 +602,9 @@
                                     <td class="text-center">
                                         {{ corte.fecha_embarque | date: 'dd/MM/yyyy' }}
                                     </td>
-                                    <!-- Columna Cant -->
-                                    <td class="text-end">
-                                        {{ corte.cant_arboles | number: '1.0-0'}}
+                                    <!-- Columna Naviera -->
+                                    <td class="text-center">
+                                        {{ corte.naviera }}
                                     </td>
                                     <!-- Columna N. viaje -->
                                     <td class="text-end">
@@ -612,13 +621,13 @@
                                     <td class="text-center">
                                         {{ corte.contenedor }}
                                     </td>
-                                    <!-- Columna Conductor -->
-                                    <td class="text-center">
-                                        {{ corte.conductor }}
-                                    </td>
                                     <!-- Columna Supervisor -->
                                     <td class="text-center">
                                         {{ corte.supervisor }}
+                                    </td>
+                                    <!-- Columna Cant -->
+                                    <td class="text-end">
+                                        {{ corte.cant_arboles | number: '1.0-0'}}
                                     </td>
                                     <!-- Columna ValorTroza -->
                                     <td class="text-end">
@@ -632,10 +641,9 @@
                                     <td><strong>{{ totalEmbarcado | currency }}</strong></td>
                                 </tr>
                                 <tr>
-                                    <!-- Ajusta el colspan al número de columnas de tu tabla -->
                                     <td [attr.colspan]="11" class="text-center">
-                                        <pagination-controls (pageChange)="paginaActual = $event" [autoHide]="true"
-                                            [maxSize]="15" previousLabel="«" nextLabel="»">
+                                        <pagination-controls id="embarques" (pageChange)="paginaCorte = $event"
+                                            [autoHide]="true" [maxSize]="15" previousLabel="«" nextLabel="»">
                                         </pagination-controls>
                                     </td>
                                 </tr>

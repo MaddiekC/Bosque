@@ -274,6 +274,8 @@ class DetalleCorteController extends Controller
 
                     $creados[] = DetalleCorte::create([
                         'cabecera_corte_id' => $cabeceraId,
+                        'bosque_id'         => $det['bosque_id'],
+                        'siembra_rebrote_id' => $det['siembra_rebrote_id'],
                         'trozas'            => $det['trozas'],
                         'circ_bruta'        => $det['circ_bruta'],
                         'circ_neta'         => $circNeta,
@@ -306,13 +308,13 @@ class DetalleCorteController extends Controller
                 }
 
                 if (!empty($diffs)) {
-                    $cabecerasParaDiff = CabeceraCorte::whereIn('id', array_keys($diffs))
-                        ->select('id', 'siembra_rebrote_id', 'bosque_id')
+                    $cabecerasParaDiff = DetalleCorte::whereIn('cabecera_corte_id', array_keys($diffs))
+                        ->select('id', 'cabecera_corte_id', 'siembra_rebrote_id', 'bosque_id')
                         ->get();
 
                     $grouped = [];
                     foreach ($cabecerasParaDiff as $c) {
-                        $cabId = $c->id;
+                        $cabId = $c->cabecera_corte_id;
                         $siemId = $c->siembra_rebrote_id;
                         $bosId = $c->bosque_id;
                         $inc = $diffs[$cabId] ?? 0;
@@ -330,7 +332,7 @@ class DetalleCorteController extends Controller
                             ->first();
                         if (!$siembra) continue;
                         $siembra->arb_cortados = (int)($siembra->arb_cortados ?? 0) + (int)$totalAdded;
-                        $siembra->saldo = (int)($siembra->arb_iniciales ?? 0) - (int)$siembra->arb_cortados;
+                        $siembra->saldo = (int)($siembra->arb_iniciales ?? 0) - ((int)$siembra->arb_cortados + (int)$siembra->arb_raleados);
                         $siembra->save();
                     }
                 }

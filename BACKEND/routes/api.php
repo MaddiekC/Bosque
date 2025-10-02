@@ -29,7 +29,8 @@ use Illuminate\Support\Facades\Route;
     return $request->user();
 });*/
 
-//Route::post('/auth/refresh', [AuthController::class, 'refresh']);
+Route::post('/refresh', [AuthController::class, 'refresh']);
+
 Route::group(
     [
         'prefix' => 'auth'
@@ -43,7 +44,6 @@ Route::group(
 Route::group(
     [
         'middleware' =>  'auth:api'
-        //'middleware' =>  ['auth:api', 'jwt.refresh']
     ],
     function () {
         Route::get('/me/permissions', [AuthController::class, 'permissions']); // Transacciones

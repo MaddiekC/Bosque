@@ -16,7 +16,6 @@ class CabeceraCorte extends Model
         'contrato_id',
         'raleo_tipo_id',
         'siembra_rebrote_id',
-        //'sello_id',
         'fecha_embarque',
         'cant_arboles',
         'numero_viaje',

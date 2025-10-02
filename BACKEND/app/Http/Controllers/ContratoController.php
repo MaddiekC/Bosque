@@ -116,7 +116,7 @@ class ContratoController extends Controller
         $rows = DB::table('cabecera_corte as cc')
             ->join('detalle_corte as dc', 'dc.cabecera_corte_id', '=', 'cc.id')
             ->where('dc.estado', 'A')    // solo detalles activos (ajusta si necesario)
-            ->where('cc.estado', 'A')    // opcional: solo cortes activos
+            ->whereIn('cc.estado', ['A', 'C'])    // opcional: solo cortes activos
             ->select('cc.contrato_id', DB::raw('SUM(dc.valor_troza) as total'))
             ->groupBy('cc.contrato_id')
             ->get();
@@ -135,7 +135,7 @@ class ContratoController extends Controller
         $embarcadoSub = DB::table('cabecera_corte as cc')
             ->join('detalle_corte as dc', 'dc.cabecera_corte_id', '=', 'cc.id')
             ->where('dc.estado', 'A')
-            ->where('cc.estado', 'A')
+            ->whereIn('cc.estado', ['A', 'C']) // considerar cortes activos y cerrados
             ->select('cc.contrato_id', DB::raw('SUM(dc.valor_troza) as embarcado'))
             ->groupBy('cc.contrato_id');
 
