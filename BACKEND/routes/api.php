@@ -29,7 +29,7 @@ use Illuminate\Support\Facades\Route;
     return $request->user();
 });*/
 
-Route::post('/refresh', [AuthController::class, 'refresh']);
+//Route::post('/refresh', [AuthController::class, 'refresh']);
 
 Route::group(
     [
@@ -55,6 +55,7 @@ Route::group(
         Route::put('/bosques/{id}/inactive', [BosqueController::class, 'destroy']); // Marcar un bosque como inactivo
 
         Route::get('/cabecera-cortes', [CabeceraCorteController::class, 'index']); // Listar todas las cabeceras de corte
+        Route::get('/cabecera-cortes/anios', [CabeceraCorteController::class, 'getAnios']); 
         Route::get('/cabecera-corte/{id}', [CabeceraCorteController::class, 'show']); // Ver una cabecera de corte por ID
         Route::get('/cabecera-cortes/contrato/{contrato_id}', [CabeceraCorteController::class, 'getContrato']); // Ver una cabecera de corte por contrato ID
         Route::get('corte/count-by-SR/{id}', function ($id) {
@@ -70,6 +71,7 @@ Route::group(
         Route::get('/detalle-cortes/distinct/{cabecera_corte_id}', [DetalleCorteController::class, 'distinctBosqueSiembByCab']);
         Route::get('/detalle-cortes/{cabecera_corte_id}', [DetalleCorteController::class, 'show']); // Ver un detalle de corte por ID
         Route::get('detalle-cortes/count/{cabecera_corte_id}', [DetalleCorteController::class, 'count']); // Contar detalles de corte por cabecera
+        Route::get('detalle-cortes/venta/{dataYear}', [DetalleCorteController::class, 'reporteAcumulado']); 
         Route::post('/detalle-cortes', [DetalleCorteController::class, 'store']); // Crear un detalle de corte
         Route::put('/detalle-cortes/{id}', [DetalleCorteController::class, 'update']); // Actualizar un detalle de corte (PUT)
         Route::put('/detalle-cortes/{id}/inactive', [DetalleCorteController::class, 'destroy']); // Marcar un detalle de corte como inactivo

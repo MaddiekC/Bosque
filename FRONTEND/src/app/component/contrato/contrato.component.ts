@@ -96,7 +96,7 @@ export class ContratoComponent implements AfterViewInit {
   paginaCorte: number = 1;
   itemsPorPagina: number = 15;
   paginaContratos = 1;
-  
+
 
   // listas de opciones para los selects
   bosques: any[] = [];
@@ -879,9 +879,15 @@ export class ContratoComponent implements AfterViewInit {
     const fmtCurrency = (v: any) => {
       const n = Number(v) || 0;
       try {
-        return new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'USD', minimumFractionDigits: 2 }).format(n);
+        const abs = Math.abs(n);
+        const formatted = new Intl.NumberFormat('es-ES', {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2
+        }).format(abs);
+        // signo negativo antes del $ si aplica
+        return (n < 0 ? '-$' : '$') + formatted;
       } catch {
-        return n.toFixed(2);
+        return (n < 0 ? '-$' : '$') + Math.abs(n).toFixed(2);
       }
     };
 
@@ -1199,97 +1205,74 @@ export class ContratoComponent implements AfterViewInit {
 
     const fmtCurrency = (v: any) => {
       const n = Number(v) || 0;
-      try { return new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'USD' }).format(n); }
-      catch { return n.toFixed(2); }
+      try {
+        const abs = Math.abs(n);
+        const formatted = new Intl.NumberFormat('es-ES', {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2
+        }).format(abs);
+        // signo negativo antes del $ si aplica
+        return (n < 0 ? '-$' : '$') + formatted;
+      } catch {
+        return (n < 0 ? '-$' : '$') + Math.abs(n).toFixed(2);
+      }
     };
     const fmtDate = (d: any) => d ? new Date(d).toLocaleDateString() : '';
 
-    // Helper: carga una imagen y devuelve dataURL (base64)
     const loadImageAsDataURL = (url: string): Promise<string> => {
       return new Promise((resolve, reject) => {
         const img = new Image();
-        img.crossOrigin = 'anonymous'; // importante si la sirves desde otro origen
+        img.crossOrigin = 'anonymous';
         img.onload = () => {
-          // dibuja en canvas para obtener dataURL
           const canvas = document.createElement('canvas');
           canvas.width = img.naturalWidth || img.width;
           canvas.height = img.naturalHeight || img.height;
           const ctx = canvas.getContext('2d')!;
           ctx.drawImage(img, 0, 0);
-          try {
-            const dataUrl = canvas.toDataURL('image/png');
-            resolve(dataUrl);
-          } catch (e) {
-            reject(e);
-          }
+          try { resolve(canvas.toDataURL('image/png')); } catch (e) { reject(e); }
         };
         img.onerror = (err) => reject(err);
-        // ruta relativa al build -> angular sirve assets desde /assets/...
         img.src = `/assets/images/bosque.png`;
       });
     };
+
     const doc = new jsPDF({ unit: 'pt', format: 'a4' });
     const pageWidth = (doc.internal.pageSize as any).width || doc.internal.pageSize.getWidth();
     const pageHeight = (doc.internal.pageSize as any).height || doc.internal.pageSize.getHeight();
     const margin = 40;
-
-    // Márgenes reducidos para aprovechar el ancho
+    const headerY = 60;
     const marginLeft = 38;
-
-    // Header/foot layout
-    const headerTop = 60;        // y inicial del header
-    const lineHeight = 10;      // separación compacta
-    const headerHeight = headerTop + lineHeight * 3 + 8; // reservar espacio para header
+    const headerTop = 60;
+    const lineHeight = 10;
+    const headerHeight = headerTop + lineHeight * 3 + 8;
 
     const title = `Contrato - ID ${contrato.id}`;
-    //const subtitle = `Cliente: ${this.getClienteId(contrato.cliente_id) || ''}`;
     const generatedAt = ` ${new Date().toLocaleString()}`;
     const usuarioTexto = ` ${this.username ?? 'Invitado'}`;
 
-    // Carga la imagen antes de dibujar el header/tablas
     let logoDataUrl: string | null = null;
-    try {
-      logoDataUrl = await loadImageAsDataURL('/assets/images/bosque.png');
-    } catch (e) {
-      console.warn('No se pudo cargar logo para el PDF:', e);
-      logoDataUrl = null;
-    }
+    try { logoDataUrl = await loadImageAsDataURL('/assets/images/bosque.png'); }
+    catch (e) { console.warn('No se pudo cargar logo para el PDF:', e); logoDataUrl = null; }
 
-    // Dibuja header (se llamará desde didDrawPage)
     const drawHeader = (pageNumber?: number) => {
       if (logoDataUrl) {
-        // calcular tamaño deseado (p. ej. ancho 60pt)
         const desiredWidth = 60;
-        // reconstruir tamaño manteniendo proporción: extrae info del dataURL
         const img = new Image();
         img.src = logoDataUrl;
-        // Usamos proporción aproximada - si quieres seguridad, podrías calcular con img.naturalWidth/naturalHeight después de load
         const ratio = (img.naturalHeight && img.naturalWidth) ? (img.naturalHeight / img.naturalWidth) : 0.5;
         const desiredHeight = ratio ? desiredWidth * ratio : 30;
-        // coloca logo a la izquierda, un poco arriba
         doc.addImage(logoDataUrl, 'PNG', marginLeft, 8, desiredWidth, desiredHeight);
-        // desplaza texto del título a la derecha si hace falta
       }
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(13);
-      doc.text(title, margin, headerTop);
-
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(9);
-      const genY = headerTop + lineHeight;
-      const usrY = genY + lineHeight;
-      const genW = doc.getTextWidth(generatedAt);
-      const usrW = doc.getTextWidth(usuarioTexto);
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(13); doc.text(title, margin, headerTop);
+      doc.setFont('helvetica', 'normal'); doc.setFontSize(9);
+      const genY = headerTop + lineHeight; const usrY = genY + lineHeight;
+      const genW = doc.getTextWidth(generatedAt); const usrW = doc.getTextWidth(usuarioTexto);
       doc.text(generatedAt, pageWidth - margin - genW, genY);
       doc.text(usuarioTexto, pageWidth - margin - usrW, usrY);
-
-      // línea separadora
-      doc.setDrawColor(200);
-      doc.setLineWidth(0.6);
-      doc.line(margin, usrY + 6, pageWidth - margin, usrY + 6);
+      doc.setDrawColor(200); doc.setLineWidth(0.6); doc.line(margin, usrY + 6, pageWidth - margin, usrY + 6);
     };
 
-    // Cabecera (campo/valor) — datos pequeños encima de la tabla
+    // Cabecera (campo/valor)
     const cabeceraRows = [
       ['Cliente', this.getClienteId(contrato.cliente_id) || ''],
       ['Año', contrato.anio ?? ''],
@@ -1298,20 +1281,28 @@ export class ContratoComponent implements AfterViewInit {
       ['Total detalles', (this.cortesFiltrados || []).length.toString()]
     ];
 
-    // Prepara filas de detalle
-    const detailRows = (this.cortesFiltrados || []).map((item: any) => ({
-      bosque: this.getBosqueId(item.bosque_id) ?? '',
-      SiemReb: (this.getSiemRebTipo(this.getSiemRebId(item.siembra_rebrote_id)) ?? '') + '-' + (this.getSiemRebAnio(item.siembra_rebrote_id) ?? ''),
-      sello: this.getSelloTipoId(item.sello_id) ?? '',
-      fecha: item.fecha_embarque ?? '',
-      cantArb: item.cant_arboles ?? '',
-      numViaje: item.numero_viaje ?? '',
-      placaCarro: item.placa_carro ?? '',
-      contenedor: item.contenedor ?? '',
-      naviera: item.naviera ?? '',
-      supervisor: item.supervisor ?? '',
-      valorTroza: fmtCurrency(this.corteValorTroza[item.id] ?? '')
-    }));
+    // PREPARAR detailRows: conservar NUMÉRICO y FORMATEADO
+    const detailRows = (this.cortesFiltrados || []).map((item: any) => {
+      // obtener valor numérico desde la fuente (this.corteValorTroza[item.id])
+      const rawVal = this.corteValorTroza && this.corteValorTroza[item.id] !== undefined
+        ? Number(String(this.corteValorTroza[item.id]).replace(/\s/g, '').replace(',', '.'))
+        : 0;
+
+      return {
+        bosque: this.getBosqueId(item.bosque_id) ?? '',
+        SiemReb: (this.getSiemRebTipo(this.getSiemRebId(item.siembra_rebrote_id)) ?? '') + '-' + (this.getSiemRebAnio(item.siembra_rebrote_id) ?? ''),
+        sello: this.getSelloTipoId(item.sello_id) ?? '',
+        fecha: item.fecha_embarque ?? '',
+        cantArb: Number(item.cant_arboles) || 0,          // numero
+        numViaje: item.numero_viaje ?? '',
+        placaCarro: item.placa_carro ?? '',
+        contenedor: item.contenedor ?? '',
+        naviera: item.naviera ?? '',
+        supervisor: item.supervisor ?? '',
+        valorTrozaNum: rawVal,                            // NUMÉRICO para sumar
+        valorTrozaFmt: fmtCurrency(rawVal)               // FORMATEADO para mostrar
+      };
+    });
 
     // Dibujar tabla cabecera (campo/valor)
     autoTable(doc, {
@@ -1322,20 +1313,32 @@ export class ContratoComponent implements AfterViewInit {
       styles: { fontSize: 9, cellPadding: 6 },
       headStyles: { fillColor: [34, 139, 34], textColor: 255 },
       columnStyles: { 0: { cellWidth: 120, fontStyle: 'bold' }, 1: { cellWidth: pageWidth - margin * 2 - 120 } },
-      showHead: 'never', // no hace falta repetir en cada página
-      didDrawPage: (data) => {
-        // dibujar header en cada página
-        drawHeader(data.pageNumber);
-      }
+      showHead: 'never',
+      didDrawPage: (data) => { drawHeader(data.pageNumber); }
     });
 
-    // Y ahora la tabla de detalles, empezando después de la cabecera
+    // Tabla de detalles
     const afterHeaderY = (doc as any).lastAutoTable ? (doc as any).lastAutoTable.finalY + 12 : headerHeight + 60;
+
+    // Calcula total embarcado correctamente sumando el campo NUMÉRICO
+    const totalEmbarcado = detailRows.reduce((s, r) => s + (Number(r.valorTrozaNum) || 0), 0);
+
+    const totalEmbarcadoFmt = fmtCurrency(totalEmbarcado);
 
     autoTable(doc, {
       startY: afterHeaderY,
       head: [['Bosque', 'SiemReb', 'Fecha', 'Naviera', 'N° Viaje', 'Contenedor', 'Supervisor', 'Cant. Árboles', 'Valor Troza']],
-      body: detailRows.map(r => [r.bosque, r.SiemReb, r.fecha, r.naviera, r.numViaje, r.contenedor, r.supervisor, r.cantArb, r.valorTroza]),
+      body: detailRows.map(r => [
+        r.bosque,
+        r.SiemReb,
+        r.fecha,
+        r.naviera,
+        r.numViaje,
+        r.contenedor,
+        r.supervisor,
+        String(r.cantArb),
+        r.valorTrozaFmt // mostrar la versión formateada
+      ]),
       styles: { fontSize: 10, cellPadding: 6 },
       headStyles: { fillColor: [34, 139, 34], textColor: 255, halign: 'left' },
       columnStyles: {
@@ -1343,25 +1346,52 @@ export class ContratoComponent implements AfterViewInit {
         1: { halign: 'left' }
       },
       didDrawPage: (data) => {
-        // footer con número de página y footer info
         const page = data.pageNumber;
         const pageText = `Página ${page}`;
-        const footerText = ` `;
         doc.setFontSize(9);
         doc.text(pageText, pageWidth - margin - doc.getTextWidth(pageText), pageHeight - 18);
-        doc.text(footerText, margin, pageHeight - 18);
-
-        // header también (asegura que siempre esté)
         drawHeader(page);
       },
       showHead: 'everyPage',
       margin: { top: headerHeight + 6, bottom: 30, left: margin, right: margin }
     });
 
-    // Guardar
+    // BLOQUE DE TOTALES
+    const lastTable = (doc as any).lastAutoTable;
+    const lastY = lastTable ? lastTable.finalY : (pageHeight - 60);
+    const lastPage = (doc as any).internal.getNumberOfPages ? (doc as any).internal.getNumberOfPages() : 1;
+    doc.setPage(lastPage);
+
+    let y = lastY + 12;
+    const totalsLines = [{ label: 'Total Embarcado:', value: totalEmbarcadoFmt }];
+    const neededHeight = totalsLines.length * lineHeight + 10;
+    if (y + neededHeight > pageHeight - 30) {
+      doc.addPage();
+      const newPage = (doc as any).internal.getNumberOfPages();
+      drawHeader(newPage);
+      doc.setPage(newPage);
+      y = headerY + 22;
+    }
+
+    // escribir totales (izquierda etiqueta, derecha valor)
+    const xLeft = marginLeft;
+    const xRightBase = pageWidth - margin;
+    for (const item of totalsLines) {
+      doc.setFont('helvetica', 'normal'); doc.setFontSize(10); doc.setTextColor(100);
+      doc.text(item.label, xLeft, y);
+      doc.setFont('helvetica', 'bold'); doc.setTextColor(0);
+      const valueText = String(item.value);
+      const xValue = xRightBase - doc.getTextWidth(valueText);
+      doc.text(valueText, xValue, y);
+      y += lineHeight;
+    }
+
+    doc.setDrawColor(200); doc.setLineWidth(0.5); doc.line(marginLeft, y + 4, pageWidth - margin, y + 4);
+
     const filename = `embarque${contrato.id}_detalles.pdf`;
     doc.save(filename);
   }
+
 
   formatBosques(val: any): string {
     if (!val) return '';

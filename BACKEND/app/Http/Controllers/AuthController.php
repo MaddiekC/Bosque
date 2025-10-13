@@ -84,27 +84,27 @@ class AuthController extends Controller
         return response()->json($perms);
     }
 
-    public function refresh(Request $request)
-    {
-        // toma el token del header Authorization
-        $token = JWTAuth::getToken();
+    // public function refresh(Request $request)
+    // {
+    //     // toma el token del header Authorization
+    //     $token = JWTAuth::getToken();
 
-        if (! $token) {
-            return response()->json(['error' => 'Token no proporcionado'], 400);
-        }
+    //     if (! $token) {
+    //         return response()->json(['error' => 'Token no proporcionado'], 400);
+    //     }
 
-        try {
-            // refresca el token (devuelve uno nuevo)
-            $newToken = JWTAuth::refresh($token);
-            $ttl = JWTAuth::factory()->getTTL(); // minutos
+    //     try {
+    //         // refresca el token (devuelve uno nuevo)
+    //         $newToken = JWTAuth::refresh($token);
+    //         $ttl = JWTAuth::factory()->getTTL(); // minutos
 
-            return response()->json([
-                'access_token' => $newToken,
-                'expires_in' => $ttl * 60
-            ]);
-        } catch (JWTException $e) {
-            // puede fallar si se pasó el refresh_ttl o token inválido
-            return response()->json(['error' => 'No se pudo refrescar el token'], 401);
-        }
-    }
+    //         return response()->json([
+    //             'access_token' => $newToken,
+    //             'expires_in' => $ttl * 60
+    //         ]);
+    //     } catch (JWTException $e) {
+    //         // puede fallar si se pasó el refresh_ttl o token inválido
+    //         return response()->json(['error' => 'No se pudo refrescar el token'], 401);
+    //     }
+    // }
 }

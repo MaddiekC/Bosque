@@ -1,0 +1,77 @@
+<h4 style="color: rgb(1, 1, 199);">Acumulado de venta general</h4>
+<div style="margin-top: 3%; margin-bottom:3%; align-items: center;">
+    <label for="dateYear" style="background-color: transparent"><strong>Seleccione año:</strong></label>
+    <select class="form-select form-select-sm" style="width: 22%;" [(ngModel)]="dateYear" (change)="onChangeYear()">
+        <option *ngFor="let b of cabAnio" [value]="b">
+            {{b}}
+        </option>
+    </select>
+</div>
+<div style="display: flex; align-items: start; gap: 15px; width: 1000px;">
+    <table class="table table-striped table-bordered table-hover table-sm w-100">
+        <thead class="table-success text-center">
+            <tr>
+                <th>N. envio</th>
+                <th>Fecha</th>
+                <th>Bosque</th>
+                <th>Contenedor</th>
+                <th class="text-end">Total Trozas</th>
+                <th class="text-end">Total m³</th>
+                <th class="text-end">Total Valor (USD)</th>
+            </tr>
+        </thead>
+        <tbody>
+            <ng-container
+                *ngFor="let envio of reporteAcum| paginate: { itemsPerPage: itemsPorPagina, currentPage: paginaActual }">
+                <!-- Si no hay items, mostrar fila única -->
+                <tr *ngIf="!envio.items || envio.items.length === 0">
+                    <td colspan="7" class="text-center">No hay datos disponibles</td>
+                </tr>
+
+                <!-- Si hay items, iterar filas; poner rowspan en la primera fila -->
+                <tr *ngFor="let it of envio.items; let isFirst = first">
+                    <td *ngIf="isFirst" [attr.rowspan]="envio.items.length" class="align-middle text-center">
+                        {{ envio.numero_envio }}
+                    </td>
+
+                    <td *ngIf="isFirst" [attr.rowspan]="envio.items.length" class="align-middle text-center">
+                        {{ envio.fecha_embarque | date:'dd/MM/yyyy' }}
+                    </td>
+
+                    <td>{{ it.bosque_nombre }}</td>
+                    <td>{{ it.contenedor }}</td>
+                    <td class="text-end">{{ it.total_trozas }}</td>
+                    <td class="text-end">{{ it.total_m3 | number:'1.4-4' }}</td>
+
+                    <!-- Si usas CurrencyPipe y quieres el símbolo $ solamente,
+             ver nota más abajo. -->
+                    <td class="text-end">
+                        {{ it.total_valor | currency:'USD':'symbol':'1.2-2' }}
+                    </td>
+                </tr>
+            </ng-container>
+        </tbody>
+        <tfoot>
+            <tr>
+                <td [attr.colspan]="7" class="text-center">
+                    <pagination-controls (pageChange)="paginaActual = $event" [autoHide]="true" [maxSize]="9"
+                        previousLabel="«" nextLabel="»">
+                    </pagination-controls>
+                </td>
+            </tr>
+        </tfoot>
+    </table>
+    <div style="margin-left: 20px; border: 1px solid rgb(1, 1, 199); padding: 10px; height: fit-content; width: 400px;">
+        <h5 style="color: rgb(1, 1, 199); text-align: left;">Totales Generales</h5>
+        <strong>Total Trozas: </strong>{{ totales.total_trozas }}<br>
+        <strong>Total m³: </strong>{{ totales.total_m3 | number:'1.4-4' }}<br>
+        <strong>Total Valor (USD):</strong> {{ totales.total_valor | currency:'USD':'symbol':'1.2-2' }}<br>
+        <strong>N. contenedores: </strong>{{ totales.total_envios }}<br>
+    </div>
+    <div style="text-align: right;">
+        <button class="btn btn-success mb-3" style="background: none; color: green; border: none;"
+            (click)="exportToPDF()" title="Descargar registro">
+            <i class="bi bi-file-earmark-pdf-fill fs-4"></i>
+        </button>
+    </div>
+</div>

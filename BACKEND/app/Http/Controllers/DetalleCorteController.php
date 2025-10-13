@@ -425,4 +425,76 @@ class DetalleCorteController extends Controller
 
         return response()->json($map);
     }
+
+
+    public function reporteAcumulado($dateYear)
+    {
+        // Query: sumar por numero_envio + contenedor (+ bosque si quieres)
+        $rows = DetalleCorte::from('detalle_corte as d')
+            ->join('cabecera_corte as c', 'd.cabecera_corte_id', '=', 'c.id')
+            ->leftJoin('bosque as b', 'd.bosque_id', 'b.id')
+            ->whereYear('c.fecha_embarque', $dateYear)
+            ->where('d.estado', 'A')
+            ->select(
+                'c.id as cabecera_id',
+                'c.numero_envio',
+                'c.fecha_embarque',
+                'c.contenedor',
+                'b.nombre as bosque_nombre',
+                DB::raw('COUNT(d.trozas) as total_trozas'),
+                DB::raw('SUM(d.m_cubica) as total_m3'),
+                DB::raw('SUM(d.valor_troza) as total_valor')
+            )
+            ->groupBy('c.id', 'c.numero_envio', 'c.fecha_embarque', 'c.contenedor', 'd.bosque_id', 'b.nombre')
+            ->orderBy('c.numero_envio', 'asc')
+            ->get();
+
+        // Reorganizar en estructura: por envio -> items (contenedor ...)
+        $grouped = [];
+        foreach ($rows as $r) {
+            $key = $r->numero_envio . '||' . $r->fecha_embarque; // llave compuesta (puedes usar c.id si prefieres)
+            if (!isset($grouped[$key])) {
+                $grouped[$key] = [
+                    'numero_envio'  => $r->numero_envio,
+                    'fecha_embarque' => $r->fecha_embarque,
+                    'cabecera_id' => $r->cabecera_id,
+                    'items' => [],
+                    // opcional: subtotal por envío
+                    'subtotal_trozas' => 0,
+                    'subtotal_m3'     => 0.0,
+                    'subtotal_valor'  => 0.0,
+                ];
+            }
+            $totalTrozas = (int) $r->total_trozas;
+            $totalM3    = (float) $r->total_m3;
+            $totalValor = (float) $r->total_valor;
+
+            $grouped[$key]['items'][] = [
+                'contenedor'    => $r->contenedor,
+                'bosque_nombre'     => $r->bosque_nombre,
+                'total_trozas' => $totalTrozas,
+                'total_m3'      => $totalM3,
+                'total_valor'   => $totalValor
+            ];
+            // acumular subtotales por envío
+            $grouped[$key]['subtotal_trozas'] += $totalTrozas;
+            $grouped[$key]['subtotal_m3']     += $totalM3;
+            $grouped[$key]['subtotal_valor']  += $totalValor;
+        }
+
+        // Reindexar a array (sin llaves compuestas)
+        $result = array_values($grouped);
+
+        $totalesGenerales = [
+            'total_trozas' => array_sum(array_map(fn($e) => (int)$e['subtotal_trozas'], $result)),
+            'total_m3'     => array_sum(array_map(fn($e) => (float)$e['subtotal_m3'], $result)),
+            'total_valor'  => array_sum(array_map(fn($e) => (float)$e['subtotal_valor'], $result)),
+            'total_envios' => count($result)
+        ];
+
+        return response()->json([
+            'envios' => $result,
+            'totales' => $totalesGenerales
+        ]);
+    }
 }

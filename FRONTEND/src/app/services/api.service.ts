@@ -42,6 +42,9 @@ export class ApiService {
   getCabeceraCortes(): Observable<any> {
     return this.http.get(`${this.baseUrl}/cabecera-cortes`);
   }
+  getCabeceraAnios(): Observable<any> {
+    return this.http.get(`${this.baseUrl}/cabecera-cortes/anios`);
+  }
   getCabeceraCorte(id: number): Observable<any> {
     return this.http.get(`${this.baseUrl}/cabecera-corte/${id}`);
   }
@@ -75,6 +78,9 @@ export class ApiService {
   }
   getValorTrozaAll2(): Observable<Record<number, number>> {
     return this.http.get<Record<number, number>>(`${this.baseUrl}/detalle-cortes/valor-troza-all`);
+  }
+  getAcumuladoVenta(dateYear: number): Observable<any> {
+    return this.http.get(`${this.baseUrl}/detalle-cortes/venta/${dateYear}`);
   }
   countDetalleCorte(cabecera_corte_id: number): Observable<any> {
     return this.http.get<number>(`${this.baseUrl}/detalle-cortes/count/${cabecera_corte_id}`);

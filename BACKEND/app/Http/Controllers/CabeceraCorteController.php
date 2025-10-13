@@ -295,4 +295,16 @@ class CabeceraCorteController extends Controller
 
         return response()->json(['message' => 'Corte cerrado correctamente']);
     }
+
+    public function getAnios()
+    {
+        // Devuelve array de años: [2025, 2024, 2023, ...]
+        $anios = CabeceraCorte::select(DB::raw('YEAR(fecha_embarque) as anio'))
+            ->whereNotNull('fecha_embarque')           // opcional: ignorar nulos
+            ->groupBy(DB::raw('YEAR(fecha_embarque)'))
+            ->orderByDesc(DB::raw('YEAR(fecha_embarque)'))
+            ->pluck('anio'); // collection de valores
+
+        return response()->json($anios);
+    }
 }
