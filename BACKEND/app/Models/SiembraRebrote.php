@@ -22,6 +22,7 @@ class SiembraRebrote extends Model
         'anio',
         'hectarea_usada',
         'arb_iniciales',
+        'arb_muertNat',
         'arb_cortados',
         'dist_siembra',
         'saldo',

@@ -55,6 +55,7 @@ Route::group(
         Route::put('/bosques/{id}/inactive', [BosqueController::class, 'destroy']); // Marcar un bosque como inactivo
 
         Route::get('/cabecera-cortes', [CabeceraCorteController::class, 'index']); // Listar todas las cabeceras de corte
+        Route::get('/cabecera-raleos', [CabeceraCorteController::class, 'raleoIndex']);
         Route::get('/cabecera-cortes/anios', [CabeceraCorteController::class, 'getAnios']); 
         Route::get('/cabecera-corte/{id}', [CabeceraCorteController::class, 'show']); // Ver una cabecera de corte por ID
         Route::get('/cabecera-cortes/contrato/{contrato_id}', [CabeceraCorteController::class, 'getContrato']); // Ver una cabecera de corte por contrato ID
@@ -123,6 +124,7 @@ Route::group(
         Route::put('/parametros/{id}', [ParametroController::class, 'update']); // Actualizar un parámetro (PUT)
         Route::put('/parametros/{id}/inactive', [ParametroController::class, 'destroy']); // Marcar un parámetro como inactivo
         Route::get('/parametros/categoria/{categoria}', [ParametroController::class, 'getByCategoria']); // Obtener parámetros por categoría
+        Route::get('/parametros/raleo/{categoria}', [ParametroController::class, 'getByRaleo']);
 
     }
 );

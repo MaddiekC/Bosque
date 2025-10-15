@@ -68,7 +68,7 @@ class SiembraRebroteController extends Controller
         $user = $request->user();
 
         $siembraRebrote = SiembraRebrote::create([
-            ...$request->only(['bosque_id', 'tipo_id', 'tipo_arbol_id', 'fecha', 'anio', 'hectarea_usada', 'arb_iniciales','arb_raleados', 'arb_cortados', 'dist_siembra', 'usuario_creacion']),
+            ...$request->only(['bosque_id', 'tipo_id', 'tipo_arbol_id', 'fecha', 'anio', 'hectarea_usada', 'arb_iniciales','arb_raleados', 'arb_muertNat', 'arb_cortados', 'dist_siembra', 'usuario_creacion']),
             'usuario_creacion' => $user->username,
             'estado' => 'A',
         ]);
@@ -89,13 +89,14 @@ class SiembraRebroteController extends Controller
             'hectarea_usada' => 'required|numeric|min:0',
             'arb_iniciales' => 'required|integer|min:0',
             'arb_raleados'     => 'required|integer|min:0',
+            'arb_muertNat'     => 'required|integer|min:0',
             'arb_cortados' => 'required|integer|min:0',
             'dist_siembra' => 'required|string|max:30',
             //'saldo' => 'required|integer|min:1',
         ]);
 
         // Recalcula el saldo
-        $data['saldo'] = $data['arb_iniciales'] - ($data['arb_cortados'] + $data['arb_raleados']);
+        $data['saldo'] = $data['arb_iniciales'] - ($data['arb_cortados'] + $data['arb_raleados']+ $data['arb_muertNat']);
 
         // 1) Capacidad del bosque
         $bosque = \App\Models\Bosque::findOrFail($data['bosque_id']);

@@ -6,8 +6,7 @@
             <colgroup>
                 <col style="width: 3%;">
                 <col style="width: 5%;"> <!-- Cerrar -->
-                <col style="width: 13%;"> <!-- Cliente -->
-                <col style="width: 5%;"> <!-- Año -->
+                <col style="width: 14%;"> <!-- Año -->
                 <!-- <col style="width: 8%;">  -->
                 <col style="width: 11%;">
                 <col style="width: 4%;">
@@ -44,16 +43,6 @@
                         <option [ngValue]="null">Todo</option>
                         <option *ngFor="let c of contrato" [ngValue]="c.id">
                             {{ c.id}} - {{ getClienteId(c.cliente_id) }} - {{ c.anio }}
-                        </option>
-                    </select>
-                </th>
-                <th class="p-1 flex-fill">
-                    <label for="RaleoTipo" style="background-color: transparent">Raleo:</label>
-                    <select class="form-select form-select-sm" [(ngModel)]="filtroRaleoTipo"
-                        (ngModelChange)="getCortesFiltrados()">
-                        <option [ngValue]="null">Todo</option>
-                        <option *ngFor="let r of raleoTipo" [ngValue]="r.id">
-                            {{ r.nombre }}
                         </option>
                     </select>
                 </th>
@@ -326,7 +315,7 @@
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
-                <h4 class="modal-title" id="miModalLabel">Registro de Corte</h4>
+                <h4 class="modal-title" id="miModalLabel">Registro de Raleo</h4>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
             </div>
             <form #fForm="ngForm" class="modal-body">
@@ -334,17 +323,7 @@
                     {{ saveCantError }}
                 </div>
                 <div class="d-flex flex-wrap gap-2" style="margin-top: 15px; margin-bottom: 15px;">
-                    <div style="width: 150px;">
-                        <label>Raleo:</label>
-                        <select class="form-select" [(ngModel)]="selectedRaleo" (ngModelChange)="onRaleoChange($event)"
-                            name="raleo_tipo_id" required class="form-select form-select-sm">
-                            <option [ngValue]="null">-- Seleccione --</option>
-                            <option *ngFor="let c of raleoTipo" [ngValue]="c.id">
-                                {{ c.nombre }}
-                            </option>
-                        </select>
-                    </div>
-                    <div *ngIf="isRaleoComercial()">
+                    <div>
                         <label>Contrato:</label>
                         <select class="form-select" [(ngModel)]="nuevoCorte.contrato_id" name="contrato"
                             [required]="isRaleoComercial()">
@@ -354,46 +333,8 @@
                             </option>
                         </select>
                     </div>
-                    <div *ngIf="!isRaleoComercial() && selectedRaleo != null" style="width: 146px;">
-                        <label>Arboles</label>
-                        <input type="number" class="form-control form-control-sm" [(ngModel)]="nuevoCorte.cant_arboles"
-                            name="cant_arboles" required>
-                    </div>
                 </div>
                 <div class="d-flex flex-wrap gap-2" style="margin-top: 15px; margin-bottom: 15px;">
-                    <div *ngIf="!isRaleoComercial() && selectedRaleo != null">
-                        <label>Nombre del Bosque</label>
-                        <select class="form-select form-select-sm" [(ngModel)]="nuevoCorte.bosque_id"
-                            (ngModelChange)="onBosqueChange($event)" name="bosque_id" required
-                            class="form-select form-select-sm">
-                            <option [ngValue]="null">-- Seleccione --</option>
-                            <option *ngFor="let b of bosques" [ngValue]="b.id">
-                                {{ b.nombre }}
-                            </option>
-                        </select>
-                    </div>
-                    <div *ngIf="!isRaleoComercial() && selectedRaleo != null" style="margin-bottom: 15px;">
-                        <label>Siembra Rebrote</label>
-                        <select class="form-select form-select-sm" [(ngModel)]="nuevoCorte.siembra_rebrote_id"
-                            name="siembra_rebrote_id" required class="form-select form-select-sm">
-                            <option [ngValue]="null">-- Seleccione --</option>
-                            <option *ngFor="let s of siemRebFiltered" [ngValue]="s.id">
-                                {{ getSiemRebTipo(s.tipo_id)}} - {{s.anio}}
-                            </option>
-                        </select>
-                    </div>
-                </div>
-                <div class="d-flex flex-wrap gap-2" style="margin-top: 15px; margin-bottom: 15px;">
-                    <!-- <div style="margin-bottom: 15px;">
-                        <label>Sello</label>
-                        <select class="form-select form-select-sm" [(ngModel)]="nuevoCorte.sello_id" name="sello_id"
-                            required class="form-select form-select-sm">
-                            <option [ngValue]="null">-- Seleccione --</option>
-                            <option *ngFor="let b of selloTipo" [ngValue]="b.id">
-                                {{ b.nombre }}
-                            </option>
-                        </select>
-                    </div> -->
                     <div>
                         <label>Fecha</label>
                         <input type="date" class="form-control form-control-sm" [(ngModel)]="nuevoCorte.fecha_embarque"
@@ -860,8 +801,8 @@
                 <div class="d-flex flex-wrap gap-2" style="margin-top: 15px; margin-bottom: 15px;">
                     <div style="margin-bottom: 15px; width: 200px;">
                         <label>Nombre del Bosque</label>
-                        <select class="form-select form-select-sm" [(ngModel)]="nuevoDetCorte[0].bosque_id"
-                            (ngModelChange)="onBosqueChange($event)" name="bosque_id" required
+                        <select class="form-select form-select-sm" [(ngModel)]="selectedBosqueId"
+                            (ngModelChange)="onSelectedBosqueChange($event)" name="selectedBosqueId" required
                             class="form-select form-select-sm">
                             <option [ngValue]="null">-- Seleccione --</option>
                             <option *ngFor="let b of bosques" [ngValue]="b.id">
@@ -871,8 +812,9 @@
                     </div>
                     <div style="margin-bottom: 15px; width: 200px;">
                         <label>Siembra Rebrote</label>
-                        <select class="form-select form-select-sm" [(ngModel)]="nuevoDetCorte[0].siembra_rebrote_id"
-                            name="siembra_rebrote_id" required class="form-select form-select-sm">
+                        <select class="form-select form-select-sm" [(ngModel)]="selectedSiembraId"
+                            (ngModelChange)="onSelectedSiembraChange($event)" name="selectedSiembraId" required
+                            class="form-select form-select-sm">
                             <option [ngValue]="null">-- Seleccione --</option>
                             <option *ngFor="let s of siemRebFiltered" [ngValue]="s.id">
                                 {{ getSiemRebTipo(s.tipo_id)}} - {{s.anio}}

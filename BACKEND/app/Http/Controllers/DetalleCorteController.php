@@ -332,7 +332,7 @@ class DetalleCorteController extends Controller
                             ->first();
                         if (!$siembra) continue;
                         $siembra->arb_cortados = (int)($siembra->arb_cortados ?? 0) + (int)$totalAdded;
-                        $siembra->saldo = (int)($siembra->arb_iniciales ?? 0) - ((int)$siembra->arb_cortados + (int)$siembra->arb_raleados);
+                        $siembra->saldo = (int)($siembra->arb_iniciales ?? 0) - ((int)$siembra->arb_cortados + (int)$siembra->arb_raleados + (int)$siembra->arb_muertNat);
                         $siembra->save();
                     }
                 }
@@ -485,11 +485,18 @@ class DetalleCorteController extends Controller
         // Reindexar a array (sin llaves compuestas)
         $result = array_values($grouped);
 
+        $uniqueContainers = collect($rows)
+            ->pluck('contenedor')          // extrae todos los valores de contenedor
+            ->map(fn($c) => trim((string)$c)) // normaliza a string
+            ->filter()                     // elimina vacíos
+            ->unique()
+            ->values();
+
         $totalesGenerales = [
             'total_trozas' => array_sum(array_map(fn($e) => (int)$e['subtotal_trozas'], $result)),
             'total_m3'     => array_sum(array_map(fn($e) => (float)$e['subtotal_m3'], $result)),
             'total_valor'  => array_sum(array_map(fn($e) => (float)$e['subtotal_valor'], $result)),
-            'total_envios' => count($result)
+            'total_contenedor' => $uniqueContainers->count()
         ];
 
         return response()->json([

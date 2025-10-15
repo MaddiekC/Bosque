@@ -27,6 +27,7 @@ class CabeceraCorteController extends Controller
         $cabeceraCortes = CabeceraCorte::with(['bosque', 'contrato.cliente', 'siembraRebrote', 'raleoTipo'])
             ->withCount('detalleCortes')
             ->whereIn('estado', ['A', 'C'])
+            ->where('raleo_tipo_id', 7) 
             ->orderByDesc('created_at')
             ->get();
 
@@ -59,6 +60,21 @@ class CabeceraCorteController extends Controller
 
             return $cab;
         });
+        return response()->json($cabeceraCortes);
+    }
+
+     public function raleoIndex()
+    {
+        $cabeceraCortes = CabeceraCorte::with(['bosque', 'contrato.cliente', 'siembraRebrote', 'raleoTipo'])
+            ->withCount('detalleCortes')
+            ->whereIn('estado', ['A', 'C'])
+            ->whereIn('raleo_tipo_id', [20,21,22]) 
+            ->orderByDesc('created_at')
+            ->get();
+
+        if ($cabeceraCortes->isEmpty()) {
+            return response()->json($cabeceraCortes);
+        }
         return response()->json($cabeceraCortes);
     }
 
@@ -190,12 +206,12 @@ class CabeceraCorteController extends Controller
                     if ($siembraId && $cabeceraCorte->cant_arboles) {
                         $c = (int) $cabeceraCorte->cant_arboles;
 
-                        if ((int)$cabeceraCorte->raleo_tipo_id === 7) {
-                            $siembra->arb_cortados = (int)($siembra->arb_cortados ?? 0) + $c;
+                        if ((int)$cabeceraCorte->raleo_tipo_id === 22) {
+                            $siembra->arb_muertNat = (int)($siembra->arb_muertNat ?? 0) + $c;
                         } else {
                             $siembra->arb_raleados = (int)($siembra->arb_raleados ?? 0) + $c;
                         }
-                        $siembra->saldo = (int)($siembra->arb_iniciales ?? 0) - ((int)$siembra->arb_cortados + (int)$siembra->arb_raleados);
+                        $siembra->saldo = (int)($siembra->arb_iniciales ?? 0) - ((int)$siembra->arb_muertNat + (int)$siembra->arb_raleados);
                         $siembra->save();
                     }
 

@@ -79,7 +79,6 @@ export class ReporteComponent {
     this.loadReport();
   }
 
-
   async exportToPDF() {
     const loadImageAsDataURL = (url: string): Promise<string> => {
       return new Promise((resolve, reject) => {
@@ -149,7 +148,12 @@ export class ReporteComponent {
       const totalTrozas = flatRows.reduce((s, r) => s + (Number(r.total_trozas) || 0), 0);
       const totalM3 = flatRows.reduce((s, r) => s + (Number(r.total_m3) || 0), 0);
       const totalValor = flatRows.reduce((s, r) => s + (Number(r.total_valor) || 0), 0);
-      const totalEnvios = this.totales.total_envios || 0;
+      // elimina entradas vacías/undefined y cuenta únicos
+      const totalContenedor = new Set(
+        flatRows
+          .map(r => r.contenedor)
+          .filter(c => c !== null && c !== undefined && String(c).trim() !== '')
+      ).size;
 
       const fmtInteger = (n: number) => new Intl.NumberFormat('es-ES', { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(Math.round(n));
       const fmtM3 = (n: number) => new Intl.NumberFormat('es-ES', { minimumFractionDigits: 4, maximumFractionDigits: 4 }).format(n);
@@ -259,7 +263,7 @@ export class ReporteComponent {
 
       // preparar líneas de totales
       const totalsLines = [
-        { label: 'N. contenedores:', value: fmtInteger(totalEnvios) },
+        { label: 'N. contenedores:', value: fmtInteger(totalContenedor) },
         { label: 'Total Trozas:', value: fmtInteger(totalTrozas) },
         { label: 'Total m³:', value: fmtM3(totalM3) },
         { label: 'Total Valor (USD):', value: fmtMoney(totalValor) }

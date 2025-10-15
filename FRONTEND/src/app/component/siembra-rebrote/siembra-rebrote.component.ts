@@ -76,6 +76,7 @@ export class SiembraRebroteComponent implements AfterViewInit {
     anio: new Date().getFullYear(),
     hectarea_usada: null,
     arb_iniciales: null,
+    arb_muertNat: 0,
     arb_cortados: 0,
     dist_siembra: '',
     saldo: null

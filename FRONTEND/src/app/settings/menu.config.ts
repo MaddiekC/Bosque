@@ -26,6 +26,12 @@ export const MENU_CONFIG = [
     permission: 6,
   },
   {
+    title: 'Raleo',
+    img: '/assets/images/rama.png',
+    route: '/raleo',
+    permission: 6,
+  },
+  {
     title: 'Reporte',
     icon: 'bi bi-bar-chart-line',
     route: '/reporte',
@@ -37,5 +43,5 @@ export const MENU_CONFIG = [
     submenus: [
       { title: 'Ver usuarios', route: '/usuarios', permission: 8 },
     ]
-  }
+  },
 ];

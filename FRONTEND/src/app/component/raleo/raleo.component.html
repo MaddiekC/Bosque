@@ -1,0 +1,289 @@
+<h4 style="color: rgb(1, 1, 199);">Listado de Raleo y arb. muertos por naturaleza</h4>
+<div style="display: flex; align-items: start; gap: 15px;">
+    <div style="white-space: nowrap;">
+        <!-- Fila de filtros -->
+        <table class="table table-striped table-hover table-sm w-100%" style="table-layout: fixed;">
+            <colgroup>
+                <col style="width: 13%;">
+                <col style="width: 12%;"> <!-- Cerrar -->
+                <col style="width: 27%;"> <!-- Cliente -->
+                <col style="width: 18%;"> <!-- Año -->
+                <col>
+                <col>
+            </colgroup>
+            <tr>
+                <th class="p-1 flex-fill">
+                    <label for="bosques" style="background-color: transparent">Bosque:</label>
+                    <select class="form-select form-select-sm" [(ngModel)]="filtroBosque"
+                        (ngModelChange)="getCortesFiltrados()" (ngModelChange)="onBosqueChange($event)">
+                        <option [ngValue]="null">Todo</option>
+                        <option *ngFor="let b of bosques" [ngValue]="b.id">
+                            {{ b.nombre }}
+                        </option>
+                    </select>
+                </th>
+                <th class="p-1 flex-fill">
+                    <label for="RaleoTipo" style="background-color: transparent">Tipo:</label>
+                    <select class="form-select form-select-sm" [(ngModel)]="filtroRaleoTipo"
+                        (ngModelChange)="getCortesFiltrados()">
+                        <option [ngValue]="null">Todo</option>
+                        <option *ngFor="let r of raleoTipo" [ngValue]="r.id">
+                            {{ r.nombre }}
+                        </option>
+                    </select>
+                </th>
+                <th>
+                    <label for="SiembraRebrote" style="background-color: transparent">Siembra Rebrote:</label>
+                    <select class="form-select form-select-sm" [(ngModel)]="filtroSiembraRebrote"
+                        (ngModelChange)="getCortesFiltrados()">
+                        <option [ngValue]="null">Todo</option>
+                        <option *ngFor="let s of siemRebFiltered" [ngValue]="s.id">
+                            {{ getSiemRebTipo(s.tipo_id) }} - {{ s.anio }}
+                        </option>
+                    </select>
+                </th>
+                <th class="p-1 flex-fill">
+                    <label for="Fecha" style="background-color: transparent">Fecha:</label>
+                    <input type="date" class="form-control form-control-sm" placeholder="Filtrar Fecha"
+                        [(ngModel)]="filtroFecha" (ngModelChange)="getCortesFiltrados()">
+                </th>
+            </tr>
+        </table>
+
+        <div style="display: flex; align-items: start; gap: 15px;">
+
+            <table class="table table-striped table-bordered table-hover table-sm w-100">
+                <colgroup>
+                    <col>
+                    <col> <!--  -->
+                    <col> <!--  -->
+                    <col> <!--  -->
+                    <col> <!--  -->
+                    <col> <!--  -->
+                </colgroup>
+                <thead class="table-success" style="text-align: center;">
+                    <tr>
+                        <th style="padding-bottom:12px ;">Bosque</th>
+                        <th style="padding-bottom:12px ;">Raleo</th>
+                        <th style="padding-bottom:12px ;">Siembra Rebrote</th>
+                        <th style="padding-bottom:12px ;">Fecha</th>
+                        <th style="padding-bottom:12px ;">Árboles</th>
+                        <th *hasPermission="38">...</th>
+                    </tr>
+                </thead>
+                <!-- Visualizar -->
+                <tbody>
+                    <tr *ngFor="let corte of cortesFiltrados| paginate: { itemsPerPage: itemsPorPagina, currentPage: paginaActual }; let i = index">
+                        <!-- Columna Bosque-->
+                        <td class="text-center">
+                            {{ formatBosques(corte.bosque_id) }}
+                        </td>
+                        <!-- Columna Tipo de raleo -->
+                        <td class="text-center">
+                            {{ getRaleoId(corte.raleo_tipo_id) }}
+                        </td>
+                        <!-- Columna Siembra rebrote -->
+                        <td class="text-center">
+                            {{ formatSiembras(corte.siembra_rebrote_id) }}
+                        </td>
+                        <!-- Columna Fecha -->
+                        <td class="text-center">
+                            {{ corte.fecha_embarque | date: 'dd/MM/yyyy' }}
+                        </td>
+                        <!-- Columna Cant -->
+                        <td class="text-end">
+                            {{ corte.cant_arboles || corte.detalle_cortes_count | number: '1.0-0'}}
+                        </td>
+                        <!-- Acciones -->
+                        <div *hasPermission="38">
+                            <td class="d-flex justify-content-center align-items-center" *ngIf="corte.estado === 'A'">
+                                <button *hasPermission="39" class="btn btnAngosto" data-bs-toggle="tooltip"
+                                    title="Editar registro" style="background-color:#e7bd35 ;"
+                                    (click)="startEdit(corte.id)">
+                                    <i class="bi bi-pencil"></i>
+                                </button>
+                                <button *hasPermission="40" class="btn btnAngosto " ata-bs-toggle="tooltip"
+                                    title="Eliminar registro" style="background-color:#e7354d ;"
+                                    (click)="openConfirmModal(corte.id)">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </td>
+                        </div>
+                    </tr>
+                </tbody>
+                <tfoot>
+                    <tr>
+                        <!-- Ajusta el colspan al número de columnas de tu tabla -->
+                        <td [attr.colspan]="6" class="text-center">
+                            <pagination-controls (pageChange)="paginaActual = $event" [autoHide]="true" [maxSize]="15"
+                                previousLabel="«" nextLabel="»">
+                            </pagination-controls>
+                        </td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+    <div class="d-flex align-items-center ">
+        <div style="margin-bottom: 14px;" class="dropdown">
+            <button *hasPermission="36" data-bs-toggle="modal" data-bs-target="#miModal" title="Agregar registro"
+                style="border:none; background:none;">
+                <img src="/assets/images/nuevo.png" width="30" height="31" alt="Agregar" title="Agregar registro">
+            </button>
+        </div>
+        <div>
+            <button *hasPermission="42" class="btn btn-success mb-3"
+                style="background: none; color: green; border: none;" (click)="exportToPDF()"
+                title="Descargar registro">
+                <i class="bi bi-file-earmark-pdf-fill fs-4"></i>
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Confirm Modal -->
+<div class="modal fade" tabindex="-1" aria-labelledby="confirmModalLabel" #confirmModal>
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="confirmModalLabel">Confirmar eliminación</h5>
+                <button type="button" class="btn-close" aria-label="Cerrar" (click)="cancelDelete()"></button>
+            </div>
+            <div class="modal-body">
+                ¿Estás seguro de que deseas eliminar este registro?
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-danger" (click)="confirmDelete()">Sí</button>
+                <button type="button" class="btn btn-secondary" (click)="cancelDelete()">No</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<!-- Modal para registrar  -->
+<div class="modal fade" id="miModal" tabindex="-1" aria-labelledby="miModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title" id="miModalLabel">Registro de Raleo</h4>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <form #fForm="ngForm" class="modal-body">
+                <div *ngIf="saveCantError" class="alert alert-danger" role="alert">
+                    {{ saveCantError }}
+                </div>
+                <div class="d-flex flex-wrap gap-2" style="margin-top: 15px; margin-bottom: 15px;">
+                    <div style="width: 150px;">
+                        <label>Raleo:</label>
+                        <select class="form-select" [(ngModel)]="selectedRaleo" (ngModelChange)="onRaleoChange($event)"
+                            name="raleo_tipo_id" required class="form-select form-select-sm">
+                            <option [ngValue]="null">-- Seleccione --</option>
+                            <option *ngFor="let c of raleoTipo" [ngValue]="c.id">
+                                {{ c.nombre }}
+                            </option>
+                        </select>
+                    </div>
+                    <div style="width: 146px;">
+                        <label>Arboles</label>
+                        <input type="number" class="form-control form-control-sm" [(ngModel)]="nuevoCorte.cant_arboles"
+                            name="cant_arboles" required>
+                    </div>
+                </div>
+                <div class="d-flex flex-wrap gap-2" style="margin-top: 15px; margin-bottom: 15px;">
+                    <div >
+                        <label>Nombre del Bosque</label>
+                        <select class="form-select form-select-sm" [(ngModel)]="nuevoCorte.bosque_id"
+                            (ngModelChange)="onBosqueChange($event)" name="bosque_id" required
+                            class="form-select form-select-sm">
+                            <option [ngValue]="null">-- Seleccione --</option>
+                            <option *ngFor="let b of bosques" [ngValue]="b.id">
+                                {{ b.nombre }}
+                            </option>
+                        </select>
+                    </div>
+                    <div style="margin-bottom: 15px;">
+                        <label>Siembra Rebrote</label>
+                        <select class="form-select form-select-sm" [(ngModel)]="nuevoCorte.siembra_rebrote_id"
+                            name="siembra_rebrote_id" required class="form-select form-select-sm">
+                            <option [ngValue]="null">-- Seleccione --</option>
+                            <option *ngFor="let s of siemRebFiltered" [ngValue]="s.id">
+                                {{ getSiemRebTipo(s.tipo_id)}} - {{s.anio}}
+                            </option>
+                        </select>
+                    </div>
+                </div>
+                <div class="d-flex flex-wrap gap-2" style="margin-top: 15px; margin-bottom: 15px;">
+                    <div>
+                        <label>Fecha</label>
+                        <input type="date" class="form-control form-control-sm" [(ngModel)]="nuevoCorte.fecha_embarque"
+                            name="fecha" required>
+                    </div>
+                </div>
+            </form>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary" (click)="onSave()"
+                    [disabled]="fForm.form.invalid">Guardar</button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"
+                    (click)="cancelEdit()">Cerrar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Editar -->
+<!-- Modal para edición -->
+<div class="modal fade" id="editarModal" tabindex="-1" aria-labelledby="editarModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content" *ngIf="corteEditando">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Editar Corte</h5>
+                </div>
+                <div class="modal-body">
+                    <form>
+                        <div class="d-flex flex-wrap gap-2" style="margin-top: 15px; margin-bottom: 15px;">
+                            <div *ngIf="corteEditando!.bosque_id >= 1">
+                                <label>Nombre del Bosque</label>
+                                <select class="form-select form-select-sm" [(ngModel)]="corteEditando!.bosque_id"
+                                    name="bosque_id" required class="form-select form-select-sm">
+                                    <option [ngValue]="null">-- Seleccione --</option>
+                                    <option *ngFor="let b of bosques" [value]="b.id.toString()">
+                                        {{ b.nombre }}
+                                    </option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="d-flex flex-wrap gap-2" style="margin-top: 15px; margin-bottom: 15px;">
+                            <div *ngIf="corteEditando!.bosque_id >= 1" style="margin-bottom: 15px;">
+                                <label>Siembra Rebrote</label>
+                                <select class="form-select form-select-sm"
+                                    [(ngModel)]="corteEditando!.siembra_rebrote_id" name="siembra_rebrote_id" required
+                                    class="form-select form-select-sm">
+                                    <option [ngValue]="null">-- Seleccione --</option>
+                                    <option *ngFor="let b of siemReb" [value]="b.id.toString()">
+                                        {{ b.id }}
+                                    </option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="d-flex flex-wrap gap-2" style="margin-top: 15px; margin-bottom: 15px;">
+                            <div>
+                                <label>Fecha</label>
+                                <input type="date" class="form-control form-control-sm"
+                                    [(ngModel)]="corteEditando!.fecha_embarque" name="fecha" required>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button class="btnSaveEdit" (click)="saveEdit()">
+                        <i class="bbi bi-save2"></i>Guardar
+                    </button>
+                    <button type="button" class="btnCancelEdit" data-bs-dismiss="modal"><i
+                            class="bi bi-x-lg"></i>Cancelar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

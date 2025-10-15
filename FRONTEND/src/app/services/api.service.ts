@@ -42,6 +42,9 @@ export class ApiService {
   getCabeceraCortes(): Observable<any> {
     return this.http.get(`${this.baseUrl}/cabecera-cortes`);
   }
+  getCabeceraRaleos(): Observable<any> {
+    return this.http.get(`${this.baseUrl}/cabecera-raleos`);
+  }
   getCabeceraAnios(): Observable<any> {
     return this.http.get(`${this.baseUrl}/cabecera-cortes/anios`);
   }
@@ -218,6 +221,9 @@ export class ApiService {
   }
   getTipoArbol(categoria: string): Observable<any> {
     return this.http.get(`${this.baseUrl}/parametros/categoria/${categoria}`);
+  }
+  getTipoRaleo(categoria: string): Observable<any> {
+    return this.http.get(`${this.baseUrl}/parametros/raleo/${categoria}`);
   }
   getTipoSR(categoria: string): Observable<any> {
     return this.http.get(`${this.baseUrl}/parametros/categoria/${categoria}`);

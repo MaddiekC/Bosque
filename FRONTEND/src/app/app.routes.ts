@@ -56,6 +56,11 @@ export const routes: Routes = [
         loadComponent: () => import('./component/reporte/reporte.component').then(m => m.ReporteComponent),
         data: { title: 'Reporte' }
       },
+      {
+        path: 'raleo',
+        loadComponent: () => import('./component/raleo/raleo.component').then(m => m.RaleoComponent),
+        data: { title: 'Raleo' }
+      },
     ]
   },
   {

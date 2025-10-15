@@ -78,13 +78,13 @@ export class CorteComponent {
   nuevoCorte: any = {
     bosque_id: null,
     contrato_id: 0,
-    raleo_tipo_id: 0,
+    raleo_tipo_id: 7,
     siembra_rebrote_id: null,
     //sello_id: 0,
     fecha_embarque: '',
     cant_arboles: 0,
-    numero_viaje: 0,
-    numero_envio: 0,
+    numero_viaje: null,
+    numero_envio: null,
     placa_carro: '',
     contenedor: '',
     naviera: '',
@@ -99,6 +99,8 @@ export class CorteComponent {
 
   listDetCortes: any[] = [];
   selectedCorteId: number | null = null;
+  selectedBosqueId: number | null = null;
+  selectedSiembraId: number | null = null;
   selectedCorte: any = null;
   //selectedContractForCorte: number | null = null;
   isContractLocked = false;
@@ -313,6 +315,26 @@ export class CorteComponent {
         && tipoArbolId !== null
         && tecaIds.includes(Number(tipoArbolId));
     });
+  }
+
+  // cuando cambias el bosque global -> propaga a todas las filas
+  onSelectedBosqueChange(bosqueId: number | null) {
+    const id = bosqueId === null || bosqueId === undefined ? null : Number(bosqueId);
+
+    // guardar en nuevoCorte (ngModel ya lo hizo, pero por seguridad)
+    //this.nuevoCorte.bosque_id = id;
+
+    // actualizar lista filtrada
+    this.updateSiemRebFiltered(id);
+
+    this.selectedBosqueId = bosqueId;
+    this.nuevoDetCorte.forEach(d => d.bosque_id = bosqueId !== null ? bosqueId : 0);
+  }
+
+  // cuando cambias la siembra global -> propaga a todas las filas
+  onSelectedSiembraChange(val: number | null) {
+    this.selectedSiembraId = val;
+    this.nuevoDetCorte.forEach(d => d.siembra_rebrote_id = val !== null ? val : 0);
   }
 
   getBosqueId(bosqueId: string) {
@@ -684,6 +706,8 @@ export class CorteComponent {
     this.selectedCorteId = corteId;
     this.selectedCorte = null;
     this.nuevoDetCorte = []; // opcional reset
+    this.selectedBosqueId = null;
+    this.selectedSiembraId = null;
 
     forkJoin({
       count: this.corteService.countDetalleCorte(corteId),   // debe devolver { count: N }
@@ -756,8 +780,8 @@ export class CorteComponent {
       m_cubica: 0,
       valor_mcubico: 0,
       valor_troza: 0,
-      bosque_id: 0,
-      siembra_rebrote_id: 0,
+      bosque_id: this.selectedBosqueId || 0,
+      siembra_rebrote_id: this.selectedSiembraId || 0,
     });
   }
 
@@ -884,8 +908,7 @@ export class CorteComponent {
       contrato: ((this.getClienteId(this.getContratoId(corte.contrato_id)) || '') +
         (this.getContratoAnio(this.getContratoId(corte.contrato_id)) ? (' - ' + this.getContratoAnio(this.getContratoId(corte.contrato_id))) : '')) || '',
       raleoTipo: this.getRaleoId(corte.raleo_tipo_id) || '',
-      siembraRebrote: ((this.formatSiembras(corte.siembra_rebrote_id) || '') +
-        (this.getSiemRebAnio(corte.siembra_rebrote_id) ? (' - ' + this.getSiemRebAnio(corte.siembra_rebrote_id)) : '')) || '',
+      siembraRebrote: (this.formatSiembras(corte.siembra_rebrote_id) || '') ,
       //selloTipo: this.getSelloTipoId(corte.sello_id) || '',
       fechaEmbarque: corte.fecha_embarque ? new Date(corte.fecha_embarque).toLocaleDateString('es-ES') : '',
       cantArboles: corte.cant_arboles ?? '',
