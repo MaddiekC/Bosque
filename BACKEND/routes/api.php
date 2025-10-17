@@ -74,6 +74,7 @@ Route::group(
         Route::get('detalle-cortes/count/{cabecera_corte_id}', [DetalleCorteController::class, 'count']); // Contar detalles de corte por cabecera
         Route::get('detalle-cortes/venta/{dataYear}', [DetalleCorteController::class, 'reporteAcumulado']); 
         Route::post('/detalle-cortes', [DetalleCorteController::class, 'store']); // Crear un detalle de corte
+        Route::post('/detalle-cortes/excel', [DetalleCorteController::class, 'uploadExcel']); // Subir detalles de corte desde Excel
         Route::put('/detalle-cortes/{id}', [DetalleCorteController::class, 'update']); // Actualizar un detalle de corte (PUT)
         Route::put('/detalle-cortes/{id}/inactive', [DetalleCorteController::class, 'destroy']); // Marcar un detalle de corte como inactivo
 

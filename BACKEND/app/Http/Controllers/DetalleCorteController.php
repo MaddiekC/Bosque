@@ -355,6 +355,140 @@ class DetalleCorteController extends Controller
         return response()->json($result, 201);
     }
 
+    public function uploadExcel(Request $request)
+    {
+        $request->validate([
+            'file' => 'required|file|mimes:xlsx,xls,csv|max:51200',
+            'cabecera_corte_id' => 'required|integer|exists:cabecera_corte,id',
+            'bosque_id' => 'required|integer|exists:bosque,id',
+            'siembra_rebrote_id' => 'required|integer|exists:siembra_rebrote,id',
+        ]);
+
+        $cabecera = CabeceraCorte::find($request->cabecera_corte_id);
+        $bosqueId = $request->bosque_id;
+        $siembraId = $request->siembra_rebrote_id;
+
+        $existingCount = (int) DetalleCorte::where('cabecera_corte_id', $cabecera->id)
+            ->where('estado', 'A')
+            ->count();
+
+        // Leemos el archivo Excel
+        $filePath = $request->file('file')->getRealPath();
+        $spreadsheet = \PhpOffice\PhpSpreadsheet\IOFactory::load($filePath);
+        $sheet = $spreadsheet->getActiveSheet();
+        $rows = $sheet->toArray(null, true, true, true);
+
+        // Mapeo dinámico según tus columnas
+        // (Asumiendo que la primera fila es encabezado)
+        $headers = array_map('strtolower', $rows[1]);
+        unset($rows[1]); // quitar encabezado
+
+        $summary = [
+            'creados' => 0,
+            'skipped' => 0,
+            'errors' => []
+        ];
+
+        DB::beginTransaction();
+        try {
+            foreach ($rows as $row) {
+                if (empty($row['A']) || !is_numeric($row['A'])) continue;
+
+                // normaliza/convierte los valores como necesites
+                $trozas = (int) ($row['A'] ?? 0);
+                $circ_bruta = $row['B'] ?? 0;
+                $circ_neta = $row['C'] ?? 0;
+                $largo_bruto = $row['D'] ?? 0;
+                $largo_neto = $row['E'] ?? 0;
+                $m3 = $row['F'] ?? 0;
+                $valor_mcubico = $row['G'] ?? 0;
+                $valor_troza = $row['H'] ?? 0;
+
+                // comprueba si ya existe un detalle idéntico (ajusta campos de comparación)
+                $exists = DetalleCorte::where('cabecera_corte_id', $cabecera->id)
+                    ->where('bosque_id', $bosqueId)
+                    ->where('siembra_rebrote_id', $siembraId)
+                    ->where('trozas', $trozas)
+                    ->where('circ_bruta', $circ_bruta)
+                    ->where('circ_neta', $circ_neta)
+                    ->where('largo_bruto', $largo_bruto)
+                    ->where('largo_neto', $largo_neto)
+                    ->where('m_cubica', $m3)
+                    ->where('valor_mcubico', $valor_mcubico)
+                    ->where('valor_troza', $valor_troza)
+                    ->where('estado', 'A')
+                    ->exists();
+
+                if ($exists) {
+                    // opcional: acumular en resumen de duplicados
+                    $summary['skipped_duplicates'] = ($summary['skipped_duplicates'] ?? 0) + 1;
+                    throw new \RuntimeException("No se puede insertar detalles duplicados.");
+                    //continue;
+                }
+
+                // si no existe, crear el detalle
+                DetalleCorte::create([
+                    'cabecera_corte_id' => $cabecera->id,
+                    'bosque_id' => $bosqueId,
+                    'siembra_rebrote_id' => $siembraId,
+                    'trozas' => $trozas,
+                    'circ_bruta' => $circ_bruta,
+                    'circ_neta' => $circ_neta,
+                    'largo_bruto' => $largo_bruto,
+                    'largo_neto' => $largo_neto,
+                    'm_cubica' => $m3,
+                    'valor_mcubico' => $valor_mcubico,
+                    'valor_troza' => $valor_troza,
+                    'estado' => 'A',
+                ]);
+            }
+
+            // --------- recalculos usando COUNT en vez de SUM ----------
+            $newCount = (int) DetalleCorte::where('cabecera_corte_id', $cabecera->id)
+                ->where('estado', 'A')
+                ->count();
+
+            // actualizar campo cant_arboles en la cabecera usando COUNT (número de filas/records)
+            $cabecera->cant_arboles = $newCount;
+            $cabecera->save();
+
+            // calcular diff (por cantidad de filas agregadas)
+            $diff = $newCount - $existingCount;
+
+            if ($diff > 0 && $siembraId) {
+                $siembra = SiembraRebrote::where('id', (int)$siembraId)
+                    ->where('bosque_id', (int)$bosqueId)
+                    ->lockForUpdate()
+                    ->first();
+                if ($siembra) {
+                    // actualizar arb_cortados sumando el número de filas agregadas
+                    $siembra->arb_cortados = (int)($siembra->arb_cortados ?? 0) + $diff;
+                    // recalcular saldo: arb_iniciales - (arb_cortados + arb_raleados + arb_muertNat)
+                    $siembra->saldo = (int)($siembra->arb_iniciales ?? 0)
+                        - ((int)$siembra->arb_cortados + (int)($siembra->arb_raleados ?? 0) + (int)($siembra->arb_muertNat ?? 0));
+                    $siembra->save();
+                }
+            }
+
+            DB::commit();
+
+            return response()->json([
+                'message' => 'Detalles importados correctamente',
+                'cabecera_id' => $cabecera->id,
+                'existing_count' => $existingCount,
+                'new_count' => $newCount,
+                'added_rows' => max(0, $diff),
+                'summary' => $summary
+            ], 200);
+        } catch (\RuntimeException $e) {
+            // errores esperados de validación/negocio -> 422
+            return response()->json(['message' => $e->getMessage()], 422);
+        } catch (\Throwable $th) {
+            DB::rollBack();
+            return response()->json(['error' => $th->getMessage(), 'summary' => $summary], 500);
+        }
+    }
+
 
     public function update(Request $request, $id)
     {
