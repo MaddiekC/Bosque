@@ -91,6 +91,9 @@ export class ApiService {
   postDetalleCorte(detalleCorte: any): Observable<any> {
     return this.http.post(`${this.baseUrl}/detalle-cortes`, detalleCorte);
   }
+  postData(formData: any): Observable<any> {
+    return this.http.post(`${this.baseUrl}/detalle-cortes/excel`, formData);
+  }
   putDetalleCorte(id: number, detalleCorte: any): Observable<any> {
     return this.http.put(`${this.baseUrl}/detalle-cortes/${id}`, detalleCorte);
   }

@@ -102,10 +102,12 @@ export class CorteComponent {
   selectedBosqueId: number | null = null;
   selectedSiembraId: number | null = null;
   selectedCorte: any = null;
+  selectedFile: File | null = null;
+  selectedFileName: string | null = null;
   //selectedContractForCorte: number | null = null;
   isContractLocked = false;
   selectedRaleo: number | null = null;
-
+  isUploading = false;
   listCorte: any[] = [];
   cortesFiltrados: any[] = [];
 
@@ -245,15 +247,6 @@ export class CorteComponent {
         console.log(error);
       }
     );
-    // this.corteService.getSelloTipo('sello').subscribe(
-    //   exito => {
-    //     console.log('sello', exito);
-    //     this.selloTipo = exito;
-    //   },
-    //   error => {
-    //     console.log(error);
-    //   }
-    // );
     this.corteService.getValorTrozaAll2().subscribe(map => {
       this.corteValorTroza = {};
       Object.entries(map || {}).forEach(([k, v]) => {
@@ -790,77 +783,150 @@ export class CorteComponent {
   }
 
   onSaveDet() {
-    this.saveDetError = null;
     console.log('Guardando detalles:', this.nuevoDetCorte);
+    this.saveDetError = null;
+    if (this.selectedFile) {
+      const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement | null;
+      this.uploadExcel(fileInput || undefined);
+    } else {
+      this.corteService.postDetalleCorte({ detalles: this.nuevoDetCorte }).subscribe(
+        response => {
+          console.log('Detalles guardados:', response);
+          const added = Array.isArray(response) ? response.length : this.nuevoDetCorte.length;
+          const corte = this.listCorte.find(c => c.id === this.selectedCorteId);
+          if (corte) {
+            // Actualiza ambos campos por seguridad
+            corte.detalle_cortes_count = (Number(corte.detalle_cortes_count) || 0) + added;
+            corte.cant_arboles = (Number(corte.cant_arboles) || 0) + added;
+          }
+          // 2) Refresca la lista filtrada para que Angular reevalúe los *ngIf
+          this.getCortesFiltrados();
+          this.selectedCorteId = null;
+          this.corteService.getValorTrozaAll2().subscribe(map => {
+            this.corteValorTroza = {};
+            Object.entries(map || {}).forEach(([k, v]) => {
+              this.corteValorTroza[Number(k)] = Number(v) || 0;
+            });
 
-    this.corteService.postDetalleCorte({ detalles: this.nuevoDetCorte }).subscribe(
-      response => {
-        console.log('Detalles guardados:', response);
-        const added = Array.isArray(response) ? response.length : this.nuevoDetCorte.length;
-        const corte = this.listCorte.find(c => c.id === this.selectedCorteId);
-        if (corte) {
-          // Actualiza ambos campos por seguridad
-          corte.detalle_cortes_count = (Number(corte.detalle_cortes_count) || 0) + added;
-          corte.cant_arboles = (Number(corte.cant_arboles) || 0) + added;
+            // (opcional) asegurar entradas por defecto para cortes cargados
+            (this.listCorte || []).forEach((c: any) => {
+              const id = Number(c.id);
+              if (this.corteValorTroza[id] === undefined) this.corteValorTroza[id] = 0;
+            });
+          }, err => {
+            console.error('No pude obtener valorTrozaAll:', err);
+          });
+          // cerrar modal manualmente (solo si éxito)
+          const modalEl = document.getElementById('detModal')!;
+          bootstrap.Modal.getInstance(modalEl)?.hide();
+          // limpiar error
+          this.saveDetError = null;
+        },
+        err => {
+          console.error('Error al guardar los detalles:', err);
+          let msg = 'Error al guardar los detalles';
+          if (err && err.status === 422) {
+            // tu backend devuelve { message: '...' } o { errors: {...} }
+            if (err.error) {
+              if (typeof err.error === 'string') {
+                msg = err.error;
+              } else if (err.error.message) {
+                msg = err.error.message;
+              } else if (err.error.errors) {
+                // compone mensaje desde array de errores
+                const vals = Object.values(err.error.errors)
+                  .flat()
+                  .map((v: any) => String(v));
+                msg = vals.join(' - ') || msg;
+              }
+            }
+          } else if (err && err.message) {
+            msg = err.message;
+          }
+
+          // muestra en la UI
+          this.saveDetError = msg;
+          setTimeout(() => this.saveDetError = null, 8000);
+
+          // opcional: desplazar scroll al top del modal para que se vea el alert
+          try {
+            const modalBody = document.querySelector('#detModal .modal-body') as HTMLElement | null;
+            if (modalBody) modalBody.scrollTop = 0;
+          } catch { }
         }
+      );
+    }
+  }
 
-        // 2) Refresca la lista filtrada para que Angular reevalúe los *ngIf
-        this.getCortesFiltrados();
-        this.selectedCorteId = null;
-        this.corteService.getValorTrozaAll2().subscribe(map => {
-          this.corteValorTroza = {};
-          Object.entries(map || {}).forEach(([k, v]) => {
-            this.corteValorTroza[Number(k)] = Number(v) || 0;
-          });
+  onFileSelected(event: Event) {
+    const target = event.target as HTMLInputElement;
+    if (target.files && target.files.length > 0) {
+      this.selectedFile = target.files[0];
+      this.selectedFileName = this.selectedFile.name;
+    }
+  }
 
-          // (opcional) asegurar entradas por defecto para cortes cargados
-          (this.listCorte || []).forEach((c: any) => {
-            const id = Number(c.id);
-            if (this.corteValorTroza[id] === undefined) this.corteValorTroza[id] = 0;
-          });
-        }, err => {
-          console.error('No pude obtener valorTrozaAll:', err);
-        });
-        // cerrar modal manualmente (solo si éxito)
+  removeExcel(fileInput?: HTMLInputElement) {
+    // limpiar variable
+    this.selectedFile = null;
+    this.selectedFileName = null;
+
+    // resetear visualmente el input (esto hace que vuelva a aparecer "Escoger archivo")
+    if (fileInput) {
+      try {
+        fileInput.value = ''; // funciona en la mayoría de navegadores
+      } catch (e) {
+        // fallback: crear uno nuevo en el DOM (raramente necesario)
+        const newInput = fileInput.cloneNode(false) as HTMLInputElement;
+        fileInput.parentNode?.replaceChild(newInput, fileInput);
+      }
+    }
+  }
+
+  uploadExcel(fileInput?: HTMLInputElement) {
+    if (!this.selectedFile || !this.selectedCorteId) {
+      this.saveDetError = 'Falta archivo o cabecera seleccionada.';
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append('file', this.selectedFile);
+    formData.append('cabecera_corte_id', String(this.selectedCorteId));
+    formData.append('bosque_id', String(this.selectedBosqueId));
+    formData.append('siembra_rebrote_id', String(this.selectedSiembraId));
+
+    this.isUploading = true;
+
+    this.corteService.postData(formData).subscribe({
+      next: (res: any) => {
+        console.log('Excel subido y procesado', res);
+        // limpiar input y estado
+        if (fileInput) {
+          try { fileInput.value = ''; fileInput.dispatchEvent(new Event('input', { bubbles: true })); }
+          catch { /* fallback no crítico */ }
+        } else {
+          this.removeExcel();
+        }
+        this.selectedFile = null;
+        this.selectedFileName = null;
+        this.isUploading = false;
+
+        // cerrar modal SOLO cuando la subida terminó con éxito
         const modalEl = document.getElementById('detModal')!;
         bootstrap.Modal.getInstance(modalEl)?.hide();
-        // limpiar error
-        this.saveDetError = null;
+
+        // refrescar datos en UI (llama a tu método existente)
+        this.getCortesFiltrados?.(); // o la función que recarga datos
       },
-      err => {
-        console.error('Error al guardar los detalles:', err);
-        let msg = 'Error al guardar los detalles';
-        if (err && err.status === 422) {
-          // tu backend devuelve { message: '...' } o { errors: {...} }
-          if (err.error) {
-            if (typeof err.error === 'string') {
-              msg = err.error;
-            } else if (err.error.message) {
-              msg = err.error.message;
-            } else if (err.error.errors) {
-              // compone mensaje desde array de errores
-              const vals = Object.values(err.error.errors)
-                .flat()
-                .map((v: any) => String(v));
-              msg = vals.join(' - ') || msg;
-            }
-          }
-        } else if (err && err.message) {
-          msg = err.message;
-        }
-
-        // muestra en la UI
-        this.saveDetError = msg;
-        setTimeout(() => this.saveDetError = null, 8000);
-
-        // opcional: desplazar scroll al top del modal para que se vea el alert
-        try {
-          const modalBody = document.querySelector('#detModal .modal-body') as HTMLElement | null;
-          if (modalBody) modalBody.scrollTop = 0;
-        } catch { }
+      error: (err) => {
+        console.error('Error al subir Excel', err);
+        this.isUploading = false;
+        // muestra error en UI
+        this.saveDetError = err?.error?.message || 'Error al subir el archivo';
       }
-    );
+    });
   }
+
   async exportToPDF() {
     // Helper: carga una imagen y devuelve dataURL (base64)
     const loadImageAsDataURL = (url: string): Promise<string> => {
@@ -908,7 +974,7 @@ export class CorteComponent {
       contrato: ((this.getClienteId(this.getContratoId(corte.contrato_id)) || '') +
         (this.getContratoAnio(this.getContratoId(corte.contrato_id)) ? (' - ' + this.getContratoAnio(this.getContratoId(corte.contrato_id))) : '')) || '',
       raleoTipo: this.getRaleoId(corte.raleo_tipo_id) || '',
-      siembraRebrote: (this.formatSiembras(corte.siembra_rebrote_id) || '') ,
+      siembraRebrote: (this.formatSiembras(corte.siembra_rebrote_id) || ''),
       //selloTipo: this.getSelloTipoId(corte.sello_id) || '',
       fechaEmbarque: corte.fecha_embarque ? new Date(corte.fecha_embarque).toLocaleDateString('es-ES') : '',
       cantArboles: corte.cant_arboles ?? '',
@@ -1373,7 +1439,6 @@ export class CorteComponent {
     const anio = this.getSiemRebAnio(val);
     return `${tipo}${anio ? ' - ' + anio : ''}`;
   }
-
 }
 
 

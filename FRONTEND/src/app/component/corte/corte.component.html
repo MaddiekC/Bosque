@@ -249,16 +249,6 @@
                 style="border:none; background:none;">
                 <img src="/assets/images/nuevo.png" width="30" height="31" alt="Agregar" title="Agregar registro">
             </button>
-            <!-- <button id="btnAddDropdown" class="btn" type="button" data-bs-toggle="dropdown" aria-expanded="false"
-                title="Agregar registro" style="border:none; background:none;">
-                <img src="/assets/images/nuevo.png" width="30" height="31" alt="Agregar" data-bs-toggle="tooltip"
-                    data-bs-placement="bottom" title="Agregar registro">
-            </button> -->
-            <!-- <ul class="dropdown-menu" aria-labelledby="btnAddDropdown">
-                <li><button class="dropdown-item" (click)="onClickComercial()">Comercial</button></li>
-                <li><button class="dropdown-item" (click)="onClickSemiComercial()">No comercial</button></li>
-                <li><button class="dropdown-item" (click)="onClickBasureo()">Basureo</button></li>
-            </ul> -->
         </div>
         <div>
             <button *hasPermission="42" class="btn btn-success mb-3"
@@ -821,9 +811,17 @@
                             </option>
                         </select>
                     </div>
+                    <div style="margin-bottom: 20px; margin-top:25px;">
+                        <!-- botón que pasa la referencia del input -->
+                        <button (click)="removeExcel(fileInput)" style="border: none; background-color: transparent">
+                            <img src="/assets/images/borrar.png" width="20" height="21" alt="Quitar" title="Quitar">
+                        </button>
+                        <!-- input con referencia #fileInput -->
+                        <input #fileInput type="file" (change)="onFileSelected($event)" accept=".xlsx,.xls" />
+                    </div>
                 </div>
                 <!-- Tu tabla de detalle -->
-                <table class="table table-bordered table-sm">
+                <table class="table table-bordered table-sm" *ngIf="!selectedFile">
                     <thead class="table-light text-center">
                         <tr>
                             <th>#TROZAS</th>
@@ -857,7 +855,6 @@
                         + Agregar fila
                     </button>
                 </div>
-
             </div>
             <div class="modal-footer">
                 <button class="btn btn-primary" (click)="onSaveDet()">
