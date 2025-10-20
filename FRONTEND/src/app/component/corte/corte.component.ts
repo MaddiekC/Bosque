@@ -911,12 +911,36 @@ export class CorteComponent {
         this.selectedFileName = null;
         this.isUploading = false;
 
+        const added = Number(res?.added_rows ?? 0);
+        const newCount = Number(res?.new_count ?? NaN);
+        const existingCount = Number(res?.existing_count ?? NaN);
+
+        const corte = this.listCorte.find(c => c.id === this.selectedCorteId);
+        if (corte) {
+          if (!isNaN(newCount)) {
+            corte.cant_arboles = newCount;
+          } else if (added > 0) {
+            corte.cant_arboles = (Number(corte.cant_arboles) || 0) + added;
+          }
+          if (!isNaN(added)) {
+            corte.detalle_cortes_count = (Number(corte.detalle_cortes_count) || 0) + added;
+          } else if (!isNaN(newCount)) {
+            corte.detalle_cortes_count = newCount;
+          }
+        }
+
         // cerrar modal SOLO cuando la subida terminó con éxito
         const modalEl = document.getElementById('detModal')!;
         bootstrap.Modal.getInstance(modalEl)?.hide();
 
         // refrescar datos en UI (llama a tu método existente)
         this.getCortesFiltrados?.(); // o la función que recarga datos
+        this.corteService.getValorTrozaAll2().subscribe(map => {
+          this.corteValorTroza = {};
+          Object.entries(map || {}).forEach(([k, v]) => {
+            this.corteValorTroza[Number(k)] = Number(v) || 0;
+          });
+        });
       },
       error: (err) => {
         console.error('Error al subir Excel', err);
