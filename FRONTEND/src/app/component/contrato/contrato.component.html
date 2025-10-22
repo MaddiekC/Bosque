@@ -5,14 +5,15 @@
         <table class="table table-striped table-hover table-sm w-100%" style="table-layout: fixed;">
             <colgroup>
                 <col style="width: 1%;"> <!-- # -->
-                <col style="width: 6%;"> <!-- Cerrar -->
+                <col style="width: 8%;"> <!-- Cerrar -->
                 <col style="width: 1%;"> <!-- Cliente -->
-                <col style="width: 24%;"> <!-- Año -->
-                <col style="width: 4%;"> <!-- Fecha -->
-                <col style="width: 8%;"> <!-- Anticipo -->
+                <col style="width: 23%;"> <!-- Año -->
+                <col style="width: 5%;"> <!-- Fecha -->
+                <col style="width: 9%;"> <!-- Anticipo -->
                 <col> <!-- Saldo -->
                 <col> <!-- Detalles -->
                 <col> <!-- ... -->
+                <col>
                 <col>
                 <col>
             </colgroup>
@@ -52,6 +53,23 @@
                 <th class="p-1 flex-fill"></th>
                 <th class="p-1 flex-fill"></th>
                 <th class="p-1 flex-fill"></th>
+
+                <!-- Celda con botones alineados a la derecha -->
+                <th class="p-3 align-middle text-end" style="white-space: nowrap;">
+                    <div style="margin: 14px; margin-left: 100px; background-color: transparent; height: 28px;"
+                        class="d-inline-flex align-items-center gap-2">
+                        <button *hasPermission="33" data-bs-toggle="modal" data-bs-target="#miModal"
+                            title="Agregar registro" class="btn btn-link p-0" style="border:none; background:none;">
+                            <img src="/assets/images/nuevo.png" width="30" height="31" alt="Agregar"
+                                title="Agregar registro">
+                        </button>
+
+                        <button *hasPermission="34" class="btn btn-link p-0" (click)="exportToPDF()"
+                            title="Descargar registro" style="color: green;">
+                            <i class="bi bi-file-earmark-pdf-fill fs-4"></i>
+                        </button>
+                    </div>
+                </th>
             </tr>
         </table>
 
@@ -199,20 +217,6 @@
                     </tr>
                 </tfoot>
             </table>
-            <div class="d-flex align-items-center ">
-                <div style="margin-bottom: 14px;">
-                    <button *hasPermission="33" data-bs-toggle="modal" data-bs-target="#miModal" ata-bs-toggle="tooltip"
-                        style="border:none; background:none; " title="Agregar registro"> <img
-                            src="/assets/images/nuevo.png" width="30" height="31" ata-bs-toggle="tooltip"
-                            title="Agregar registro"></button>
-                </div>
-                <div>
-                    <button *hasPermission="34" class="btn btn-success mb-3" style="background: none; color: green; border: none;"
-                        title="Descargar registro" (click)="exportToPDF() ">
-                        <i class="bi bi-file-earmark-pdf-fill fs-4"></i>
-                    </button>
-                </div>
-            </div>
         </div>
     </div>
     <!-- <button *hasPermission="1" data-bs-toggle="modal" data-bs-target="#miModal" ata-bs-toggle="tooltip"

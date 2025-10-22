@@ -47,6 +47,22 @@
                     <input type="date" class="form-control form-control-sm" placeholder="Filtrar Fecha"
                         [(ngModel)]="filtroFecha" (ngModelChange)="getCortesFiltrados()">
                 </th>
+
+                <!-- Celda con botones alineados a la derecha -->
+                <th class="p-3 align-middle text-end" style="white-space: nowrap;">
+                    <div style="margin: 14px; margin-left: 100px; background-color: transparent; height: 28px;" class="d-inline-flex align-items-center gap-2">
+                        <button *hasPermission="36" data-bs-toggle="modal" data-bs-target="#miModal"
+                            title="Agregar registro" class="btn btn-link p-0" style="border:none; background:none;">
+                            <img src="/assets/images/nuevo.png" width="30" height="31" alt="Agregar"
+                                title="Agregar registro">
+                        </button>
+
+                        <button *hasPermission="42" class="btn btn-link p-0" (click)="exportToPDF()"
+                            title="Descargar registro" style="color: green;">
+                            <i class="bi bi-file-earmark-pdf-fill fs-4"></i>
+                        </button>
+                    </div>
+                </th>
             </tr>
         </table>
 
@@ -73,7 +89,8 @@
                 </thead>
                 <!-- Visualizar -->
                 <tbody>
-                    <tr *ngFor="let corte of cortesFiltrados| paginate: { itemsPerPage: itemsPorPagina, currentPage: paginaActual }; let i = index">
+                    <tr
+                        *ngFor="let corte of cortesFiltrados| paginate: { itemsPerPage: itemsPorPagina, currentPage: paginaActual }; let i = index">
                         <!-- Columna Bosque-->
                         <td class="text-center">
                             {{ formatBosques(corte.bosque_id) }}
@@ -122,21 +139,6 @@
                     </tr>
                 </tfoot>
             </table>
-        </div>
-    </div>
-    <div class="d-flex align-items-center ">
-        <div style="margin-bottom: 14px;" class="dropdown">
-            <button *hasPermission="36" data-bs-toggle="modal" data-bs-target="#miModal" title="Agregar registro"
-                style="border:none; background:none;">
-                <img src="/assets/images/nuevo.png" width="30" height="31" alt="Agregar" title="Agregar registro">
-            </button>
-        </div>
-        <div>
-            <button *hasPermission="42" class="btn btn-success mb-3"
-                style="background: none; color: green; border: none;" (click)="exportToPDF()"
-                title="Descargar registro">
-                <i class="bi bi-file-earmark-pdf-fill fs-4"></i>
-            </button>
         </div>
     </div>
 </div>
@@ -191,7 +193,7 @@
                     </div>
                 </div>
                 <div class="d-flex flex-wrap gap-2" style="margin-top: 15px; margin-bottom: 15px;">
-                    <div >
+                    <div>
                         <label>Nombre del Bosque</label>
                         <select class="form-select form-select-sm" [(ngModel)]="nuevoCorte.bosque_id"
                             (ngModelChange)="onBosqueChange($event)" name="bosque_id" required
