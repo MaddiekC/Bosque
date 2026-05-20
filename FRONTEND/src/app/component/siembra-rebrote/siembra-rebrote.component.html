@@ -83,10 +83,11 @@
                 </th> -->
                 <th class="p-1 flex-fill"></th>
                 <th class="p-1 flex-fill"></th>
-                
+
                 <!-- Celda con botones alineados a la derecha -->
                 <th class="p-3 align-middle text-end" style="white-space: nowrap;">
-                    <div style="margin: 14px; margin-left: 21px; background-color: transparent; height: 28px;" class="d-inline-flex align-items-center gap-2">
+                    <div style="margin: 14px; margin-left: 21px; background-color: transparent; height: 28px;"
+                        class="d-inline-flex align-items-center gap-2">
                         <button *hasPermission="22" data-bs-toggle="modal" data-bs-target="#miModal"
                             title="Agregar registro" class="btn btn-link p-0" style="border:none; background:none;">
                             <img src="/assets/images/nuevo.png" width="30" height="31" alt="Agregar"
@@ -199,12 +200,14 @@
                         </td>
                         <!-- Acciones -->
                         <td *hasPermission="19" class="d-flex justify-content-center align-items-center">
-                            <button *hasPermission="20" class="btn btnAngosto" ata-bs-toggle="tooltip" title="Editar registro"
-                                style="background-color:#e7bd35 ;" (click)="startEdit(siembraRebrote.id)">
+                            <button *hasPermission="20" class="btn btnAngosto" ata-bs-toggle="tooltip"
+                                title="Editar registro" style="background-color:#e7bd35 ;"
+                                (click)="startEdit(siembraRebrote.id)">
                                 <i class="bi bi-pencil"></i>
                             </button>
-                            <button *hasPermission="21" class="btn btnAngosto " ata-bs-toggle="tooltip" title="Eliminar registro"
-                                style="background-color:#e7354d ;" (click)="openConfirmModal(siembraRebrote.id)">
+                            <button *hasPermission="21" class="btn btnAngosto " ata-bs-toggle="tooltip"
+                                title="Eliminar registro" style="background-color:#e7354d ;"
+                                (click)="openConfirmModal(siembraRebrote.id)">
                                 <i class="bi bi-trash"></i>
                             </button>
                         </td>
@@ -213,7 +216,7 @@
                 <tfoot>
                     <tr>
                         <!-- Ajusta el colspan al número de columnas de tu tabla -->
-                        <td [attr.colspan]="13" class="text-center">
+                        <td [attr.colspan]="14" class="text-center">
                             <pagination-controls (pageChange)="paginaActual = $event" [autoHide]="true" [maxSize]="15"
                                 previousLabel="«" nextLabel="»">
                             </pagination-controls>
@@ -221,7 +224,18 @@
                     </tr>
                 </tfoot>
             </table>
+            <div style="margin-left: 20px; border: 1px solid rgb(1, 1, 199); padding: 10px; height: fit-content; width: 400px;">
+                <h5 style="color: rgb(1, 1, 199); text-align: left;">Totales Generales</h5>
+                <strong>Hect Usadas: </strong> {{ totalHectareas | number:'1.2-2' }} <br>
+                <strong>Arb Iniciales: </strong> {{ totalArbIniciales | number:'1.0-0' }} <br>
+                <strong>Arb Raleados: </strong> {{ totalArbRaleados | number:'1.0-0' }} <br>
+                <strong>Arb Muert Nat: </strong> {{ totalArbMuertos | number:'1.0-0' }} <br>
+                <strong>Arb Cortados: </strong> {{ totalArbCortados | number:'1.0-0' }} <br>
+                <strong>Saldo: </strong> {{ totalSaldo | number:'1.0-0' }} <br>
+            </div>
+
         </div>
+
     </div>
 </div>
 

@@ -44,12 +44,12 @@ class SiembraRebrote extends Model
         return $this->belongsTo(Parametro::class, 'tipo_arbol_id')
             ->where('categoria', 'tipoArbol');
     }
-    public function cabeceraCortes()
+    public function detalleCortes()
     {
-        return $this->hasMany(CabeceraCorte::class, 'siembra_rebrote_id');
+        return $this->hasMany(DetalleCorte::class, 'siembra_rebrote_id');
     }
-        public function detalleCortes()
+    public function cortes()
     {
-        return $this->hasMany(CabeceraCorte::class, 'siembra_rebrote_id');
+        return $this->hasMany(Corte::class, 'siembra_rebrote_id');
     }
 }

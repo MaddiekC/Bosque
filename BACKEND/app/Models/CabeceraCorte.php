@@ -12,10 +12,8 @@ class CabeceraCorte extends Model
     public $timestamps = true;
     protected $dates = ['created_at', 'updated_at'];
     protected $fillable = [
-        'bosque_id',
         'contrato_id',
         'raleo_tipo_id',
-        'siembra_rebrote_id',
         'fecha_embarque',
         'cant_arboles',
         'numero_viaje',
@@ -33,15 +31,6 @@ class CabeceraCorte extends Model
     public function contrato()
     {
         return $this->belongsTo(Contrato::class, 'contrato_id');
-    }
-    public function bosque()
-    {
-        return $this->belongsTo(Bosque::class, 'bosque_id');
-    }
-    
-    public function siembraRebrote()
-    {
-        return $this->belongsTo(SiembraRebrote::class, 'siembra_rebrote_id');
     }
 
     public function raleoTipo()

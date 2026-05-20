@@ -61,6 +61,11 @@ export const routes: Routes = [
         loadComponent: () => import('./component/raleo/raleo.component').then(m => m.RaleoComponent),
         data: { title: 'Raleo' }
       },
+      {
+        path: 'usuario',
+        loadComponent: () => import('./component/usuario/usuario.component').then(m => m.UsuarioComponent),
+        data: { title: 'Usuarios' }
+      }
     ]
   },
   {

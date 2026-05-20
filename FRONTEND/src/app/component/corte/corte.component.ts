@@ -9,6 +9,7 @@ import autoTable from 'jspdf-autotable';
 import { forkJoin } from 'rxjs';
 import { AuthserviceService } from '../../auth/authservice.service';
 import { HasPermissionDirective } from '../../services/has-permission.directive';
+import { PermissionService } from '../../services/permission.service';
 
 declare const bootstrap: any;
 
@@ -55,11 +56,14 @@ interface detCorte {
 export class CorteComponent {
   @ViewChild('confirmModal') confirmModal!: ElementRef;
   @ViewChild('confirmModalAgreem') confirmModalAgreem!: ElementRef;
+  @ViewChild('confirmModalOpen') confirmModalOpen!: ElementRef;
 
   private modalInstance: any;
   private pendingDeleteId!: number;
   private modalInstanceAgreem: any;
   private pendingCloseAgreemId!: number;
+  private modalInstanceOpen: any;
+  private pendingOpenId!: number;
 
   nuevoDetCorte: detCorte[] = [{
     cabecera_corte_id: 0,
@@ -76,10 +80,10 @@ export class CorteComponent {
   }];
 
   nuevoCorte: any = {
-    bosque_id: null,
+    //bosque_id: null,
     contrato_id: 0,
     raleo_tipo_id: 7,
-    siembra_rebrote_id: null,
+    //siembra_rebrote_id: null,
     //sello_id: 0,
     fecha_embarque: '',
     cant_arboles: 0,
@@ -152,8 +156,27 @@ export class CorteComponent {
   corteEditando: Corte | null = null;
   siemRebFiltered: any[] = [];
 
-  constructor(private corteService: ApiService, private route: ActivatedRoute, private authService: AuthserviceService) { }
+  loading = false;
+  private pendingRequests = 0;
 
+  constructor(private corteService: ApiService, private route: ActivatedRoute, private authService: AuthserviceService, private permissionService: PermissionService) { }
+
+  hasPermission(id: number): boolean {
+    return this.permissionService.has(id);
+  }
+
+  private startRequest(): void {
+    this.pendingRequests++;
+    this.loading = true;
+  }
+
+  private endRequest(): void {
+    this.pendingRequests--;
+    if (this.pendingRequests <= 0) {
+      this.pendingRequests = 0;
+      this.loading = false;
+    }
+  }
   ngOnInit(): void {
     const u = this.authService.getUserInfo();      // string | null
     this.username = u ?? 'Invitado';
@@ -176,96 +199,64 @@ export class CorteComponent {
       console.log('filtroContrato', this.filtroContrato)
     }
 
-    this.corteService.getCabeceraCortes().subscribe(
-      exito => {
-        console.log('corte', exito);
-        this.listCorte = exito
-        this.getCortesFiltrados();
-      },
-      error => {
-        console.log(error);
-      }
-    );
-    this.corteService.getBosques().subscribe(
-      exito => {
-        this.bosques = exito;
-      },
-      error => {
-        console.log(error);
-      }
-    );
-    this.corteService.getClientes().subscribe(
-      exito => {
-        console.log('cliente', exito);
-        this.cliente = exito;
-      },
-      error => {
-        console.log(error);
-      }
-    );
-    this.corteService.getContratos().subscribe(
-      exito => {
-        console.log('contratos', exito);
-        this.contrato = exito;
-      },
-      error => {
-        console.log(error);
-      }
-    );
-    this.corteService.getTipoArbol('raleoTipo').subscribe(
-      exito => {
-        console.log('raleo', exito);
-        this.raleoTipo = exito;
-      },
-      error => {
-        console.log(error);
-      }
-    );
-    this.corteService.getTipoArbol('siembraRebrote').subscribe(
-      exito => {
-        console.log('siembraRebrote', exito);
-        this.siembTipo = exito;
-      },
-      error => {
-        console.log(error);
-      }
-    );
-    this.corteService.getSiembraRebrotes().subscribe(
-      exito => {
-        this.siemReb = exito;
-      },
-      error => {
-        console.log(error);
-      }
-    );
-    this.corteService.getTipoArbol('tipoArbol').subscribe(
-      exito => {
-        console.log(exito);
-        this.tipoArbol = exito;
-      },
-      error => {
-        console.log(error);
-      }
-    );
-    this.corteService.getValorTrozaAll2().subscribe(map => {
-      this.corteValorTroza = {};
-      Object.entries(map || {}).forEach(([k, v]) => {
-        this.corteValorTroza[Number(k)] = Number(v) || 0;
-      });
+    this.startRequest();
 
-      // (opcional) asegurar entradas por defecto para cortes cargados
-      (this.listCorte || []).forEach((c: any) => {
-        const id = Number(c.id);
-        if (this.corteValorTroza[id] === undefined) this.corteValorTroza[id] = 0;
-      });
-    }, err => {
-      console.error('No pude obtener valorTrozaAll:', err);
+    forkJoin({
+      bosques: this.corteService.getBosques(),
+      clientes: this.corteService.getClientes(),
+      contratos: this.corteService.getContratos(),
+      raleos: this.corteService.getTipoRaleo('raleoTipo'),
+      tiposSiembra: this.corteService.getTipoArbol('siembraRebrote'),
+      siembras: this.corteService.getSiembraRebrotes(),
+      arboles: this.corteService.getTipoArbol('tipoArbol'),
+      trozas: this.corteService.getValorTrozaAll2()
+    }).subscribe({
+      next: (res: any) => {
+        this.bosques = res.bosques;
+        this.cliente = res.clientes;
+        this.contrato = res.contratos;
+        this.raleoTipo = res.raleos;
+        this.siembTipo = res.tiposSiembra;
+        this.siemReb = res.siembras;
+        this.tipoArbol = res.arboles;
+
+        this.corteValorTroza = {};
+        Object.entries(res.trozas || {}).forEach(([k, v]) => {
+          this.corteValorTroza[Number(k)] = Number(v) || 0;
+        });
+
+        // AHORA que tenemos todos los diccionarios, cargamos la lista principal de Cortes
+        this.corteService.getCabeceraCortes().subscribe(
+          exito => {
+            console.log('corte', exito);
+            this.listCorte = exito;
+
+            // Aseguramos valores por defecto en corteValorTroza para los cortes cargados
+            (this.listCorte || []).forEach((c: any) => {
+              const id = Number(c.id);
+              if (this.corteValorTroza[id] === undefined) this.corteValorTroza[id] = 0;
+            });
+
+            this.getCortesFiltrados();
+            this.endRequest();
+          },
+          error => {
+            console.log('Error al cargar cortes:', error);
+            this.endRequest();
+          }
+        );
+      },
+      error: (err) => {
+        console.error('Error al cargar los catálogos:', err);
+        this.endRequest();
+      }
     });
   }
 
   ngAfterViewInit(): void {
     this.modalInstance = new bootstrap.Modal(this.confirmModal.nativeElement);
     this.modalInstanceAgreem = new bootstrap.Modal(this.confirmModalAgreem.nativeElement);
+    this.modalInstanceOpen = new bootstrap.Modal(this.confirmModalOpen.nativeElement);
     const tooltipTriggerList = Array.from(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
     tooltipTriggerList.forEach((tooltipTriggerEl: Element) => {
       new bootstrap.Tooltip(tooltipTriggerEl);
@@ -576,6 +567,7 @@ export class CorteComponent {
 
   //--------------------------------------------
   openCloseAModal(id: number) {
+    if (!this.permissionService.has(41)) return;
     this.pendingCloseAgreemId = id;
     this.modalInstanceAgreem.show();
   }
@@ -605,6 +597,38 @@ export class CorteComponent {
         if (this.paginaActual > totalPages) {
           this.paginaActual = totalPages || 1;
         }
+      },
+      error => {
+        console.log(error);
+      }
+    );
+  }
+
+  //--------------------------------------------
+  openConfirmOpenModal(id: number) {
+    if (!this.permissionService.has(48)) return; // Bloquear si no tiene permiso 48
+    this.pendingOpenId = id;
+    this.modalInstanceOpen.show();
+  }
+
+  confirmOpen() {
+    this.openEstado(this.pendingOpenId);
+    this.modalInstanceOpen.hide();
+  }
+
+  cancelOpen() {
+    this.modalInstanceOpen.hide();
+  }
+
+  openEstado(id: number): void {
+    this.corteService.putCorteOpen(id).subscribe(
+      exito => {
+        console.log(exito);
+        const corte = this.listCorte.find(c => c.id === id);
+        if (corte) {
+          corte.estado = 'A';
+        }
+        this.getCortesFiltrados();
       },
       error => {
         console.log(error);

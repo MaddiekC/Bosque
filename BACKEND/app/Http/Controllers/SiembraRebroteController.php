@@ -20,6 +20,22 @@ class SiembraRebroteController extends Controller
             ->get();
         return response()->json($siembraRebrotes);
     }
+
+    // public function index()
+    // {
+    //     $siembraRebrotes = SiembraRebrote::with(['bosque', 'tipo', 'tipoArbol'])
+    //         ->where('estado', 'A')
+    //         ->get();
+    //     $totals = [
+    //         'hectarea_usada' => $siembraRebrotes->sum('hectarea_usada'),
+    //         'arb_iniciales'  => $siembraRebrotes->sum('arb_iniciales'),
+    //         'arb_raleados'   => $siembraRebrotes->sum('arb_raleados'),
+    //         'arb_cortados'   => $siembraRebrotes->sum('arb_cortados'),
+    //     ];
+    //     return response()
+    //         ->json(['data' => $siembraRebrotes, 'totals' => $totals]);
+    // }
+    
     public function show($id)
     {
         $siembraRebrote = SiembraRebrote::with(['bosque', 'tipo', 'tipoArbol'])
@@ -68,7 +84,7 @@ class SiembraRebroteController extends Controller
         $user = $request->user();
 
         $siembraRebrote = SiembraRebrote::create([
-            ...$request->only(['bosque_id', 'tipo_id', 'tipo_arbol_id', 'fecha', 'anio', 'hectarea_usada', 'arb_iniciales','arb_raleados', 'arb_muertNat', 'arb_cortados', 'dist_siembra', 'usuario_creacion']),
+            ...$request->only(['bosque_id', 'tipo_id', 'tipo_arbol_id', 'fecha', 'anio', 'hectarea_usada', 'arb_iniciales', 'arb_raleados', 'arb_muertNat', 'arb_cortados', 'dist_siembra', 'usuario_creacion']),
             'usuario_creacion' => $user->username,
             'estado' => 'A',
         ]);
@@ -96,7 +112,7 @@ class SiembraRebroteController extends Controller
         ]);
 
         // Recalcula el saldo
-        $data['saldo'] = $data['arb_iniciales'] - ($data['arb_cortados'] + $data['arb_raleados']+ $data['arb_muertNat']);
+        $data['saldo'] = $data['arb_iniciales'] - ($data['arb_cortados'] + $data['arb_raleados'] + $data['arb_muertNat']);
 
         // 1) Capacidad del bosque
         $bosque = \App\Models\Bosque::findOrFail($data['bosque_id']);

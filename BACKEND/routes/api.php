@@ -11,6 +11,8 @@ use App\Http\Controllers\ParametroController;
 use App\Http\Controllers\SiembraRebroteController;
 use App\Http\Controllers\AnticipoController;
 use App\Http\Controllers\SeccionController;
+use App\Http\Controllers\CorteController;
+use App\Http\Controllers\UserController;
 
 use Illuminate\Support\Facades\Route;
 
@@ -56,7 +58,7 @@ Route::group(
 
         Route::get('/cabecera-cortes', [CabeceraCorteController::class, 'index']); // Listar todas las cabeceras de corte
         Route::get('/cabecera-raleos', [CabeceraCorteController::class, 'raleoIndex']);
-        Route::get('/cabecera-cortes/anios', [CabeceraCorteController::class, 'getAnios']); 
+        Route::get('/cabecera-cortes/anios', [CabeceraCorteController::class, 'getAnios']);
         Route::get('/cabecera-corte/{id}', [CabeceraCorteController::class, 'show']); // Ver una cabecera de corte por ID
         Route::get('/cabecera-cortes/contrato/{contrato_id}', [CabeceraCorteController::class, 'getContrato']); // Ver una cabecera de corte por contrato ID
         Route::get('corte/count-by-SR/{id}', function ($id) {
@@ -66,13 +68,14 @@ Route::group(
         Route::put('/cabecera-cortes/{id}', [CabeceraCorteController::class, 'update']); // Actualizar una cabecera de corte (PUT)
         Route::put('/cabecera-cortes/{id}/inactive', [CabeceraCorteController::class, 'destroy']); // Marcar una cabecera de corte como inactiva
         Route::put('/cortes/{cabecera_corte_id}/close', [CabeceraCorteController::class, 'closeCorte']); // Marcar un contrato como cerrado
+        Route::put('/cortes/{cabecera_corte_id}/open', [CabeceraCorteController::class, 'openCorte']); // Reabrir un contrato cerrado
 
         Route::get('/detalle-cortes', [DetalleCorteController::class, 'index']); // Listar todos los detalles de corte
         Route::get('/detalle-cortes/valor-troza-all', [DetalleCorteController::class, 'valorTrozaAll']);
         Route::get('/detalle-cortes/distinct/{cabecera_corte_id}', [DetalleCorteController::class, 'distinctBosqueSiembByCab']);
         Route::get('/detalle-cortes/{cabecera_corte_id}', [DetalleCorteController::class, 'show']); // Ver un detalle de corte por ID
         Route::get('detalle-cortes/count/{cabecera_corte_id}', [DetalleCorteController::class, 'count']); // Contar detalles de corte por cabecera
-        Route::get('detalle-cortes/venta/{dataYear}', [DetalleCorteController::class, 'reporteAcumulado']); 
+        Route::get('detalle-cortes/venta/{dataYear}', [DetalleCorteController::class, 'reporteAcumulado']);
         Route::post('/detalle-cortes', [DetalleCorteController::class, 'store']); // Crear un detalle de corte
         Route::post('/detalle-cortes/excel', [DetalleCorteController::class, 'uploadExcel']); // Subir detalles de corte desde Excel
         Route::put('/detalle-cortes/{id}', [DetalleCorteController::class, 'update']); // Actualizar un detalle de corte (PUT)
@@ -127,6 +130,14 @@ Route::group(
         Route::get('/parametros/categoria/{categoria}', [ParametroController::class, 'getByCategoria']); // Obtener parámetros por categoría
         Route::get('/parametros/raleo/{categoria}', [ParametroController::class, 'getByRaleo']);
 
+        Route::get('/cortes', [CorteController::class, 'index']); // Listar todos los raleos
+        Route::get('/cortes/{id}', [CorteController::class, 'show']); // Ver un raleo por ID
+        Route::post('/cortes', [CorteController::class, 'store']); // Crear un raleo
+        Route::put('/cortes/{id}', [CorteController::class, 'update']); // Actualizar un raleo (PUT)
+        Route::put('/cortes/{id}/inactive', [CorteController::class, 'destroy']); // Marcar un raleo como inactivo
+
+        Route::get('/usuarios', [UserController::class, 'index']); // Listar usuarios
+        Route::post('/usuarios', [UserController::class, 'store']); // Crear usuario
     }
 );
 

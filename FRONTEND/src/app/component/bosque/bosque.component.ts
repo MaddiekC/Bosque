@@ -10,6 +10,7 @@ import autoTable from 'jspdf-autotable';
 import { AuthserviceService } from '../../auth/authservice.service';
 import Swal from 'sweetalert2';
 import { HasPermissionDirective } from '../../services/has-permission.directive';
+import { forkJoin } from 'rxjs';
 
 declare const bootstrap: any;
 interface Bosque {
@@ -43,6 +44,8 @@ export class BosqueComponent implements AfterViewInit {
   // paginación
   paginaActual: number = 1;
   itemsPorPagina: number = 15;
+
+  totalHectareas: number = 0;
 
   // listas de opciones para los selects
   tipos: any[] = [];
@@ -78,30 +81,32 @@ export class BosqueComponent implements AfterViewInit {
     this.username = u ?? 'Invitado';
     console.log('Usuario:', this.username);
 
-    this.bosqueService.getBosques().subscribe(
-      exito => {
-        console.log(exito);
-        this.listaBosques = exito.map((item: { hectarea: any }) => ({
-          ...item,
-          // si viene como string o number, lo convertimos a number y a string con dos decimales
-          hectarea: Number(item.hectarea).toFixed(2),
-        }));
-        this.getbosquesFiltrados();
-        console.log(this.bosquesFiltrados)
+    forkJoin({
+      secciones: this.bosqueService.getSecciones(),
+    }).subscribe({
+      next: (res) => {
+        this.secciones = res.secciones;
+
+        this.bosqueService.getBosques().subscribe(
+          exito => {
+            console.log(exito);
+            this.listaBosques = exito.map((item: { hectarea: any }) => ({
+              ...item,
+              // si viene como string o number, lo convertimos a number y a string con dos decimales
+              hectarea: Number(item.hectarea).toFixed(2),
+            }));
+            this.getbosquesFiltrados();
+            console.log(this.bosquesFiltrados)
+          },
+          error => {
+            console.log('Error al cargar los bosques:', error);
+          }
+        );
       },
-      error => {
-        console.log(error);
+      error: (err) => {
+        console.error('Error al cargar las secciones:', err);
       }
-    );
-    this.bosqueService.getSecciones().subscribe(
-      exito => {
-        console.log(exito);
-        this.secciones = exito;
-      },
-      error => {
-        console.log(error);
-      }
-    );
+    });
   }
 
   ngAfterViewInit(): void {
@@ -120,11 +125,17 @@ export class BosqueComponent implements AfterViewInit {
   getbosquesFiltrados() {
     const normalizar = (texto: string) =>
       texto.toLowerCase().trim().replace(/\s+/g, ' ');
-    return this.bosquesFiltrados = this.listaBosques.filter(b =>
+    this.bosquesFiltrados = this.listaBosques.filter(b =>
       (!this.filtroNombre || normalizar(b.nombre).includes(normalizar(this.filtroNombre)))
       && (!this.filtroSeccion || b.seccion_id == this.filtroSeccion)
       && (!this.filtroHectarea || b.hectarea == this.filtroHectarea)
     );
+    this.calcularTotales();
+    return this.bosquesFiltrados;
+  }
+
+  calcularTotales() {
+    this.totalHectareas = this.bosquesFiltrados.reduce((sum, item) => sum + (Number(String(item.hectarea || 0).replace(',', '.')) || 0), 0);
   }
 
 
@@ -290,16 +301,10 @@ export class BosqueComponent implements AfterViewInit {
     ];
 
     // --- Cálculo total de hectáreas ---
-    const totalHectareas = rows.reduce((sum, r) => {
-      const raw = r.hectarea ?? 0;
-      const num = Number(String(raw).replace(',', '.')) || 0;
-      return sum + num;
-    }, 0);
-
     const totalHectareasFormatted = new Intl.NumberFormat('es-ES', {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2
-    }).format(totalHectareas);
+    }).format(this.totalHectareas);
 
     // Carga la imagen antes de dibujar el header/tablas
     let logoDataUrl: string | null = null;

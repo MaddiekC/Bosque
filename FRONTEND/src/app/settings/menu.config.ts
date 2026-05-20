@@ -41,7 +41,7 @@ export const MENU_CONFIG = [
     title: 'Gestión de Usuarios',
     icon: 'bi bi-people',
     submenus: [
-      { title: 'Ver usuarios', route: '/usuarios', permission: 8 },
+      { title: 'Ver usuarios', route: '/usuario', permission: 8 },
     ]
   },
 ];

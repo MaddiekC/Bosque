@@ -1,4 +1,5 @@
 import { Component, ElementRef, ViewChild } from '@angular/core';
+import { forkJoin } from 'rxjs';
 import { ApiService } from '../../services/api.service';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, RouterModule } from '@angular/router';
@@ -14,21 +15,11 @@ declare const bootstrap: any;
 interface Corte {
   id: number,
   bosque_id: number,
-  contrato_id: number,
   raleo_tipo_id: number,
   siembra_rebrote_id: number,
-  //sello_id: number,
-  fecha_embarque: string,
-  cant_arboles: number,
-  numero_viaje: number,
-  numero_envio: number,
-  placa_carro: string,
-  contenedor: string,
-  naviera: string,
-  supervisor: string,
-  sello_empresa: string,
-  sello_rastreo: string,
-  sello_inspeccion: string,
+  fecha_desde: string,
+  fecha_hasta: string,
+  cant_arboles: number
 }
 
 @Component({
@@ -49,21 +40,11 @@ export class RaleoComponent {
 
   nuevoCorte: any = {
     bosque_id: null,
-    contrato_id: 0,
     raleo_tipo_id: 0,
     siembra_rebrote_id: null,
-    //sello_id: 0,
-    fecha_embarque: '',
-    cant_arboles: 0,
-    numero_viaje: null,
-    numero_envio: null,
-    placa_carro: '',
-    contenedor: '',
-    naviera: '',
-    supervisor: '',
-    sello_empresa: '',
-    sello_rastreo: '',
-    sello_inspeccion: ''
+    fecha_desde: '',
+    fecha_hasta: '',
+    cant_arboles: 0
   };
 
   SaldoDisponible = 0;
@@ -80,6 +61,7 @@ export class RaleoComponent {
 
   listCorte: any[] = [];
   cortesFiltrados: any[] = [];
+  isComercialView: boolean = false;
 
   saveCantError: string | null = null;
   saveDetError: string | null = null;
@@ -146,72 +128,51 @@ export class RaleoComponent {
       console.log('filtroContrato', this.filtroContrato)
     }
 
-    this.raleoService.getCabeceraRaleos().subscribe(
-      exito => {
-        console.log('corte', exito);
-        this.listCorte = exito
-        this.getCortesFiltrados();
-      },
-      error => {
-        console.log(error);
-      }
-    );
-    this.raleoService.getBosques().subscribe(
-      exito => {
-        this.bosques = exito;
-      },
-      error => {
-        console.log(error);
-      }
-    );
-    this.raleoService.getTipoRaleo('raleoTipo').subscribe(
-      exito => {
-        console.log('raleo', exito);
-        this.raleoTipo = exito;
-      },
-      error => {
-        console.log(error);
-      }
-    );
-    this.raleoService.getTipoArbol('siembraRebrote').subscribe(
-      exito => {
-        console.log('siembraRebrote', exito);
-        this.siembTipo = exito;
-      },
-      error => {
-        console.log(error);
-      }
-    );
-    this.raleoService.getSiembraRebrotes().subscribe(
-      exito => {
-        this.siemReb = exito;
-      },
-      error => {
-        console.log(error);
-      }
-    );
-    this.raleoService.getTipoArbol('tipoArbol').subscribe(
-      exito => {
-        console.log(exito);
-        this.tipoArbol = exito;
-      },
-      error => {
-        console.log(error);
-      }
-    );
-    this.raleoService.getValorTrozaAll2().subscribe(map => {
-      this.corteValorTroza = {};
-      Object.entries(map || {}).forEach(([k, v]) => {
-        this.corteValorTroza[Number(k)] = Number(v) || 0;
-      });
+    // Usamos forkJoin para descargar todos los catálogos PRIMERO
+    // Esto garantiza que cuando llegue la lista de Cortes, los diccionarios ya existan
+    // y no queden columnas en blanco en la tabla.
+    forkJoin({
+      bosques: this.raleoService.getBosques(),
+      raleos: this.raleoService.getTipoRaleo('raleoTipo'),
+      tiposSiembra: this.raleoService.getTipoArbol('siembraRebrote'),
+      siembras: this.raleoService.getSiembraRebrotes(),
+      arboles: this.raleoService.getTipoArbol('tipoArbol'),
+      trozas: this.raleoService.getValorTrozaAll2()
+    }).subscribe({
+      next: (res: any) => {
+        this.bosques = res.bosques;
+        this.raleoTipo = res.raleos;
+        this.siembTipo = res.tiposSiembra;
+        this.siemReb = res.siembras;
+        this.tipoArbol = res.arboles;
 
-      // (opcional) asegurar entradas por defecto para cortes cargados
-      (this.listCorte || []).forEach((c: any) => {
-        const id = Number(c.id);
-        if (this.corteValorTroza[id] === undefined) this.corteValorTroza[id] = 0;
-      });
-    }, err => {
-      console.error('No pude obtener valorTrozaAll:', err);
+        this.corteValorTroza = {};
+        Object.entries(res.trozas || {}).forEach(([k, v]) => {
+          this.corteValorTroza[Number(k)] = Number(v) || 0;
+        });
+
+        // AHORA que tenemos todos los diccionarios, cargamos la lista principal de Cortes
+        this.raleoService.getCortes().subscribe(
+          exito => {
+            console.log('corte', exito);
+            this.listCorte = exito;
+            
+            // Aseguramos valores por defecto en corteValorTroza para los cortes cargados
+            (this.listCorte || []).forEach((c: any) => {
+              const id = Number(c.id);
+              if (this.corteValorTroza[id] === undefined) this.corteValorTroza[id] = 0;
+            });
+            
+            this.getCortesFiltrados();
+          },
+          error => {
+            console.log('Error al cargar cortes:', error);
+          }
+        );
+      },
+      error: (err) => {
+        console.error('Error al cargar los catálogos:', err);
+      }
     });
   }
 
@@ -338,6 +299,8 @@ export class RaleoComponent {
       return true;
     });
 
+    this.isComercialView = this.cortesFiltrados.some(c => this.isRowComercial(c.raleo_tipo_id));
+
     return this.cortesFiltrados;
   }
 
@@ -394,7 +357,7 @@ export class RaleoComponent {
   }
 
   eliminarCorte(id: number): void {
-    this.raleoService.putCabeceraCorteInactive(id).subscribe(
+    this.raleoService.putCorteInactive(id).subscribe(
       exito => {
         console.log(exito);
         this.listCorte = this.listCorte.filter(corte => corte.id !== id);
@@ -431,7 +394,7 @@ export class RaleoComponent {
 
   saveEdit() {
     if (!this.corteEditando) return;
-    this.raleoService.putCabeceraCorte(this.corteEditando.id, this.corteEditando).subscribe(
+    this.raleoService.putCorte(this.corteEditando.id, this.corteEditando).subscribe(
       updated => {
         const idx = this.listCorte.findIndex(s => s.id === updated.id);
         if (idx !== -1) this.listCorte[idx] = updated;
@@ -457,7 +420,7 @@ export class RaleoComponent {
   onSave() {
     this.saveCantError = null;
     console.log('Nuevo corte:', this.nuevoCorte);
-    this.raleoService.postCabeceraCorte(this.nuevoCorte)
+    this.raleoService.postCorte(this.nuevoCorte)
       .subscribe({
         next: exito => {
           // formatear y añadir a la lista
@@ -558,9 +521,6 @@ export class RaleoComponent {
       this.nuevoCorte.siembra_rebrote_id = null;
       // limpiar dropdown filtrado para que no muestre opciones residuales
       this.siemRebFiltered = [];
-    } else {
-      // Si NO es comercial -> limpiar contrato porque no aplica
-      this.nuevoCorte.contrato_id = null;
     }
   }
 
@@ -574,6 +534,15 @@ export class RaleoComponent {
     const COMMERCIAL_KNOWN_IDS = [7]; // añade más ids si aplica
     if (COMMERCIAL_KNOWN_IDS.includes(Number(r.id))) return true;
     return false;
+  }
+
+  isRowComercial(raleoTipoId: any): boolean {
+    const id = Number(raleoTipoId);
+    if (!id) return false;
+    const r = (this.raleoTipo || []).find((x: any) => Number(x.id) === id);
+    if (!r) return false;
+    const COMMERCIAL_KNOWN_IDS = [7];
+    return COMMERCIAL_KNOWN_IDS.includes(Number(r.id));
   }
 
 
@@ -630,7 +599,7 @@ export class RaleoComponent {
     const rows = this.cortesFiltrados.map(corte => ({
       bosque: this.formatBosques(corte.bosque_id) || '',
       raleoTipo: this.getRaleoId(corte.raleo_tipo_id) || '',
-      siembraRebrote: (this.formatSiembras(corte.siembra_rebrote_id) || '') ,
+      siembraRebrote: (this.formatSiembras(corte.siembra_rebrote_id) || ''),
       //selloTipo: this.getSelloTipoId(corte.sello_id) || '',
       fechaEmbarque: corte.fecha_embarque ? new Date(corte.fecha_embarque).toLocaleDateString('es-ES') : '',
       cantArboles: fmtNumber(corte.cant_arboles ?? ''),

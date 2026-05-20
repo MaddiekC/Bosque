@@ -69,6 +69,9 @@ export class ApiService {
   putCorteClose(cabecera_corte_id: number): Observable<any> {
     return this.http.put(`${this.baseUrl}/cortes/${cabecera_corte_id}/close`, {});
   }
+  putCorteOpen(cabecera_corte_id: number): Observable<any> {
+    return this.http.put(`${this.baseUrl}/cortes/${cabecera_corte_id}/open`, {});
+  }
   //-----DETALLE CORTE-------//
   getDetalleCortes(): Observable<any> {
     return this.http.get(`${this.baseUrl}/detalle-cortes`);
@@ -233,5 +236,30 @@ export class ApiService {
   }
   getSelloTipo(categoria: string): Observable<any> {
     return this.http.get(`${this.baseUrl}/parametros/categoria/${categoria}`);
+  }
+
+  //-----CORTES-------//
+  getCortes(): Observable<any> {
+    return this.http.get(`${this.baseUrl}/cortes`);
+  }
+  getCorte(id: number): Observable<any> {
+    return this.http.get(`${this.baseUrl}/cortes/${id}`);
+  }
+  postCorte(corte: any): Observable<any> {
+    return this.http.post(`${this.baseUrl}/cortes`, corte);
+  }
+  putCorte(id: number, corte: any): Observable<any> {
+    return this.http.put(`${this.baseUrl}/cortes/${id}`, corte);
+  }
+  putCorteInactive(id: number): Observable<any> {
+    return this.http.put(`${this.baseUrl}/cortes/${id}/inactive`, {});
+  }
+
+  //-----USUARIOS-------//
+  getUsuarios(): Observable<any> {
+    return this.http.get(`${this.baseUrl}/usuarios`);
+  }
+  postUsuario(usuario: any): Observable<any> {
+    return this.http.post(`${this.baseUrl}/usuarios`, usuario);
   }
 }

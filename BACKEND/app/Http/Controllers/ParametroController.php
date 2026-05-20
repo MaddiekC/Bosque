@@ -83,7 +83,7 @@ class ParametroController extends Controller
     public function getByRaleo($categoria)
     {
         $parametros = Parametro::where('categoria', $categoria)
-            ->WhereIn('id', [20, 21, 22])
+            ->WhereIn('id', [7, 20, 21, 22])
             ->get();
         if ($parametros->isEmpty()) {
             return response()->json(['message' => 'No se encontraron parametros para esta categoria'], 404);

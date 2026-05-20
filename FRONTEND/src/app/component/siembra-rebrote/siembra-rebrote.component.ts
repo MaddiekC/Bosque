@@ -10,6 +10,7 @@ import autoTable from 'jspdf-autotable';
 import { AuthserviceService } from '../../auth/authservice.service';
 import Swal from 'sweetalert2';
 import { HasPermissionDirective } from '../../services/has-permission.directive';
+import { forkJoin } from 'rxjs';
 
 declare const bootstrap: any;
 
@@ -68,6 +69,16 @@ export class SiembraRebroteComponent implements AfterViewInit {
   hectareaDisponible = 0;
   hectareaUsadaAntes = 0;
 
+  //totales
+
+  // Variables para los totales
+  totalHectareas = 0;
+  totalArbIniciales = 0;
+  totalArbRaleados = 0;
+  totalArbCortados = 0;
+  totalArbMuertos = 0;
+  totalSaldo = 0;
+
   nuevaSiembraRebrote: any = {
     bosque_id: null,
     tipo_id: null,
@@ -98,76 +109,64 @@ export class SiembraRebroteComponent implements AfterViewInit {
       this.filtroBosque = +idBosqueParam; // lo conviertes a número y aplicas como filtro
     }
 
-    this.SiembraRebService.getSiembraRebrotes().subscribe(
-      exito => {
-        console.log(exito);
-        this.listSiemReb = exito.map((item: { hectarea_usada: any; saldo: any; }) => ({
-          ...item,
-          // si viene como string o number, lo convertimos a number y a string con dos decimales
-          hectarea_usada: Number(item.hectarea_usada).toFixed(2),
-          saldo: Number(item.saldo).toFixed(2),
-        }));
-        this.getSiembraRebFiltrados();
-      },
-      error => {
-        console.log(error);
-      }
-    );
-    this.SiembraRebService.getTipoSR('siembraRebrote').subscribe(
-      exito => {
-        console.log(exito);
-        this.tipos = exito;
-      },
-      error => {
-        console.log(error);
-      }
-    );
-    this.SiembraRebService.getTipoArbol('tipoArbol').subscribe(
-      exito => {
-        console.log(exito);
-        this.tipoArbol = exito;
-      },
-      error => {
-        console.log(error);
-      }
-    );
-    this.SiembraRebService.getBosques().subscribe(
-      exito => {
-        console.log(exito);
-        this.bosques = exito;
-      },
-      error => {
-        console.log(error);
-      }
-    );
-  }
+    forkJoin({
+      tipos: this.SiembraRebService.getTipoSR('siembraRebrote'),
+      tipoArbol: this.SiembraRebService.getTipoArbol('tipoArbol'),
+      bosques: this.SiembraRebService.getBosques()
+    }).subscribe({
+      next: (res: any) => {
+        this.tipos = res.tipos;
+        this.tipoArbol = res.tipoArbol;
+        this.bosques = res.bosques;
 
-  ngAfterViewInit(): void {
-    this.modalInstance = new bootstrap.Modal(this.confirmModal.nativeElement);
-    const tooltipTriggerList = Array.from(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
-    tooltipTriggerList.forEach((tooltipTriggerEl: Element) => {
-      new bootstrap.Tooltip(tooltipTriggerEl);
+        this.SiembraRebService.getSiembraRebrotes().subscribe(
+          exito => {
+            console.log(exito);
+            this.listSiemReb = exito.map((item: { hectarea_usada: any; saldo: any; }) => ({
+              ...item,
+              // si viene como string o number, lo convertimos a number y a string con dos decimales
+              hectarea_usada: Number(item.hectarea_usada).toFixed(2),
+              saldo: Number(item.saldo).toFixed(2),
+            }));
+            this.getSiembraRebFiltrados();
+          },
+          error => {
+            console.log('Error al cargar cortes:', error);
+          }
+        );
+      },
+      error: (err) => {
+        console.error('Error al cargar los catálogos:', err);
+      }
     });
   }
 
+  ngAfterViewInit(): void {
+      this.modalInstance = new bootstrap.Modal(this.confirmModal.nativeElement);
+      const tooltipTriggerList = Array.from(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+      tooltipTriggerList.forEach((tooltipTriggerEl: Element) => {
+        new bootstrap.Tooltip(tooltipTriggerEl);
+      });
+    }
+
   getTipoNombre(tipoId: number) {
-    const tipo = this.tipos?.find((t: any) => t.id == tipoId);
-    return tipo ? tipo.nombre : '';
-  }
+      const tipo = this.tipos?.find((t: any) => t.id == tipoId);
+      return tipo ? tipo.nombre : '';
+    }
   getTipoArbolNombre(tipoArbolId: number) {
-    const tipoArbol = this.tipoArbol?.find((t: any) => t.id == tipoArbolId);
-    return tipoArbol ? tipoArbol.nombre : '';
-  }
+      const tipoArbol = this.tipoArbol?.find((t: any) => t.id == tipoArbolId);
+      return tipoArbol ? tipoArbol.nombre : '';
+    }
   getBosqueNombre(bosqueId: number) {
-    const bosque = this.bosques?.find((b: any) => b.id == bosqueId);
-    return bosque ? bosque.nombre : '';
-  }
+      const bosque = this.bosques?.find((b: any) => b.id == bosqueId);
+      return bosque ? bosque.nombre : '';
+    }
 
   // método que devuelve los bosques ya filtrados
   getSiembraRebFiltrados() {
-    const normalizar = (texto: string) =>
-      texto.toLowerCase().trim().replace(/\s+/g, ' ').replace(/\s*[x×]\s*/g, 'x');;
-    return this.siembRebFiltrados = this.listSiemReb.filter(b =>
+      const normalizar = (texto: string) =>
+        texto.toLowerCase().trim().replace(/\s+/g, ' ').replace(/\s*[x×]\s*/g, 'x');;
+    this.siembRebFiltrados = this.listSiemReb.filter(b =>
       (!this.filtroBosque || b.bosque_id == this.filtroBosque)
       && (!this.filtroTipo || b.tipo_id == this.filtroTipo)
       && (!this.filtroTipoArbol || b.tipo_arbol_id == this.filtroTipoArbol)
@@ -179,6 +178,23 @@ export class SiembraRebroteComponent implements AfterViewInit {
       && (!this.filtroDistSiembra || normalizar(b.dist_siembra).includes(normalizar(this.filtroDistSiembra)))
       && (!this.filtroSaldo || b.saldo == this.filtroSaldo)
     );
+    this.calcularTotales();
+    return this.siembRebFiltrados;
+  }
+
+  calcularTotales() {
+    const sumInteger = (v: any) => {
+      if (v === null || v === undefined) return 0;
+      const s = String(v).replace(/\s/g, '').replace(',', '.');
+      return Math.round(Number(s) || 0);
+    };
+
+    this.totalHectareas = this.siembRebFiltrados.reduce((sum, item) => sum + (Number(String(item.hectarea_usada || 0).replace(',', '.')) || 0), 0);
+    this.totalArbIniciales = this.siembRebFiltrados.reduce((sum, item) => sum + sumInteger(item.arb_iniciales), 0);
+    this.totalArbRaleados = this.siembRebFiltrados.reduce((sum, item) => sum + sumInteger(item.arb_raleados), 0);
+    this.totalArbCortados = this.siembRebFiltrados.reduce((sum, item) => sum + sumInteger(item.arb_cortados), 0);
+    this.totalArbMuertos = this.siembRebFiltrados.reduce((sum, item) => sum + sumInteger(item.arb_muertNat), 0);
+    this.totalSaldo = this.siembRebFiltrados.reduce((sum, item) => sum + sumInteger(item.saldo), 0);
   }
 
   // 1) Se llama al hacer clic en el icono de papelera
@@ -429,24 +445,15 @@ export class SiembraRebroteComponent implements AfterViewInit {
     ];
 
     // --- Cálculo total de hectáreas y árboles ---
-    const sumInteger = (v: any) => {
-      if (v === null || v === undefined) return 0;
-      const s = String(v).replace(/\s/g, '').replace(',', '.');
-      return Math.round(Number(s) || 0);
-    };
-
-    const totalHectareas = rows.reduce((s, r) => s + (Number(String(r.hectarea_usada || 0).replace(',', '.')) || 0), 0);
-    const totalIniciales = rows.reduce((s, r) => s + sumInteger(r.arb_iniciales), 0);
-    const totalRaleados = rows.reduce((s, r) => s + sumInteger(r.arb_raleados), 0);
-    const totalCortados = rows.reduce((s, r) => s + sumInteger(r.arb_cortados), 0);
+    // Los totales ya están calculados en this.totalHectareas, etc.
 
     const fmtInteger = (n: number) => new Intl.NumberFormat('es-ES', { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(n);
     const fmtDecimal = (n: number) => new Intl.NumberFormat('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n);
 
-    const totalHectareasFmt = fmtDecimal(totalHectareas);
-    const totalInicialesFmt = fmtInteger(totalIniciales);
-    const totalRaleadosFmt = fmtInteger(totalRaleados);
-    const totalCortadosFmt = fmtInteger(totalCortados);
+    const totalHectareasFmt = fmtDecimal(this.totalHectareas);
+    const totalInicialesFmt = fmtInteger(this.totalArbIniciales);
+    const totalRaleadosFmt = fmtInteger(this.totalArbRaleados);
+    const totalCortadosFmt = fmtInteger(this.totalArbCortados);
 
     // Carga la imagen antes de dibujar el header/tablas
     let logoDataUrl: string | null = null;

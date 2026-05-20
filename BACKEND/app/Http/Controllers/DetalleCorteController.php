@@ -114,26 +114,6 @@ class DetalleCorteController extends Controller
             }
         }
 
-        // 2) agrupar pedido por siembra_rebrote_id + bosque_id (solo para cabeceras que tienen siembra)
-        // $requestedPerSiembraBosque = [];
-        // foreach ($requestedPerCabecera as $cabId => $qty) {
-        //     $cab = $cabeceras[$cabId];
-        //     if (!$cab->siembra_rebrote_id) continue; // si no hay siembra (ej. basureo), no validar contra siembra
-        //     $key = $cab->siembra_rebrote_id . ':' . $cab->bosque_id;
-        //     $requestedPerSiembraBosque[$key] = ($requestedPerSiembraBosque[$key] ?? 0) + $qty;
-        // }
-        $requestedPerSiembraBosque = [];
-        foreach ($detalles as $d => $qty) {
-            $sid = isset($d['siembra_rebrote_id']) && $d['siembra_rebrote_id'] !== null ? (int)$d['siembra_rebrote_id'] : null;
-            $bid = isset($d['bosque_id']) ? (int)$d['bosque_id'] : null;
-
-            // si no hay siembra, ignoramos 
-            if (!$sid) continue;
-
-            $key = $sid . ':' . $bid;
-            $requestedPerSiembraBosque[$key] = ($requestedPerSiembraBosque[$key] ?? 0) + $qty;
-        }
-
         // -------------------------------------------------
         // VALIDACIÓN ADICIONAL: no permitir si (existingValor + nuevoValor) > anticipo del contrato
         // -------------------------------------------------
@@ -214,38 +194,12 @@ class DetalleCorteController extends Controller
         // Ejecutar todo en transacción (validación con lock + inserts + updates)
         try {
             $result = DB::transaction(function () use (
-                $requestedPerSiembraBosque,
                 $cabeceras,
                 $detalles,
                 $user,
                 $cabeceraIds,
                 $existingCounts
             ) {
-                // 3) Validar saldos con lockForUpdate() en las siembras
-                $errors = [];
-                foreach ($requestedPerSiembraBosque as $key => $toAdd) {
-                    list($siemId, $bosqueId) = explode(':', $key);
-                    $siembra = SiembraRebrote::where('id', (int)$siemId)
-                        ->where('bosque_id', (int)$bosqueId)
-                        ->lockForUpdate()
-                        ->first();
-
-                    if (!$siembra) {
-                        $errors[] = "Siembra {$siemId} (bosque {$bosqueId}) no encontrada.";
-                        continue;
-                    }
-
-                    $available = (int)($siembra->arb_iniciales ?? 0) - (int)($siembra->arb_cortados ?? 0);
-                    if ($toAdd > $available) {
-                        $errors[] = "La cantidad de árboles: {$toAdd} excede el saldo disponible: {$available}.";
-                    }
-                }
-
-                if (!empty($errors)) {
-                    // lanzar excepción para que la transacción haga rollback y se capture afuera
-                    throw new \RuntimeException(implode(' | ', $errors));
-                }
-
                 // 4) Insertar detalles (validaciones de circunferencia/contrato como antes)
                 $creados = [];
                 foreach ($detalles as $det) {
@@ -284,8 +238,6 @@ class DetalleCorteController extends Controller
                         'm_cubica'          => $volM3,
                         'valor_mcubico'     => $precioM3,
                         'valor_troza'       => $valorTroza,
-                        'bosque_id'         => $det['bosque_id'],
-                        'siembra_rebrote_id' => $det['siembra_rebrote_id'],
                         'usuario_creacion'  => $user->username,
                         'estado'            => 'A',
                     ]);
@@ -299,49 +251,10 @@ class DetalleCorteController extends Controller
                     $counts[$cabId] = $cnt;
                 }
 
-                // 6) Calcular diffs (new - old) y agrupar por siembra:bosque
-                $diffs = [];
-                foreach ($counts as $cabId => $newCnt) {
-                    $oldCnt = isset($existingCounts[$cabId]) ? (int)$existingCounts[$cabId] : 0;
-                    $diff = (int)$newCnt - $oldCnt;
-                    if ($diff > 0) $diffs[$cabId] = $diff;
-                }
-
-                if (!empty($diffs)) {
-                    $cabecerasParaDiff = DetalleCorte::whereIn('cabecera_corte_id', array_keys($diffs))
-                        ->select('id', 'cabecera_corte_id', 'siembra_rebrote_id', 'bosque_id')
-                        ->get();
-
-                    $grouped = [];
-                    foreach ($cabecerasParaDiff as $c) {
-                        $cabId = $c->cabecera_corte_id;
-                        $siemId = $c->siembra_rebrote_id;
-                        $bosId = $c->bosque_id;
-                        $inc = $diffs[$cabId] ?? 0;
-                        if ($inc <= 0 || !$siemId) continue;
-                        $key = $siemId . ':' . $bosId;
-                        $grouped[$key] = ($grouped[$key] ?? 0) + $inc;
-                    }
-
-                    // aplicar incrementos con lock y recalcular saldo
-                    foreach ($grouped as $key => $totalAdded) {
-                        list($siemId, $bosId) = explode(':', $key);
-                        $siembra = SiembraRebrote::where('id', (int)$siemId)
-                            ->where('bosque_id', (int)$bosId)
-                            ->lockForUpdate()
-                            ->first();
-                        if (!$siembra) continue;
-                        $siembra->arb_cortados = (int)($siembra->arb_cortados ?? 0) + (int)$totalAdded;
-                        $siembra->saldo = (int)($siembra->arb_iniciales ?? 0) - ((int)$siembra->arb_cortados + (int)$siembra->arb_raleados + (int)$siembra->arb_muertNat);
-                        $siembra->save();
-                    }
-                }
-
                 // devolver objeto de éxito dentro de la transacción
                 return [
                     'created' => $creados,
-                    'counts' => $counts,
-                    'diffs' => $diffs
+                    'counts' => $counts
                 ];
             }, 5); // reintentos de transacción en caso de deadlock
         } catch (\RuntimeException $e) {
@@ -367,6 +280,7 @@ class DetalleCorteController extends Controller
         $cabecera = CabeceraCorte::find($request->cabecera_corte_id);
         $bosqueId = $request->bosque_id;
         $siembraId = $request->siembra_rebrote_id;
+        $user     = $request->user();
 
         $existingCount = (int) DetalleCorte::where('cabecera_corte_id', $cabecera->id)
             ->where('estado', 'A')
@@ -439,6 +353,7 @@ class DetalleCorteController extends Controller
                     'm_cubica' => $m3,
                     'valor_mcubico' => $valor_mcubico,
                     'valor_troza' => $valor_troza,
+                    'usuario_creacion'  => $user->username,
                     'estado' => 'A',
                 ]);
             }
@@ -454,21 +369,6 @@ class DetalleCorteController extends Controller
 
             // calcular diff (por cantidad de filas agregadas)
             $diff = $newCount - $existingCount;
-
-            if ($diff > 0 && $siembraId) {
-                $siembra = SiembraRebrote::where('id', (int)$siembraId)
-                    ->where('bosque_id', (int)$bosqueId)
-                    ->lockForUpdate()
-                    ->first();
-                if ($siembra) {
-                    // actualizar arb_cortados sumando el número de filas agregadas
-                    $siembra->arb_cortados = (int)($siembra->arb_cortados ?? 0) + $diff;
-                    // recalcular saldo: arb_iniciales - (arb_cortados + arb_raleados + arb_muertNat)
-                    $siembra->saldo = (int)($siembra->arb_iniciales ?? 0)
-                        - ((int)$siembra->arb_cortados + (int)($siembra->arb_raleados ?? 0) + (int)($siembra->arb_muertNat ?? 0));
-                    $siembra->save();
-                }
-            }
 
             DB::commit();
 

@@ -32,13 +32,13 @@ class Bosque extends Model
         return $this->hasMany(SiembraRebrote::class, 'bosque_id');
     }
 
-    public function cabeceraCortes()
-    {
-        return $this->hasMany(CabeceraCorte::class, 'bosque_id');
-    }
-
     public function detalleCortes()
     {
-        return $this->hasMany(CabeceraCorte::class, 'bosque_id');
+        return $this->hasMany(DetalleCorte::class, 'bosque_id');
+    }
+
+    public function cortes()
+    {
+        return $this->hasMany(Corte::class, 'bosque_id');
     }
 }
