@@ -44,4 +44,17 @@ class UserController extends Controller
             return response()->json(['message' => 'Error interno al crear usuario'], 500);
         }
     }
+
+    public function destroy($id)
+    {
+        try {
+            $user = User::findOrFail($id);
+            $user->estado = 'I';
+            $user->save();
+            return response()->json(['message' => 'Usuario inactivo']);
+        } catch (\Throwable $e) {
+            Log::error('Error al inactivar usuario: ' . $e->getMessage());
+            return response()->json(['message' => 'Error interno al inactivar usuario'], 500);
+        }
+    }
 }

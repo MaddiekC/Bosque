@@ -138,6 +138,7 @@ Route::group(
 
         Route::get('/usuarios', [UserController::class, 'index']); // Listar usuarios
         Route::post('/usuarios', [UserController::class, 'store']); // Crear usuario
+        Route::put('/usuarios/{id}/inactive', [UserController::class, 'destroy']); // Inactivar usuario
     }
 );
 
