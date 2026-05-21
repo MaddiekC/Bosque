@@ -1,7 +1,7 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
-import { environment } from '../../environment/environment';
+import { environment } from '../../environments/environment';
 
 //import { EncryptionService } from './encryption.service';
 @Injectable({
@@ -261,5 +261,8 @@ export class ApiService {
   }
   postUsuario(usuario: any): Observable<any> {
     return this.http.post(`${this.baseUrl}/usuarios`, usuario);
+  }
+  putUsuarioInactive(id: number): Observable<any> {
+    return this.http.put(`${this.baseUrl}/usuarios/${id}/inactive`, {});
   }
 }

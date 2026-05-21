@@ -17,6 +17,7 @@ declare const bootstrap: any;
 export class UsuarioComponent implements OnInit, AfterViewInit {
 
   @ViewChild('miModal') miModal!: ElementRef;
+  @ViewChild('confirmModal') confirmModal!: ElementRef;
 
   listUsuarios: any[] = [];
   paginaActual: number = 1;
@@ -32,6 +33,8 @@ export class UsuarioComponent implements OnInit, AfterViewInit {
 
   saveError: string | null = null;
   private modalInstance: any;
+  private confirmModalInstance: any;
+  private pendingDeleteId!: number;
 
   constructor(private apiService: ApiService) {}
 
@@ -42,6 +45,9 @@ export class UsuarioComponent implements OnInit, AfterViewInit {
   ngAfterViewInit(): void {
     if (this.miModal) {
       this.modalInstance = new bootstrap.Modal(this.miModal.nativeElement);
+    }
+    if (this.confirmModal) {
+      this.confirmModalInstance = new bootstrap.Modal(this.confirmModal.nativeElement);
     }
   }
 
@@ -84,6 +90,32 @@ export class UsuarioComponent implements OnInit, AfterViewInit {
         } else {
           this.saveError = 'Error al crear el usuario. Verifique los datos o si el usuario ya existe.';
         }
+      }
+    });
+  }
+
+  openConfirmModal(id: number) {
+    this.pendingDeleteId = id;
+    this.confirmModalInstance.show();
+  }
+
+  confirmDelete() {
+    this.eliminarUsuario(this.pendingDeleteId);
+    this.confirmModalInstance.hide();
+  }
+
+  cancelDelete() {
+    this.confirmModalInstance.hide();
+  }
+
+  eliminarUsuario(id: number) {
+    this.apiService.putUsuarioInactive(id).subscribe({
+      next: () => {
+        this.getUsuarios();
+      },
+      error: (err) => {
+        console.error('Error al inactivar usuario', err);
+        alert('Hubo un problema al inactivar el usuario.');
       }
     });
   }

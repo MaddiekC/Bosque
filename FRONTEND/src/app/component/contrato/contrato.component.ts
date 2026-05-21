@@ -10,6 +10,7 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import Swal from 'sweetalert2';
 import { AuthserviceService } from '../../auth/authservice.service';
+import { forkJoin } from 'rxjs';
 
 declare const bootstrap: any;
 
@@ -125,114 +126,69 @@ export class ContratoComponent implements AfterViewInit {
   constructor(private contratoService: ApiService, private route: ActivatedRoute, private authService: AuthserviceService) { }
 
   ngOnInit(): void {
-    const u = this.authService.getUserInfo();      // string | null
+    const u = this.authService.getUserInfo();
     this.username = u ?? 'Invitado';
     console.log('Usuario:', this.username);
 
-    this.contratoService.getContratos().subscribe(
-      exito => {
-        console.log('contrato', exito);
-        this.listContrato = exito
-        this.getContratosFiltrados();
-        this.contratoService.getUltimosAnticipos()
-          .subscribe((mapeo: Record<number, number>) => {
-            this.ultimoAnticipo = mapeo;
-          });
-      },
-      error => {
-        console.log(error);
-      }
-    );
-    this.contratoService.getClientes().subscribe(
-      exito => {
-        this.clientes = exito;
-      },
-      error => {
-        console.log(error);
-      }
-    );
-    this.contratoService.getContratos().subscribe(contratos => {
-      this.listContrato = contratos;
-      this.getContratosFiltrados();
-      // luego traigo los totales
-      this.contratoService.getTotalesAnticipos()
-        .subscribe(totales => {
-          this.totalAnticipo = totales; // será un objeto { [contratoId]: total }
-        });
-    });
-    this.contratoService.getValorTrozaAll().subscribe(map => {
-      this.contratoValorTroza = {};
-      // map viene de la API: keys son strings (json), values numbers
-      Object.entries(map).forEach(([k, v]) => {
-        this.contratoValorTroza[Number(k)] = Number(v) || 0;
-      });
-    });
-    this.contratoService.getSaldosAll().subscribe(map => {
-      this.contratoSaldos = {};
-      Object.entries(map).forEach(([k, v]) => {
-        const id = Number(k);
-        this.contratoSaldos[id] = {
-          embarcado: Number(v.embarcado) || 0,
-          anticipos: Number(v.anticipos) || 0,
-          saldo: Number(v.saldo) || 0
-        };
-        console.log(this.contratoSaldos)
-      });
-    }, err => {
-      console.error('Error al obtener saldos:', err);
-    });
+    // Cargar catálogos y diccionarios concurrentemente
+    forkJoin({
+      clientes: this.contratoService.getClientes(),
+      bosques: this.contratoService.getBosques(),
+      raleoTipo: this.contratoService.getTipoArbol('raleoTipo'),
+      siembTipo: this.contratoService.getTipoArbol('siembraRebrote'),
+      siemReb: this.contratoService.getSiembraRebrotes(),
+      selloTipo: this.contratoService.getSelloTipo('sello'),
+      valorTrozaAll: this.contratoService.getValorTrozaAll(),
+      valorTrozaAll2: this.contratoService.getValorTrozaAll2(),
+      saldosAll: this.contratoService.getSaldosAll(),
+      totalesAnticipos: this.contratoService.getTotalesAnticipos(),
+      ultimosAnticipos: this.contratoService.getUltimosAnticipos()
+    }).subscribe({
+      next: (res) => {
+        this.clientes = res.clientes;
+        this.bosques = res.bosques;
+        this.raleoTipo = res.raleoTipo;
+        this.siembTipo = res.siembTipo;
+        this.siemReb = res.siemReb;
+        this.selloTipo = res.selloTipo;
 
-    // EMBARQUE
-    this.contratoService.getBosques().subscribe(
-      exito => {
-        this.bosques = exito;
+        this.contratoValorTroza = {};
+        Object.entries(res.valorTrozaAll).forEach(([k, v]) => {
+          this.contratoValorTroza[Number(k)] = Number(v) || 0;
+        });
+
+        this.corteValorTroza = {};
+        Object.entries(res.valorTrozaAll2 || {}).forEach(([k, v]) => {
+          this.corteValorTroza[Number(k)] = Number(v) || 0;
+        });
+
+        this.contratoSaldos = {};
+        Object.entries(res.saldosAll).forEach(([k, v]: any) => {
+          const id = Number(k);
+          this.contratoSaldos[id] = {
+            embarcado: Number(v.embarcado) || 0,
+            anticipos: Number(v.anticipos) || 0,
+            saldo: Number(v.saldo) || 0
+          };
+        });
+
+        this.totalAnticipo = res.totalesAnticipos;
+        this.ultimoAnticipo = res.ultimosAnticipos;
+
+        // Finalmente, cargar los contratos
+        this.contratoService.getContratos().subscribe(
+          exito => {
+            this.listContrato = exito;
+            this.getContratosFiltrados();
+          },
+          error => {
+            console.error('Error al cargar contratos:', error);
+          }
+        );
       },
-      error => {
-        console.log(error);
+      error: (err) => {
+        console.error('Error al cargar catálogos:', err);
       }
-    );
-    this.contratoService.getTipoArbol('raleoTipo').subscribe(
-      exito => {
-        console.log('raleo', exito);
-        this.raleoTipo = exito;
-      },
-      error => {
-        console.log(error);
-      }
-    );
-    this.contratoService.getTipoArbol('siembraRebrote').subscribe(
-      exito => {
-        console.log('siembraRebrote', exito);
-        this.siembTipo = exito;
-      },
-      error => {
-        console.log(error);
-      }
-    );
-    this.contratoService.getSiembraRebrotes().subscribe(
-      exito => {
-        this.siemReb = exito;
-      },
-      error => {
-        console.log(error);
-      }
-    );
-    this.contratoService.getSelloTipo('sello').subscribe(
-      exito => {
-        console.log('sello', exito);
-        this.selloTipo = exito;
-      },
-      error => {
-        console.log(error);
-      }
-    );
-    this.contratoService.getValorTrozaAll2().subscribe(map => {
-      this.corteValorTroza = {};
-      Object.entries(map || {}).forEach(([k, v]) => {
-        this.corteValorTroza[Number(k)] = Number(v) || 0;
-      });
-    }, err => {
-      console.error('No pude obtener valorTrozaAll:', err);
     });
   }
 

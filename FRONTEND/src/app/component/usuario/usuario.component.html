@@ -18,8 +18,9 @@
                     <th>#</th>
                     <th>Nombre</th>
                     <th>Apellido</th>
-                    <th>Usuario (Username)</th>
+                    <th>Usuario</th>
                     <th>Estado</th>
+                    <th>...</th>
                 </tr>
             </thead>
             <tbody>
@@ -33,14 +34,19 @@
                             {{ user.estado === 'A' ? 'Activo' : 'Inactivo' }}
                         </span>
                     </td>
+                    <td class="text-center">
+                        <button class="btn btnAngosto" ata-bs-toggle="tooltip" title="Eliminar registro"  (click)="openConfirmModal(user.id)" *ngIf="user.estado === 'A'">
+                            <i class="bi bi-trash text-red"></i>
+                        </button>
+                    </td>
                 </tr>
                 <tr *ngIf="listUsuarios.length === 0">
-                    <td colspan="5" class="text-center">No hay usuarios registrados</td>
+                    <td colspan="6" class="text-center">No hay usuarios registrados</td>
                 </tr>
             </tbody>
             <tfoot>
                 <tr>
-                    <td colspan="5" class="text-center">
+                    <td colspan="6" class="text-center">
                         <pagination-controls (pageChange)="paginaActual = $event" [autoHide]="true" [maxSize]="15"
                             previousLabel="«" nextLabel="»">
                         </pagination-controls>
@@ -88,6 +94,25 @@
             <div class="modal-footer">
                 <button type="button" class="btn btn-primary" (click)="onSave()" [disabled]="fForm.form.invalid">Guardar</button>
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Confirm Modal -->
+<div class="modal fade" tabindex="-1" aria-labelledby="confirmModalLabel" #confirmModal>
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="confirmModalLabel">Confirmar eliminación</h5>
+                <button type="button" class="btn-close" aria-label="Cerrar" (click)="cancelDelete()"></button>
+            </div>
+            <div class="modal-body">
+                ¿Estás seguro de que deseas eliminar este registro?
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-danger" (click)="confirmDelete()">Sí</button>
+                <button type="button" class="btn btn-secondary" (click)="cancelDelete()">No</button>
             </div>
         </div>
     </div>

@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { BehaviorSubject, map, Observable, tap, throwError } from 'rxjs';
-import { environment } from '../../environment/environment';
+import { environment } from '../../environments/environment';
 import { jwtDecode } from 'jwt-decode';
 import { UserService } from './user.service';
 import { PermissionService } from '../services/permission.service';
