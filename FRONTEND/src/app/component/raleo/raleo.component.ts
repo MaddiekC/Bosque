@@ -1,0 +1,616 @@
+import { Component, ElementRef, ViewChild } from '@angular/core';
+import { forkJoin } from 'rxjs';
+import { ApiService } from '../../services/api.service';
+import { CommonModule } from '@angular/common';
+import { ActivatedRoute, RouterModule } from '@angular/router';
+import { NgxPaginationModule } from 'ngx-pagination';
+import { FormsModule } from '@angular/forms';
+import { AuthserviceService } from '../../auth/authservice.service';
+import { HasPermissionDirective } from '../../services/has-permission.directive';
+import { PdfService } from '../../services/pdf.service';
+import Swal from 'sweetalert2';
+
+declare const bootstrap: any;
+
+interface Corte {
+  id: number,
+  bosque_id: number,
+  raleo_tipo_id: number,
+  siembra_rebrote_id: number,
+  fecha_desde: string,
+  fecha_hasta: string,
+  cant_arboles: number
+}
+
+@Component({
+  selector: 'app-raleo',
+  standalone: true,
+  imports: [CommonModule, RouterModule, NgxPaginationModule, FormsModule, HasPermissionDirective],
+  templateUrl: './raleo.component.html',
+  styleUrl: './raleo.component.css'
+})
+export class RaleoComponent {
+  @ViewChild('confirmModal') confirmModal!: ElementRef;
+  @ViewChild('confirmModalAgreem') confirmModalAgreem!: ElementRef;
+
+  private modalInstance: any;
+  private pendingDeleteId!: number;
+  private modalInstanceAgreem: any;
+  private pendingCloseAgreemId!: number;
+
+  nuevoCorte: any = {
+    bosque_id: null,
+    raleo_tipo_id: 0,
+    siembra_rebrote_id: null,
+    fecha_desde: '',
+    fecha_hasta: '',
+    cant_arboles: 0
+  };
+
+  SaldoDisponible = 0;
+  distinctBS: any[] = [];
+
+  listDetCortes: any[] = [];
+  selectedCorteId: number | null = null;
+  selectedBosqueId: number | null = null;
+  selectedSiembraId: number | null = null;
+  selectedCorte: any = null;
+  //selectedContractForCorte: number | null = null;
+  isContractLocked = false;
+  selectedRaleo: number | null = null;
+
+  listCorte: any[] = [];
+  cortesFiltrados: any[] = [];
+  isComercialView: boolean = false;
+
+  saveCantError: string | null = null;
+  saveDetError: string | null = null;
+  filtroSiembraRebrote: number | null = null;
+  filtroSR: string = '';
+  filtroBosque: number | null = null;
+  filtroContrato: number | null = null;
+  filtroRaleoTipo: number | null = null;
+  filtroSelloTipo: number | null = null;
+  filtroFecha: Date | null = null;
+  filtroNaviera: string = '';
+  filtroNumeroViaje: number | null = null;
+  filtroNumeroEnvio: number | null = null;
+
+  // paginación
+  paginaActual: number = 1;
+  itemsPorPagina: number = 15;
+
+  //Totales
+  totalTrozas: number = 0;
+  totalCircBruta: number = 0;
+  totalCircNeta: number = 0
+  totalLargoBruto: number = 0;
+  totalLargoNeto: number = 0
+  totalMCubica: number = 0;
+  totalValorMCubico: number = 0
+  totalValorTroza: number = 0;
+  corteValorTroza: Record<number, number> = {};
+
+  username: string = '';
+  // Datos para los select
+  bosques: any[] = [];
+  contrato: any[] = [];
+  raleoTipo: any[] = [];
+  siemReb: any[] = [];
+  //selloTipo: any[] = [];
+  tipoArbol: any[] = [];
+  siembTipo: any[] = [];
+  cliente: any[] = [];
+  corteEditando: Corte | null = null;
+  siemRebFiltered: any[] = [];
+
+  constructor(
+    private raleoService: ApiService,
+    private route: ActivatedRoute,
+    private authService: AuthserviceService,
+    private pdfService: PdfService
+  ) { }
+
+  ngOnInit(): void {
+    const u = this.authService.getUserInfo();      // string | null
+    this.username = u ?? 'Invitado';
+    console.log('Usuario:', this.username);
+
+    const idSiemRebParam = this.route.snapshot.paramMap.get('idSiembraRebrote');
+    const idBosqueParam = this.route.snapshot.paramMap.get('bosqueId');
+    const idContratoParam = this.route.snapshot.paramMap.get('contratoId');
+    console.log('Ruta', idSiemRebParam, idBosqueParam);
+    if (idSiemRebParam) {
+      this.filtroSiembraRebrote = +idSiemRebParam; // lo conviertes a número y aplicas como filtro
+      console.log('filtroSiembraRebrote', this.filtroSiembraRebrote);
+    }
+    if (idBosqueParam) {
+      this.filtroBosque = +idBosqueParam;
+      console.log('filtroBosque', this.filtroBosque)
+    }
+    if (idContratoParam) {
+      this.filtroContrato = +idContratoParam;
+      console.log('filtroContrato', this.filtroContrato)
+    }
+
+    // Usamos forkJoin para descargar todos los catálogos PRIMERO
+    // Esto garantiza que cuando llegue la lista de Cortes, los diccionarios ya existan
+    // y no queden columnas en blanco en la tabla.
+    forkJoin({
+      bosques: this.raleoService.getBosques(),
+      raleos: this.raleoService.getTipoRaleo('raleoTipo'),
+      tiposSiembra: this.raleoService.getTipoArbol('siembraRebrote'),
+      siembras: this.raleoService.getSiembraRebrotes(),
+      arboles: this.raleoService.getTipoArbol('tipoArbol'),
+      trozas: this.raleoService.getValorTrozaAll2()
+    }).subscribe({
+      next: (res: any) => {
+        this.bosques = res.bosques;
+        this.raleoTipo = res.raleos;
+        this.siembTipo = res.tiposSiembra;
+        this.siemReb = res.siembras;
+        this.tipoArbol = res.arboles;
+
+        this.corteValorTroza = {};
+        Object.entries(res.trozas || {}).forEach(([k, v]) => {
+          this.corteValorTroza[Number(k)] = Number(v) || 0;
+        });
+
+        // AHORA que tenemos todos los diccionarios, cargamos la lista principal de Cortes
+        this.raleoService.getCortes().subscribe(
+          exito => {
+            console.log('corte', exito);
+            this.listCorte = exito;
+            
+            // Aseguramos valores por defecto en corteValorTroza para los cortes cargados
+            (this.listCorte || []).forEach((c: any) => {
+              const id = Number(c.id);
+              if (this.corteValorTroza[id] === undefined) this.corteValorTroza[id] = 0;
+            });
+            
+            this.getCortesFiltrados();
+          },
+          error => {
+            console.log('Error al cargar cortes:', error);
+          }
+        );
+      },
+      error: (err) => {
+        console.error('Error al cargar los catálogos:', err);
+      }
+    });
+  }
+
+  ngAfterViewInit(): void {
+    this.modalInstance = new bootstrap.Modal(this.confirmModal.nativeElement);
+    this.modalInstanceAgreem = new bootstrap.Modal(this.confirmModalAgreem.nativeElement);
+    const tooltipTriggerList = Array.from(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    tooltipTriggerList.forEach((tooltipTriggerEl: Element) => {
+      new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+  }
+
+  onBosqueChange(bosqueId: any) {
+    // convertir a number si viene string
+    const id = bosqueId === null || bosqueId === undefined ? null : Number(bosqueId);
+
+    // guardar en nuevoCorte (ngModel ya lo hizo, pero por seguridad)
+    this.nuevoCorte.bosque_id = id;
+
+    // actualizar lista filtrada
+    this.updateSiemRebFiltered(id);
+  }
+
+  updateSiemRebFiltered(bosqueId: number | null) {
+    if (bosqueId === null || bosqueId === undefined) {
+      this.siemRebFiltered = [];
+      return;
+    }
+
+    // Buscar el/los id(s) del parametro cuyo nombre es "Teca" dentro de tipoArbol
+    const tecaIds = (this.tipoArbol || [])
+      .filter((t: any) => (t.nombre || '').toString().trim().toLowerCase() === 'teca')
+      .map((t: any) => Number(t.id));
+
+    // Si no hay definiciones de "Teca" aún, dejamos vacío (evita mostrar siembras de otros tipos)
+    if (tecaIds.length === 0) {
+      this.siemRebFiltered = [];
+      return;
+    }
+
+    this.siemRebFiltered = (this.siemReb || []).filter(s => {
+      const sBosqueId = s.bosque_id ?? s.idbosque ?? s.bosque?.id ?? null;
+      const tipoArbolId = s.tipo_arbol_id ?? s.tipo_id ?? null; // intenta ambas claves por robustez
+      return sBosqueId !== null
+        && Number(sBosqueId) === Number(bosqueId)
+        && tipoArbolId !== null
+        && tecaIds.includes(Number(tipoArbolId));
+    });
+  }
+
+
+
+  getBosqueId(bosqueId: string) {
+    const bosques = this.bosques?.find((b: any) => b.id == bosqueId);
+    return bosques ? bosques.nombre : '';
+  }
+  getContrId(contratoId: string) {
+    const contratos = this.contrato?.find((b: any) => b.id == contratoId);
+    return contratos ? contratos.id : '';
+  }
+  getClienteId(clienteId: string) {
+    const client = this.cliente?.find((b: any) => b.idcliente == clienteId);
+    return client ? client.NombreComercial : '';
+  }
+  getContratoAnio(contratoId: string) {
+    const contratos = this.contrato?.find((b: any) => b.id == contratoId);
+    return contratos ? contratos.anio : '';
+  }
+  // getSelloTipoId(selloTipoId: string) {
+  //   const selloTipos = this.selloTipo?.find((b: any) => b.id == selloTipoId);
+  //   return selloTipos ? selloTipos.nombre : '';
+  // }
+  getRaleoId(raleoTipoId: string) {
+    const raleoTipos = this.raleoTipo?.find((b: any) => b.id == raleoTipoId);
+    return raleoTipos ? raleoTipos.nombre : '';
+  }
+  getSiemRebId(siemRebId: string) {
+    const siembraRebrote = this.siemReb?.find((b: any) => b.id == siemRebId);
+    return siembraRebrote ? siembraRebrote.tipo_id : '';
+  }
+  getSiemRebAnio(siemRebId: string) {
+    const siembraRebrote = this.siemReb?.find((b: any) => b.id == siemRebId);
+    return siembraRebrote ? siembraRebrote.anio : '';
+  }
+  getSiemRebBosque(siemRebId: string) {
+    const siembraRebrote = this.siemReb?.find((b: any) => b.id == siemRebId);
+    return siembraRebrote ? siembraRebrote.bosque_id : '';
+  }
+  getSiemRebTipo(siemRebId: string) {
+    const siembraRebroteT = this.siembTipo?.find((b: any) => b.id == siemRebId);
+    return siembraRebroteT ? siembraRebroteT.nombre : '';
+  }
+
+  getCortesFiltrados() {
+    this.cortesFiltrados = (this.listCorte || []).filter(b => {
+      // normalizar campos que pueden ser number | string | array
+      const bosqueIds = this._asNumberArray(b.bosque_id);
+      const siembraIds = this._asNumberArray(b.siembra_rebrote_id);
+
+      // filtro por siembra_rebrote (si hay filtro)
+      if (this.filtroSiembraRebrote) {
+        if (!siembraIds.includes(Number(this.filtroSiembraRebrote))) return false;
+      }
+
+      // filtro por bosque (si hay filtro)
+      if (this.filtroBosque) {
+        if (!bosqueIds.includes(Number(this.filtroBosque))) return false;
+      }
+
+      // filtro por texto (siempre convierte los ids a string "25, 26" para búsqueda)
+      if (this.filtroSR) {
+        const siemStr = siembraIds.join(', ');
+        if (!siemStr.toLowerCase().includes(this.filtroSR.toLowerCase())) return false;
+      }
+
+      // resto de filtros existentes (sin cambios lógicos)
+      if (this.filtroContrato && b.contrato_id != this.filtroContrato) return false;
+      if (this.filtroRaleoTipo && b.raleo_tipo_id != this.filtroRaleoTipo) return false;
+      if (this.filtroNumeroViaje && b.numero_viaje != this.filtroNumeroViaje) return false;
+      if (this.filtroNumeroEnvio && b.numero_envio != this.filtroNumeroEnvio) return false;
+      if (this.filtroNaviera && !(b.naviera ?? '').toString().toLowerCase().includes(this.filtroNaviera.toLowerCase())) return false;
+      if (this.filtroFecha && new Date(b.fecha_embarque).toDateString() !== new Date(this.filtroFecha).toDateString()) return false;
+
+      return true;
+    });
+
+    this.isComercialView = this.cortesFiltrados.some(c => this.isRowComercial(c.raleo_tipo_id));
+
+    return this.cortesFiltrados;
+  }
+
+  // helper que normaliza number | "10,11" | '["10",11]' | [10,11] -> number[]
+  private _asNumberArray(val: any): number[] {
+    if (val === null || typeof val === 'undefined' || val === '') return [];
+
+    // ya es array
+    if (Array.isArray(val)) {
+      return Array.from(new Set(val.map(v => Number(v)).filter(n => Number.isFinite(n))));
+    }
+
+    // si viene como JSON string de un array: '["10", "11"]'
+    if (typeof val === 'string') {
+      const s = val.trim();
+
+      // intento parsear JSON por si backend mandó stringified array
+      if ((s.startsWith('[') && s.endsWith(']'))) {
+        try {
+          const parsed = JSON.parse(s);
+          if (Array.isArray(parsed)) {
+            return this._asNumberArray(parsed);
+          }
+        } catch { /* ignore parse error */ }
+      }
+
+      // si es cadena tipo "10, 11" o "10" -> split por comas
+      const parts = s.split(',').map(p => p.trim()).filter(p => p !== '');
+      const nums = parts.map(p => Number(p)).filter(n => Number.isFinite(n));
+      return Array.from(new Set(nums));
+    }
+
+    // si es número u otro tipo convertible
+    const maybeNum = Number(val);
+    return Number.isFinite(maybeNum) ? [maybeNum] : [];
+  }
+
+
+  // 1) Se llama al hacer clic en el icono de papelera
+  openConfirmModal(id: number) {
+    this.pendingDeleteId = id;
+    this.modalInstance.show();
+  }
+
+  // 2) Si el usuario pulsa “Sí”
+  confirmDelete() {
+    this.eliminarCorte(this.pendingDeleteId);
+    this.modalInstance.hide();
+  }
+
+  // 3) Si pulsa “No” o cierra el modal
+  cancelDelete() {
+    this.modalInstance.hide();
+  }
+
+  eliminarCorte(id: number): void {
+    this.raleoService.putCorteInactive(id).subscribe(
+      exito => {
+        console.log(exito);
+        this.listCorte = this.listCorte.filter(corte => corte.id !== id);
+        this.getCortesFiltrados();
+        const totalItems = this.cortesFiltrados.length;
+        const totalPages = Math.ceil(totalItems / this.itemsPorPagina);
+        if (this.paginaActual > totalPages) {
+          this.paginaActual = totalPages || 1;
+        }
+      },
+      error => {
+        console.error(error);
+        const mensaje = error?.error?.message || 'Ocurrió un error al intentar eliminar el registro.';
+        Swal.fire({
+          icon: 'error',
+          title: 'No se puede eliminar',
+          text: mensaje,
+          confirmButtonColor: '#d33'
+        });
+      }
+    );
+  }
+
+  // Editar
+  startEdit(id: number) {
+    const original = this.listCorte.find(s => s.id === id);
+    if (!original) return;
+
+    // Crear una copia para editar normalizando IDs a number para compatibilidad con [ngValue]
+    this.corteEditando = {
+      ...original,
+      raleo_tipo_id: original.raleo_tipo_id !== null && original.raleo_tipo_id !== undefined ? Number(original.raleo_tipo_id) : null,
+      bosque_id: original.bosque_id !== null && original.bosque_id !== undefined ? Number(original.bosque_id) : null,
+      siembra_rebrote_id: original.siembra_rebrote_id !== null && original.siembra_rebrote_id !== undefined ? Number(original.siembra_rebrote_id) : null,
+      cant_arboles: original.cant_arboles !== null && original.cant_arboles !== undefined ? Number(original.cant_arboles) : 0
+    };
+    const modal = new bootstrap.Modal(document.getElementById('editarModal'));
+    modal.show();
+  }
+
+  // Cancelar edición
+  cancelEdit() {
+    this.corteEditando = null;
+  }
+
+  saveEdit() {
+    if (!this.corteEditando) return;
+    this.raleoService.putCorte(this.corteEditando.id, this.corteEditando).subscribe(
+      updated => {
+        const idx = this.listCorte.findIndex(s => s.id === updated.id);
+        if (idx !== -1) {
+          this.listCorte[idx] = {
+            ...this.listCorte[idx],
+            ...updated
+          };
+        }
+        this.getCortesFiltrados();
+
+        // 2) Cierra el modal manualmente
+        const modalEl = document.getElementById('editarModal')!;
+        const modalInstance = bootstrap.Modal.getInstance(modalEl);
+        modalInstance?.hide();
+
+        // 3) Limpia el objeto de edición
+        this.corteEditando = null;
+      },
+      err => {
+        console.error('Error al editar:', err);
+      }
+    );
+  }
+
+  onSave() {
+    this.saveCantError = null;
+    console.log('Nuevo corte:', this.nuevoCorte);
+    this.raleoService.postCorte(this.nuevoCorte)
+      .subscribe({
+        next: exito => {
+          // formatear y añadir a la lista
+          const nuevo = {
+            ...exito
+          };
+          this.listCorte.push(nuevo);
+          this.getCortesFiltrados();
+          // cerrar el modal manualmente
+          const modalEl = document.getElementById('miModal')!;
+          const modal = bootstrap.Modal.getInstance(modalEl);
+          modal?.hide();
+          this.saveCantError = null;
+        },
+        error: err => {
+          let msg = 'Error al guardar los detalles';
+          if (err && err.status === 422) {
+            if (err.error) {
+              if (typeof err.error === 'string') {
+                msg = err.error;
+              } else if (err.error.message) {
+                msg = err.error.message;
+              } else if (err.error.errors) {
+                // compone mensaje desde array de errores
+                const vals = Object.values(err.error.errors)
+                  .flat()
+                  .map((v: any) => String(v));
+                msg = vals.join(' - ') || msg;
+              }
+            }
+          } else if (err && err.message) {
+            msg = err.message;
+          }
+
+          // muestra en la UI
+          this.saveCantError = msg;
+
+          // opcional: desplazar scroll al top del modal para que se vea el alert
+          try {
+            const modalBody = document.querySelector('#miModal .modal-body') as HTMLElement | null;
+            if (modalBody) modalBody.scrollTop = 0;
+          } catch { }
+        }
+      });
+  }
+
+  //--------------------------------------------
+  openCloseAModal(id: number) {
+    this.pendingCloseAgreemId = id;
+    this.modalInstanceAgreem.show();
+  }
+
+  // 2) Si el usuario pulsa “Sí”
+  confirmCloseA() {
+    this.closeEstado(this.pendingCloseAgreemId);
+    this.modalInstanceAgreem.hide();
+  }
+
+  // 3) Si pulsa “No” o cierra el modal
+  cancelCloseA() {
+    this.modalInstanceAgreem.hide();
+  }
+
+  closeEstado(id: number): void {
+    this.raleoService.putCorteClose(id).subscribe(
+      exito => {
+        console.log(exito);
+        const corte = this.listCorte.find(c => c.id === id);
+        if (corte) {
+          corte.estado = 'C';
+        }
+        this.getCortesFiltrados();
+        const totalItems = this.cortesFiltrados.length;
+        const totalPages = Math.ceil(totalItems / this.itemsPorPagina);
+        if (this.paginaActual > totalPages) {
+          this.paginaActual = totalPages || 1;
+        }
+      },
+      error => {
+        console.log(error);
+      }
+    );
+  }
+
+  onRaleoChange(raleoId: any) {
+    // normaliza a number o null
+    const id = raleoId === null || raleoId === undefined || raleoId === '' ? null : Number(raleoId);
+    this.selectedRaleo = id;
+
+    // sincroniza con nuevoCorte si usas ese objeto al guardar
+    this.nuevoCorte = {
+      ...this.nuevoCorte,
+      raleo_tipo_id: id
+    };
+    // Si el raleo NO es comercial y ya había un contrato seleccionado, lo limpiamos
+    if (this.isRaleoComercial()) {
+      this.nuevoCorte.bosque_id = null;
+      this.nuevoCorte.siembra_rebrote_id = null;
+      // limpiar dropdown filtrado para que no muestre opciones residuales
+      this.siemRebFiltered = [];
+    }
+  }
+
+  isRaleoComercial(): boolean {
+    const id = Number(this.selectedRaleo ?? this.nuevoCorte?.raleo_tipo_id);
+    if (!id) return false;
+
+    const r = (this.raleoTipo || []).find((x: any) => Number(x.id) === Number(id));
+    if (!r) return false;
+
+    const COMMERCIAL_KNOWN_IDS = [7]; // añade más ids si aplica
+    if (COMMERCIAL_KNOWN_IDS.includes(Number(r.id))) return true;
+    return false;
+  }
+
+  isRowComercial(raleoTipoId: any): boolean {
+    const id = Number(raleoTipoId);
+    if (!id) return false;
+    const r = (this.raleoTipo || []).find((x: any) => Number(x.id) === id);
+    if (!r) return false;
+    const COMMERCIAL_KNOWN_IDS = [7];
+    return COMMERCIAL_KNOWN_IDS.includes(Number(r.id));
+  }
+
+
+  async exportToPDF() {
+    const columns = [
+      { header: 'Bosque', dataKey: 'bosque', align: 'left' as const },
+      { header: 'Raleo', dataKey: 'raleoTipo', align: 'center' as const },
+      { header: 'Siembra/Rebrote', dataKey: 'siembraRebrote', align: 'left' as const },
+      { header: 'Fecha Desde', dataKey: 'fechaDesde', align: 'center' as const },
+      { header: 'Fecha Hasta', dataKey: 'fechaHasta', align: 'center' as const },
+      { header: 'Árboles', dataKey: 'cantArboles', align: 'right' as const }
+    ];
+
+    const rows = this.cortesFiltrados.map(corte => ({
+      bosque: this.formatBosques(corte.bosque_id) || '',
+      raleoTipo: this.getRaleoId(corte.raleo_tipo_id) || '',
+      siembraRebrote: this.formatSiembras(corte.siembra_rebrote_id) || '',
+      fechaDesde: this.pdfService.fmtDate(corte.fecha_desde),
+      fechaHasta: this.pdfService.fmtDate(corte.fecha_hasta),
+      cantArboles: this.pdfService.fmtInteger(corte.cant_arboles ?? '')
+    }));
+
+    await this.pdfService.exportarTabla({
+      titulo: 'Reporte de raleos y arb. muertos por naturaleza',
+      nombreArchivo: 'reporte_raleoArbNat.pdf',
+      columnas: columns,
+      datos: rows
+    });
+  }
+
+  formatBosques(val: any): string {
+    if (!val) return '';
+    if (Array.isArray(val)) {
+      return val.map(id => this.getBosqueId(id)).join(', ');
+    }
+    return this.getBosqueId(val);
+  }
+
+  formatSiembras(val: any): string {
+    if (!val) return '';
+    if (Array.isArray(val)) {
+      return val.map(id => {
+        const tipo = this.getSiemRebTipo(this.getSiemRebId(id));
+        const anio = this.getSiemRebAnio(id);
+        return `${tipo}${anio ? ' - ' + anio : ''}`;
+      }).join(', ');
+    }
+    const tipo = this.getSiemRebTipo(this.getSiemRebId(val));
+    const anio = this.getSiemRebAnio(val);
+    return `${tipo}${anio ? ' - ' + anio : ''}`;
+  }
+
+}

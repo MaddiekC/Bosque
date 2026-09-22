@@ -1,0 +1,907 @@
+<h4 style="color: rgb(1, 1, 199);">Listado de Cortes</h4>
+<div style="display: flex; align-items: start; gap: 15px;">
+    <div style="white-space: nowrap;">
+        <!-- Fila de filtros -->
+        <table class="table table-striped table-hover table-sm w-100%" style="table-layout: fixed;">
+            <colgroup>
+                <col style="width: 3%;">
+                <col style="width: 5%;"> <!-- Cerrar -->
+                <col style="width: 14%;"> <!-- Año -->
+                <!-- <col style="width: 8%;">  -->
+                <col style="width: 11%;">
+                <col style="width: 4%;">
+                <col style="width: 4%;">
+                <col>
+                <col>
+                <col>
+                <col>
+                <col>
+                <col>
+                <col>
+                <col>
+                <col>
+                <col>
+                <col>
+                <col>
+                <col>
+            </colgroup>
+            <tr>
+                <th></th>
+                <th class="p-1 flex-fill">
+                    <label for="bosques" style="background-color: transparent">Bosque:</label>
+                    <select class="form-select form-select-sm" [(ngModel)]="filtroBosque"
+                        (ngModelChange)="getCortesFiltrados()" (ngModelChange)="onBosqueChange($event)">
+                        <option [ngValue]="null">Todo</option>
+                        <option *ngFor="let b of bosques" [ngValue]="b.id">
+                            {{ b.nombre }}
+                        </option>
+                    </select>
+                </th>
+                <th class="p-1 flex-fill">
+                    <label for="contrato" style="background-color: transparent">Contrato:</label>
+                    <select class="form-select form-select-sm" [(ngModel)]="filtroContrato"
+                        (ngModelChange)="getCortesFiltrados()">
+                        <option [ngValue]="null">Todo</option>
+                        <option *ngFor="let c of contrato" [ngValue]="c.id">
+                            {{ c.id}} - {{ getClienteId(c.cliente_id) }} - {{ c.anio }}
+                        </option>
+                    </select>
+                </th>
+                <th>
+                    <label for="SiembraRebrote" style="background-color: transparent">Siembra Rebrote:</label>
+                    <select class="form-select form-select-sm" [(ngModel)]="filtroSiembraRebrote"
+                        (ngModelChange)="getCortesFiltrados()">
+                        <option [ngValue]="null">Todo</option>
+                        <option *ngFor="let s of siemRebFiltered" [ngValue]="s.id">
+                            {{ getSiemRebTipo(s.tipo_id) }} - {{ s.anio }}
+                        </option>
+                    </select>
+                </th>
+                <th class="p-1 flex-fill">
+                    <label for="Fecha" style="background-color: transparent">Fecha:</label>
+                    <input type="date" class="form-control form-control-sm" placeholder="Filtrar Fecha"
+                        [(ngModel)]="filtroFecha" (ngModelChange)="getCortesFiltrados()">
+                </th>
+                <th class="p-1 flex-fill">
+                    <label for="Naviera" style="background-color: transparent">Naviera:</label>
+                    <input type="text" class="form-control form-control-sm" placeholder="Filtrar Naviera"
+                        [(ngModel)]="filtroNaviera" (ngModelChange)="getCortesFiltrados()">
+                </th>
+
+                <!-- Celda con botones alineados a la derecha -->
+                <th class="p-3 align-middle text-end" style="white-space: nowrap;">
+                    <div style="margin: 14px; margin-left: 100px; background-color: transparent; height: 28px;"
+                        class="d-inline-flex align-items-center gap-2">
+                        <button *hasPermission="36" data-bs-toggle="modal" data-bs-target="#miModal"
+                            title="Agregar registro" class="btn btn-link p-0" style="border:none; background:none;">
+                            <img src="/assets/images/nuevo.png" width="30" height="31" alt="Agregar"
+                                title="Agregar registro">
+                        </button>
+
+                        <button *hasPermission="42" class="btn btn-link p-0" (click)="exportToPDF()"
+                            title="Descargar registro" style="color: green;">
+                            <i class="bi bi-file-earmark-pdf-fill fs-4"></i>
+                        </button>
+                    </div>
+                </th>
+            </tr>
+        </table>
+
+        <div style="display: flex; align-items: start; gap: 15px;">
+            <!-- Agregar: spinner visible cuando loading -->
+            <div *ngIf="loading" class="spinner-container">
+                <p>Cargando…</p>
+            </div>
+            <table *ngIf="!loading" class="table table-striped table-bordered table-hover table-sm w-100">
+                <colgroup>
+                    <col>
+                    <col> <!--  -->
+                    <col> <!--  -->
+                    <col> <!--  -->
+                    <col> <!--  -->
+                    <col> <!--  -->
+                    <col> <!--  -->
+                    <col> <!--  -->
+                    <col> <!--  -->
+                    <col> <!--  -->
+                    <col> <!--  -->
+                    <col> <!--  -->
+                    <col> <!--  -->
+                    <col> <!--  -->
+                    <col>
+                    <col>
+                    <col>
+                </colgroup>
+                <thead class="table-success" style="text-align: center;">
+                    <tr>
+                        <th rowspan="2">Cerrar</th>
+                        <th rowspan="2">Bosque</th>
+                        <th rowspan="2">Contrato</th>
+                        <th rowspan="2">Raleo</th>
+                        <th rowspan="2">Siembra Rebrote</th>
+                        <!-- <th>Sello</th> -->
+                        <th rowspan="2">Fecha</th>
+                        <th rowspan="2">Naviera</th>
+                        <th rowspan="2">N. envío</th>
+                        <th rowspan="2">N. viaje</th>
+                        <th rowspan="2">Placa</th>
+                        <th rowspan="2">Contenedor</th>
+                        <th rowspan="2">Supervisor</th>
+                        <th class="sello-header" colspan="3">Sello Empresa</th>
+                        <th rowspan="2">Trozas</th>
+                        <th rowspan="2">Valor Troza</th>
+                        <th *hasPermission="47" rowspan="2">Detalles</th>
+                        <th *hasPermission="38" rowspan="2">...</th>
+                    </tr>
+                    <!-- Fila 2: los 3 tipos de sello -->
+                    <tr>
+                        <th>Sello Empresa</th>
+                        <th>Sello Rastreo</th>
+                        <th>Sello Inspección</th>
+                    </tr>
+                </thead>
+                <!-- Visualizar -->
+                <tbody>
+                    <tr *ngFor="let corte of cortesFiltrados| paginate: { itemsPerPage: itemsPorPagina, currentPage: paginaActual }; let i = index"
+                        [ngClass]="{'table-warning': corte.estado === 'C' || corte.raleo_tipo_id == 20 || corte.raleo_tipo_id == 21}">
+                        <td class="d-flex justify-content-center align-items-center">
+                            <button class="btn btnAngosto "
+                                *ngIf="corte.estado === 'A' && corte.detalle_cortes_count > 0" data-bs-toggle="tooltip"
+                                [attr.title]="hasPermission(41) ? 'Cerrar corte' : ''"
+                                style="background-color:#35e782 ;" (click)="openCloseAModal(corte.id)">
+                                <i class="bi bi-check-circle"></i>
+                            </button>
+                            <button class="btn btnAngosto "
+                                *ngIf="corte.estado === 'C' || corte.raleo_tipo_id == 20 || corte.raleo_tipo_id == 21"
+                                data-bs-toggle="tooltip" style="color:#555e5993 ;"
+                                (dblclick)="corte.estado === 'C' ? openConfirmOpenModal(corte.id) : null"
+                                [attr.title]="(corte.estado === 'C' && hasPermission(48)) ? 'Doble clic para reabrir' : ''">
+                                <i class="bi bi-check-lg"></i>
+                            </button>
+                        </td>
+                        <!-- Columna Bosque-->
+                        <td class="text-center">
+                            {{ formatBosques(corte.bosque_id) }}
+                        </td>
+                        <!-- Columna 
+                        -->
+                        <td class="text-center">
+                            {{getContrId(corte.contrato_id)}} - {{ getClienteId(getContratoId(corte.contrato_id)) }} -
+                            {{getContratoAnio(corte.contrato_id)}}
+                        </td>
+                        <!-- Columna Tipo de raleo -->
+                        <td class="text-center">
+                            {{ getRaleoId(corte.raleo_tipo_id) }}
+                        </td>
+                        <!-- Columna Siembra rebrote -->
+                        <td class="text-center">
+                            {{ formatSiembras(corte.siembra_rebrote_id) }}
+                        </td>
+                        <!-- Columna Fecha -->
+                        <td class="text-center">
+                            {{ corte.fecha_embarque | date: 'dd/MM/yyyy' }}
+                        </td>
+                        <!-- Columna Conductor -->
+                        <td class="text-center">
+                            {{ corte.naviera }}
+                        </td>
+                        <!-- Columna N. envio -->
+                        <td class="text-end">
+                            {{ corte.numero_envio }}
+                        </td>
+                        <!-- Columna N. viaje -->
+                        <td class="text-end">
+                            {{ corte.numero_viaje }}
+                        </td>
+                        <!-- Columna Placa carro -->
+                        <td class="text-center">
+                            {{ corte.placa_carro }}
+                        </td>
+                        <!-- Columna Contenedor -->
+                        <td class="text-center">
+                            {{ corte.contenedor }}
+                        </td>
+                        <!-- Columna Supervisor -->
+                        <td class="text-center">
+                            {{ corte.supervisor }}
+                        </td>
+                        <!-- Columna Sello Empresa -->
+                        <td class="text-center">
+                            {{ corte.sello_empresa}}
+                        </td>
+                        <!-- Columna Sello Rastreo -->
+                        <td class="text-center">
+                            {{ corte.sello_rastreo}}
+                        </td>
+                        <!-- Columna Sello Innspección -->
+                        <td class="text-center">
+                            {{ corte.sello_inspeccion}}
+                        </td>
+                        <!-- Columna Cant -->
+                        <td class="text-end">
+                            {{ corte.cant_trozas || corte.detalle_cortes_count | number: '1.0-0'}}
+                        </td>
+                        <td class="text-end">
+                            {{ (corteValorTroza[corte.id] || 0) | currency }}
+                        </td>
+                        <!-- Columna Detalles -->
+                        <td *hasPermission="47" class="text-center">
+                            <a *ngIf="corte.estado === 'A'  && corte.contrato_id !== null " class="btnSiembra-Rebrote"
+                                title="Agregar detalles" (click)="openDetailModal2(corte.id)">
+                                <img *hasPermission="35" src="/assets/images/agregarArchivo.png" width="24" height="24">
+                            </a>
+                            <a *ngIf="corte.detalle_cortes_count > 0" class="btnSiembra-Rebrote" title="Ver detalles"
+                                (click)="openDetailModal(corte.id)">
+                                <img *hasPermission="37" src="/assets/images/archivoDetalles.png" width="24"
+                                    height="24">
+                            </a>
+                        </td>
+                        <!-- Acciones -->
+                        <div *hasPermission="38">
+                            <td class="d-flex justify-content-center align-items-center" *ngIf="corte.estado === 'A'">
+                                <button *hasPermission="39" class="btn btnAngosto" data-bs-toggle="tooltip"
+                                    title="Editar registro" style="background-color:#e7bd35 ;"
+                                    (click)="startEdit(corte.id)">
+                                    <i class="bi bi-pencil"></i>
+                                </button>
+                                <button *hasPermission="40" class="btn btnAngosto " ata-bs-toggle="tooltip"
+                                    title="Eliminar registro" style="background-color:#e7354d ;"
+                                    (click)="openConfirmModal(corte.id)">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </td>
+                        </div>
+                    </tr>
+                    <tr *ngIf="cortesFiltrados.length === 0">
+                        <td [attr.colspan]="19" class="text-center py-3 text-muted">
+                            <i class="bi bi-info-circle me-1"></i>No hay datos registrados
+                        </td>
+                    </tr>
+                </tbody>
+                <tfoot>
+                    <tr>
+                        <!-- Ajusta el colspan al número de columnas de tu tabla -->
+                        <td [attr.colspan]="19" class="text-center">
+                            <pagination-controls (pageChange)="paginaActual = $event" [autoHide]="true" [maxSize]="15"
+                                previousLabel="«" nextLabel="»">
+                            </pagination-controls>
+                        </td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+
+</div>
+
+<!-- Confirm Modal -->
+<div class="modal fade" tabindex="-1" aria-labelledby="confirmModalLabel" #confirmModal>
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="confirmModalLabel">Confirmar eliminación</h5>
+                <button type="button" class="btn-close" aria-label="Cerrar" (click)="cancelDelete()"></button>
+            </div>
+            <div class="modal-body">
+                ¿Estás seguro de que deseas eliminar este registro?
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-danger" (click)="confirmDelete()">Sí</button>
+                <button type="button" class="btn btn-secondary" (click)="cancelDelete()">No</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<!-- Confirm Close Modal  -->
+<div class="modal fade" tabindex="-1" aria-labelledby="confirmModalLabelA" #confirmModalAgreem>
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="confirmModalLabel">Confirmar cierre</h5>
+                <button type="button" class="btn-close" aria-label="Cerrar" (click)="cancelCloseA()"></button>
+            </div>
+            <div class="modal-body">
+                ¿Estás seguro de que deseas cerrar el corte?
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-success" (click)="confirmCloseA()">Sí</button>
+                <button type="button" class="btn btn-secondary" (click)="cancelCloseA()">No</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Confirm Open Modal  -->
+<div class="modal fade" tabindex="-1" aria-labelledby="confirmModalLabelOpen" #confirmModalOpen>
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="confirmModalLabelOpen">Confirmar reapertura</h5>
+                <button type="button" class="btn-close" aria-label="Cerrar" (click)="cancelOpen()"></button>
+            </div>
+            <div class="modal-body">
+                ¿Estás seguro de que deseas volver a abrir este corte?
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-success" (click)="confirmOpen()">Sí</button>
+                <button type="button" class="btn btn-secondary" (click)="cancelOpen()">No</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<!-- Modal para registrar  -->
+<div class="modal fade" id="miModal" tabindex="-1" aria-labelledby="miModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title" id="miModalLabel">Registro de Raleo</h4>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <form #fForm="ngForm" class="modal-body">
+                <div *ngIf="saveCantError" class="alert alert-danger" role="alert">
+                    {{ saveCantError }}
+                </div>
+                <div class="d-flex flex-wrap gap-2" style="margin-top: 15px; margin-bottom: 15px;">
+                    <div>
+                        <label>Contrato:</label>
+                        <select class="form-select" [(ngModel)]="nuevoCorte.contrato_id" name="contrato"
+                            [required]="isRaleoComercial()">
+                            <option [ngValue]="null">-- Seleccione contrato --</option>
+                            <option *ngFor="let c of contrato" [ngValue]="c.id">
+                                {{ c.id }} - {{ getClienteId(c.cliente_id) }} - {{ c.anio }}
+                            </option>
+                        </select>
+                    </div>
+                </div>
+                <div class="d-flex flex-wrap gap-2" style="margin-top: 15px; margin-bottom: 15px;">
+                    <div>
+                        <label>Fecha</label>
+                        <input type="date" class="form-control form-control-sm" [(ngModel)]="nuevoCorte.fecha_embarque"
+                            name="fecha" required>
+                    </div>
+                    <div style="width: 100px;">
+                        <label>N. envío</label>
+                        <input type="number" class="form-control form-control-sm" [(ngModel)]="nuevoCorte.numero_envio"
+                            name="numero_envio" required>
+                    </div>
+                    <div style="width: 100px;">
+                        <label>N. viaje</label>
+                        <input type="number" class="form-control form-control-sm" [(ngModel)]="nuevoCorte.numero_viaje"
+                            name="numero_viaje" required>
+                    </div>
+                </div>
+                <div class="d-flex flex-wrap gap-2" style="margin-top: 15px; margin-bottom: 15px;">
+                    <div style="width: 145px;">
+                        <label>Sello Empresa</label>
+                        <input type="text" class="form-control form-control-sm" [(ngModel)]="nuevoCorte.sello_empresa"
+                            name="sello_empresa">
+                    </div>
+                    <div style="width: 145px;">
+                        <label>Sello Rastreo</label>
+                        <input type="text" class="form-control form-control-sm" [(ngModel)]="nuevoCorte.sello_rastreo"
+                            name="sello_rastreo">
+                    </div>
+                    <div style="width: 145px;">
+                        <label>Sello Inspección</label>
+                        <input type="text" class="form-control form-control-sm"
+                            [(ngModel)]="nuevoCorte.sello_inspeccion" name="sello_inspeccion">
+                    </div>
+                    <div class="d-flex flex-wrap gap-2" style="margin-top: 15px; margin-bottom: 15px;">
+                        <div style="width: 200px;">
+                            <label>Placa de carro</label>
+                            <input type="text" class="form-control form-control-sm" [(ngModel)]="nuevoCorte.placa_carro"
+                                name="placa_carro" required>
+                        </div>
+                        <div style="width: 200px;">
+                            <label>Contenedor</label>
+                            <input type="text" class="form-control form-control-sm" [(ngModel)]="nuevoCorte.contenedor"
+                                name="contenedor" required>
+                        </div>
+                    </div>
+                    <div class="d-flex flex-wrap gap-2" style="margin-top: 15px; margin-bottom: 15px;">
+                        <div style="width: 200px;">
+                            <label>Naviera</label>
+                            <input type="text" class="form-control form-control-sm" [(ngModel)]="nuevoCorte.naviera"
+                                name="conductor">
+                        </div>
+                        <div style="width: 200px;">
+                            <label>Medidor</label>
+                            <input type="text" class="form-control form-control-sm" [(ngModel)]="nuevoCorte.supervisor"
+                                name="supervisor" required>
+                        </div>
+                    </div>
+                </div>
+            </form>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary" (click)="onSave()"
+                    [disabled]="fForm.form.invalid">Guardar</button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"
+                    (click)="cancelEdit()">Cerrar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Editar -->
+<!-- Modal para edición -->
+<div class="modal fade" id="editarModal" tabindex="-1" aria-labelledby="editarModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content" *ngIf="corteEditando">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Editar Corte</h5>
+                </div>
+                <div class="modal-body">
+                    <form>
+                        <!-- <div class="d-flex flex-wrap gap-2" style="margin-top: 15px; margin-bottom: 15px;">
+                            <div *ngIf="corteEditando!.bosque_id >= 1">
+                                <label>Nombre del Bosque</label>
+                                <select class="form-select form-select-sm" [(ngModel)]="corteEditando!.bosque_id"
+                                    name="bosque_id" required class="form-select form-select-sm">
+                                    <option [ngValue]="null">-- Seleccione --</option>
+                                    <option *ngFor="let b of bosques" [value]="b.id.toString()">
+                                        {{ b.nombre }}
+                                    </option>
+                                </select>
+                            </div> -->
+                        <!-- <div>
+                                <label>Nombre del Contrato</label>
+                                <select class="form-select form-select-sm" [(ngModel)]="corteEditando!.contrato_id"
+                                    name="contrato_id" required class="form-select form-select-sm">
+                                    <option [ngValue]="null">-- Seleccione --</option>
+                                    <option *ngFor="let b of cliente" [ngValue]="b.id">
+                                        {{ b.NombreComercial }}
+                                    </option>
+                                </select>
+                            </div> -->
+                        <!-- </div> -->
+                        <div class="d-flex flex-wrap gap-2" style="margin-top: 15px; margin-bottom: 15px;">
+                            <!-- <div style="margin-bottom: 15px;">
+                                <label>Tipo de raleo</label>
+                                <select class="form-select form-select-sm" [(ngModel)]="corteEditando!.raleo_tipo_id"
+                                    name="raleo_tipo_id" required class="form-select form-select-sm">
+                                    <option [ngValue]="null">-- Seleccione --</option>
+                                    <option *ngFor="let b of raleoTipo" [value]="b.id.toString()">
+                                        {{ b.nombre }}
+                                    </option>
+                                </select>
+                            </div> -->
+                            <!-- <div *ngIf="corteEditando!.bosque_id >= 1" style="margin-bottom: 15px;">
+                                <label>Siembra Rebrote</label>
+                                <select class="form-select form-select-sm"
+                                    [(ngModel)]="corteEditando!.siembra_rebrote_id" name="siembra_rebrote_id" required
+                                    class="form-select form-select-sm">
+                                    <option [ngValue]="null">-- Seleccione --</option>
+                                    <option *ngFor="let b of siemReb" [value]="b.id.toString()">
+                                        {{ b.id }}
+                                    </option>
+                                </select>
+                            </div> -->
+                            <!-- <div style="margin-bottom: 15px;">
+                                <label>Sello</label>
+                                <select class="form-select form-select-sm" [(ngModel)]="corteEditando!.sello_id"
+                                    name="sello_id" required class="form-select form-select-sm">
+                                    <option [ngValue]="null">-- Seleccione --</option>
+                                    <option *ngFor="let b of selloTipo" [value]="b.id.toString()">
+                                        {{ b.nombre }}
+                                    </option>
+                                </select>
+                            </div> -->
+                            <div>
+                                <label>Sello Empresa</label>
+                                <input type="text" class="form-control form-control-sm"
+                                    [(ngModel)]="corteEditando!.sello_empresa" name="sello_empresa" required>
+                            </div>
+                            <div>
+                                <label>Sello Rastreo</label>
+                                <input type="text" class="form-control form-control-sm"
+                                    [(ngModel)]="corteEditando!.sello_rastreo" name="sello_rastreo" required>
+                            </div>
+                            <div>
+                                <label>Sello Inspección</label>
+                                <input type="text" class="form-control form-control-sm"
+                                    [(ngModel)]="corteEditando!.sello_inspeccion" name="sello_inspeccion" required>
+                            </div>
+                        </div>
+                        <div class="d-flex flex-wrap gap-2" style="margin-top: 15px; margin-bottom: 15px;">
+                            <div>
+                                <label>Fecha</label>
+                                <input type="date" class="form-control form-control-sm"
+                                    [(ngModel)]="corteEditando!.fecha_embarque" name="fecha" required>
+                            </div>
+                            <div>
+                                <label>N. envio</label>
+                                <input type="number" class="form-control form-control-sm"
+                                    [(ngModel)]="corteEditando!.numero_envio" name="numero_envio" required>
+                            </div>
+                            <div>
+                                <label>N. viaje</label>
+                                <input type="number" class="form-control form-control-sm"
+                                    [(ngModel)]="corteEditando!.numero_viaje" name="numero_viaje" required>
+                            </div>
+                        </div>
+                        <div class="d-flex flex-wrap gap-2" style="margin-top: 15px; margin-bottom: 15px;">
+                            <div>
+                                <label>Placa de carro</label>
+                                <input type="text" class="form-control form-control-sm"
+                                    [(ngModel)]="corteEditando!.placa_carro" name="placa_carro" required>
+                            </div>
+                            <div>
+                                <label>Contenedor</label>
+                                <input type="text" class="form-control form-control-sm"
+                                    [(ngModel)]="corteEditando!.contenedor" name="contenedor" required>
+                            </div>
+                        </div>
+                        <div class="d-flex flex-wrap gap-2" style="margin-top: 15px; margin-bottom: 15px;">
+                            <div>
+                                <label>Naviera</label>
+                                <input type="text" class="form-control form-control-sm"
+                                    [(ngModel)]="corteEditando!.naviera" name="naviera">
+                            </div>
+                            <div>
+                                <label>Medidor</label>
+                                <input type="text" class="form-control form-control-sm"
+                                    [(ngModel)]="corteEditando!.supervisor" name="supervisor" required>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button class="btnSaveEdit" (click)="saveEdit()">
+                        <i class="bbi bi-save2"></i>Guardar
+                    </button>
+                    <button type="button" class="btnCancelEdit" data-bs-dismiss="modal"><i
+                            class="bi bi-x-lg"></i>Cancelar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+
+<div class="modal fade" id="verdetModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Detalles de Corte</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <!-- Bloque info cabecera -->
+                <div *ngIf="selectedCorte" class="mb-3">
+                    <div class="row g-2">
+                        <!-- <div class="col-sm-3">
+                            <small class="text-muted">Bosque</small>
+                            <div><strong>{{ getBosqueId(selectedCorte.bosque_id) }}</strong></div>
+                        </div> -->
+                        <div class="col-sm-3">
+                            <small class="text-muted">Contrato</small>
+                            <div>
+                                <strong>
+                                    {{ getContrId(selectedCorte.contrato_id) }} -
+                                    {{ getClienteId( getContratoId(selectedCorte.contrato_id) ) }}
+                                    {{ getContratoAnio(selectedCorte.contrato_id) ? (' - ' +
+                                    getContratoAnio(selectedCorte.contrato_id)) : '' }}
+                                </strong>
+                            </div>
+                        </div>
+                        <div class="col-sm-2">
+                            <small class="text-muted">Raleo</small>
+                            <div><strong>{{ getRaleoId(selectedCorte.raleo_tipo_id) }}</strong></div>
+                        </div>
+                        <!-- <div class="col-sm-2">
+                            <small class="text-muted">Siembra / Rebrote</small>
+                            <div><strong>{{ getSiemRebTipo(getSiemRebId(selectedCorte.siembra_rebrote_id)) }} - {{
+                                    getSiemRebAnio(selectedCorte.siembra_rebrote_id) }}</strong></div>
+                        </div> -->
+                        <!-- <div class="col-sm-2">
+                            <small class="text-muted">Sello</small>
+                            <div><strong>{{ getSelloTipoId(selectedCorte.sello_id) }}</strong></div>
+                        </div> -->
+                        <div class="col-sm-3 mt-2">
+                            <small class="text-muted">Sello Empresa</small>
+                            <div><strong>{{ selectedCorte.sello_empresa }}</strong></div>
+                        </div>
+                        <div class="col-sm-3 mt-2">
+                            <small class="text-muted">Sello Rastreo</small>
+                            <div><strong>{{ selectedCorte.sello_rastreo}}</strong></div>
+                        </div>
+                        <div class="col-sm-3 mt-2">
+                            <small class="text-muted">Sello Inspección</small>
+                            <div><strong>{{ selectedCorte.sello_inspeccion }}</strong></div>
+                        </div>
+                        <div class="col-sm-3 mt-2">
+                            <small class="text-muted">Fecha embarque</small>
+                            <div><strong>{{ selectedCorte.fecha_embarque | date:'dd/MM/yyyy' }}</strong></div>
+                        </div>
+                        <div class="col-sm-3 mt-2">
+                            <small class="text-muted">Trozas</small>
+                            <div><strong>{{ selectedCorte.cant_trozas || selectedCorte.detalle_cortes_count || 0
+                                    }}</strong></div>
+                        </div>
+                        <div class="col-sm-3 mt-2">
+                            <small class="text-muted">N. envío</small>
+                            <div><strong>{{ selectedCorte.numero_envio }}</strong></div>
+                        </div>
+                        <div class="col-sm-3 mt-2">
+                            <small class="text-muted">N. viaje</small>
+                            <div><strong>{{ selectedCorte.numero_viaje }}</strong></div>
+                        </div>
+                        <div class="col-sm-3 mt-2">
+                            <small class="text-muted">Placa / Contenedor</small>
+                            <div><strong>{{ selectedCorte.placa_carro }} / {{ selectedCorte.contenedor }}</strong></div>
+                        </div>
+                        <div class="col-sm-3 mt-2">
+                            <!-- Mostrar bosques/siembras únicos -->
+                            <div *ngIf="distinctBS && distinctBS.length" class="mb-3">
+                                <small class="text-muted">Bosque / SiembraRebrote</small>
+                                <div>
+                                    <ng-container *ngFor="let p of distinctBS">
+                                        <div class="badge bg-light text-dark border">
+                                            <strong>{{ getBosqueId(p.bosque_id) }}</strong>
+                                            <span class="mx-1">-</span>
+                                            <span>
+                                                {{ getSiemRebTipo(getSiemRebId(p.siembra_rebrote_id)) }}
+                                                {{ getSiemRebAnio(p.siembra_rebrote_id) ? (' - ' +
+                                                getSiemRebAnio(p.siembra_rebrote_id)) : '' }}
+                                            </span>
+                                        </div>
+                                    </ng-container>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- Tu tabla de detalle -->
+                <div class="table-scroll">
+                    <table class="table table-bordered table-sm">
+                        <thead class="table-light text-center">
+                            <tr>
+                                <th rowspan="2">#TROZAS</th>
+                                <th colspan="2">CIRCUNFERENCIA</th>
+                                <th colspan="2">LARGO</th>
+                                <th rowspan="2">M³</th>
+                                <th colspan="2">VALOR</th>
+                            </tr>
+                            <tr class="text-center">
+                                <th>BRUTA</th>
+                                <th>NETA</th>
+                                <th>BRUTO</th>
+                                <th>NETO</th>
+                                <th>M³</th>
+                                <th>TROZA</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr *ngFor="let d of listDetCortes">
+                                <td>
+                                    {{d.trozas}}
+                                </td>
+                                <td class="text-end">
+                                    {{d.circ_bruta}}
+                                </td>
+                                <td class="text-end">
+                                    {{d.circ_neta}}
+                                </td>
+                                <td class="text-end">
+                                    {{d.largo_bruto | number:'1.2-2' }}
+                                </td>
+                                <td class="text-end">
+                                    {{d.largo_neto | number:'1.2-2' }}
+                                </td>
+                                <td class="text-end">
+                                    {{d.m_cubica | number:'1.4-4' }}
+                                </td>
+                                <td class="text-end">
+                                    {{d.valor_mcubico | currency }}
+                                </td>
+                                <td class="text-end">
+                                    {{d.valor_troza | currency }}
+                                </td>
+                            </tr>
+                        </tbody>
+                        <tfoot>
+                            <tr>
+                                <td colspan="1"><strong>TOTAL:</strong></td>
+                                <td class="text-end"><strong>{{ totalCircBruta }}</strong></td>
+                                <td class="text-end"><strong>{{ totalCircNeta }}</strong></td>
+                                <td class="text-end"><strong>{{ totalLargoBruto | number:'1.2-2'}}</strong></td>
+                                <td class="text-end"><strong>{{ totalLargoNeto | number:'1.2-2'}}</strong></td>
+                                <td class="text-end"><strong>{{ totalMCubica | number:'1.2-2'}}</strong></td>
+                                <td class="text-end"><strong>TOTAL:</strong></td>
+                                <!-- <td><strong>{{ totalValorMCubico | currency}}</strong></td> -->
+                                <td class="text-end"><strong>{{ totalValorTroza | currency}}</strong></td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <!-- Botón PDF y Eliminar detalles -->
+                <div class="d-flex align-items-center gap-2" style="margin-right: auto;">
+                    <button class="btn btn-success" style="background: none; color: green; border: none;"
+                        (click)="exportToPDF2()" title="Descargar registro">
+                        <i class="bi bi-file-earmark-pdf-fill fs-4"></i>
+                    </button>
+                    <ng-container *hasPermission="50">
+                        <button *ngIf="selectedCorte?.estado === 'A' && listDetCortes && listDetCortes.length > 0"
+                            class="btn btn-danger" style="background: none; color: #e7354d; border: none;"
+                            (click)="confirmarEliminarTodosDetalles()" title="Eliminar todos los detalles ingresados">
+                            <i class="bi bi-trash fs-4"></i>
+                        </button>
+                    </ng-container>
+                </div>
+                <div>
+                    <button class="btn btn-secondary" data-bs-dismiss="modal"
+                        (click)="closeDetailModal()">Cerrar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<!-- 
+ -->
+<div class="modal fade" id="detModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Agregar detalles del Corte</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div *ngIf="saveDetError" class="alert alert-danger d-flex align-items-start" role="alert"
+                    aria-live="assertive">
+                    <i class="bi bi-exclamation-triangle-fill me-2 fs-5" aria-hidden="true"></i>
+                    <div>
+                        <strong>¡Error!</strong> {{ saveDetError }}
+                    </div>
+                </div>
+                <div *ngIf="selectedCorte" class="mb-3">
+                    <div class="row g-2">
+                        <!-- <div class="col-sm-3">
+                            <small class="text-muted">Bosque</small>
+                            <div><strong>{{ getBosqueId(selectedCorte.bosque_id) }}</strong></div>
+                        </div> -->
+                        <div class="col-sm-3">
+                            <small class="text-muted">Contrato</small>
+                            <div>
+                                <strong>
+                                    {{ getContrId(selectedCorte.contrato_id) }} -
+                                    {{ getClienteId( getContratoId(selectedCorte.contrato_id) ) }}
+                                    {{ getContratoAnio(selectedCorte.contrato_id) ? (' - ' +
+                                    getContratoAnio(selectedCorte.contrato_id)) : '' }}
+                                </strong>
+                            </div>
+                        </div>
+                        <div class="col-sm-2">
+                            <small class="text-muted">Raleo</small>
+                            <div><strong>{{ getRaleoId(selectedCorte.raleo_tipo_id) }}</strong></div>
+                        </div>
+                        <!-- <div class="col-sm-2">
+                            <small class="text-muted">Siembra / Rebrote</small>
+                            <div><strong>{{ getSiemRebTipo(getSiemRebId(selectedCorte.siembra_rebrote_id)) }} - {{
+                                    getSiemRebAnio(selectedCorte.siembra_rebrote_id) }}</strong></div>
+                        </div> -->
+                        <div class="col-sm-3 mt-2">
+                            <small class="text-muted">Sello Empresa</small>
+                            <div><strong>{{ selectedCorte.sello_empresa }}</strong></div>
+                        </div>
+                        <div class="col-sm-3 mt-2">
+                            <small class="text-muted">Sello Rastreo</small>
+                            <div><strong>{{ selectedCorte.sello_rastreo}}</strong></div>
+                        </div>
+                        <div class="col-sm-3 mt-2">
+                            <small class="text-muted">Sello Inspección</small>
+                            <div><strong>{{ selectedCorte.sello_inspeccion }}</strong></div>
+                        </div>
+                        <div class="col-sm-3 mt-2">
+                            <small class="text-muted">Fecha embarque</small>
+                            <div><strong>{{ selectedCorte.fecha_embarque | date:'dd/MM/yyyy' }}</strong></div>
+                        </div>
+                        <div class="col-sm-3 mt-2">
+                            <small class="text-muted;">Trozas</small>
+                            <div><strong>{{ selectedCorte.cant_trozas || selectedCorte.detalle_cortes_count || 0
+                                    }}</strong></div>
+                        </div>
+                        <div class="col-sm-3 mt-2">
+                            <small class="text-muted">N. envío</small>
+                            <div><strong>{{ selectedCorte.numero_envio }}</strong></div>
+                        </div>
+                        <div class="col-sm-3 mt-2">
+                            <small class="text-muted">N. viaje</small>
+                            <div><strong>{{ selectedCorte.numero_viaje }}</strong></div>
+                        </div>
+                        <div class="col-sm-3 mt-2">
+                            <small class="text-muted">N. envío</small>
+                            <div><strong>{{ selectedCorte.numero_envio }}</strong></div>
+                        </div>
+                        <div class="col-sm-3 mt-2">
+                            <small class="text-muted">Placa / Contenedor</small>
+                            <div><strong>{{ selectedCorte.placa_carro }} / {{ selectedCorte.contenedor }}</strong></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="d-flex flex-wrap gap-2" style="margin-top: 15px; margin-bottom: 15px;">
+                    <div style="margin-bottom: 15px; width: 200px;">
+                        <label>Nombre del Bosque</label>
+                        <select class="form-select form-select-sm" [(ngModel)]="selectedBosqueId"
+                            (ngModelChange)="onSelectedBosqueChange($event)" name="selectedBosqueId" required
+                            class="form-select form-select-sm">
+                            <option [ngValue]="null">-- Seleccione --</option>
+                            <option *ngFor="let b of bosques" [ngValue]="b.id">
+                                {{ b.nombre }}
+                            </option>
+                        </select>
+                    </div>
+                    <div style="margin-bottom: 15px; width: 200px;">
+                        <label>Siembra Rebrote</label>
+                        <select class="form-select form-select-sm" [(ngModel)]="selectedSiembraId"
+                            (ngModelChange)="onSelectedSiembraChange($event)" name="selectedSiembraId" required
+                            class="form-select form-select-sm">
+                            <option [ngValue]="null">-- Seleccione --</option>
+                            <option *ngFor="let s of siemRebFiltered" [ngValue]="s.id">
+                                {{ getSiemRebTipo(s.tipo_id)}} - {{s.anio}}
+                            </option>
+                        </select>
+                    </div>
+                    <div style="margin-bottom: 20px; margin-top:25px;">
+                        <!-- botón que pasa la referencia del input -->
+                        <button (click)="removeExcel(fileInput)" style="border: none; background-color: transparent">
+                            <img src="/assets/images/borrar.png" width="20" height="21" alt="Quitar" title="Quitar">
+                        </button>
+                        <!-- input con referencia #fileInput -->
+                        <input #fileInput type="file" (change)="onFileSelected($event)" accept=".xlsx,.xls" />
+                    </div>
+                </div>
+                <!-- Tu tabla de detalle -->
+                <table class="table table-bordered table-sm" *ngIf="!selectedFile">
+                    <thead class="table-light text-center">
+                        <tr>
+                            <th>#TROZAS</th>
+                            <th>CIRCUNFERENCIA BRUTA</th>
+                            <th>LARGO BRUTO (m)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr *ngFor="let d of nuevoDetCorte; let i = index">
+                            <td class="text-center">
+                                {{ i + 1 }}
+                            </td>
+                            <td>
+                                <input type="number" class="form-control form-control-sm" [(ngModel)]="d.circ_bruta"
+                                    name="circ_bruta" required>
+                            </td>
+                            <td>
+                                <input type="number" class="form-control form-control-sm" [(ngModel)]="d.largo_bruto"
+                                    name="largo_bruto" required>
+                            </td>
+                            <td class="text-center">
+                                <button class="btn btn-sm btn-danger" (click)="removeRow(i)">
+                                    &times;
+                                </button>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+                <div class="text-center">
+                    <button class="btn btn-outline-primary btn-sm " (click)="addRow()">
+                        + Agregar fila
+                    </button>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-primary" (click)="onSaveDet()">
+                    Aceptar
+                </button>
+                <button class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+            </div>
+        </div>
+    </div>
+</div>

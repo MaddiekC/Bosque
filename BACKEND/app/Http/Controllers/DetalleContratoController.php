@@ -15,36 +15,65 @@ class DetalleContratoController extends Controller
 
         return response()->json($detallesContrato);
     }
-
-    public function show($id)
+    public function show($contrato_id)
     {
-        $detalleContrato = DetalleContrato::with('contrato')->find($id);
-        if (!$detalleContrato || $detalleContrato->estado !== 'A') {
+        // traemos todos los detalles cuyo contrato_id coincida y que estén activos
+        $detalles = DetalleContrato::with('contrato')
+            ->where('contrato_id', $contrato_id)
+            ->where('estado', 'A')
+            ->get();
+
+        if ($detalles->isEmpty()) {
             return response()->json(['message' => 'Detalle de contrato no encontrado'], 404);
         }
 
-        return response()->json($detalleContrato);
+        return response()->json($detalles);
     }
+
 
     public function store(Request $request)
     {
         $request->validate([
-            'contrato_id' => 'required|integer|exists:contrato,id',
-            'circuferencia' => 'required|numeric',
-            'valor' => 'required|numeric',
-            'rango' => 'required|integer|min:1'
+            'detalles'                  => 'required|array|min:1',
+            'detalles.*.contrato_id'    => 'required|numeric|exists:contrato,id',
+            'detalles.*.circunferencia' => 'required|numeric|min:0',
+            'detalles.*.precioM3'       => 'required|numeric|min:0',
+            'detalles.*.largo'          => 'required|numeric|min:0',
+            'detalles.*.caracteristica' => 'required|string|max:255',
         ]);
         $user = $request->user();
-        $detalleContrato = DetalleContrato::create([
-            (['contrato_id' => $request->contrato_id]),
-            'circuferencia' => $request->circuferencia,
-            'valor' => $request->valor,
-            'rango' => $request->rango,
-            'usuario_creacion' =>  $user->username,
-            'estado' => 'A',
-        ]);
+        // --- 1) Validación: duplicados dentro del payload (contrato_id + circunferencia) ---
+        $pairs = [];
+        $duplicates = [];
+        foreach ($request->input('detalles') as $det) {
+            $k = $det['contrato_id'] . '|' . $det['circunferencia'];
+            if (isset($pairs[$k])) {
+                $duplicates[] = $det['circunferencia'];
+            } else {
+                $pairs[$k] = true;
+            }
+        }
+        if (!empty($duplicates)) {
+            $du = implode(', ', array_unique($duplicates));
+            return response()->json(['message' => "Circunferencias duplicadas: {$du}"], 422);
+        }
 
-        return response()->json($detalleContrato, 201);
+        $creados = [];
+
+        foreach ($request->input('detalles') as $det) {
+            $creados[] = DetalleContrato::create([
+                'contrato_id'      => $det['contrato_id'],
+                'circunferencia'   => $det['circunferencia'],
+                'precioM3'         => $det['precioM3'],
+                'largo'            => $det['largo'],
+                'caracteristica'   => $det['caracteristica'],
+                'usuario_creacion' => $user->username,
+                'estado'           => 'A',
+            ]);
+        }
+
+
+        return response()->json($creados, 201);
     }
 
     public function update(Request $request, $id)
@@ -53,17 +82,18 @@ class DetalleContratoController extends Controller
         if (!$detalleContrato || $detalleContrato->estado !== 'A') {
             return response()->json(['message' => 'Detalle de contrato no encontrado'], 404);
         }
-
+        $user = $request->user();
         $request->validate([
-            'contrato_id' => 'nullable|integer|exists:contrato,id',
-            'circuferencia' => 'nullable|numeric',
-            'valor' => 'nullable|numeric',
-            'rango' => 'nullable||integer|min:1',
-            'usuario_creacion' => 'required|string|max:200',
+            'contrato_id' => 'required|numeric|exists:contrato,id',
+            'circunferencia' => 'required|string|max:255',
+            'precioM3' => 'required|integer|min:1',
+            'largo' => 'required|numeric|min:0',
+            'caracteristica' => 'required|string|max:255',
         ]);
 
-        $detalleContrato->update($request->only(['contrato_id', 'circuferencia', 'valor', 'rango', 'usuario_creacion']));
-
+        $detalleContrato->fill($request->only(['contrato_id', 'circuferencia', 'pprecioM3', 'largo', 'caracteristica']));
+        $detalleContrato->updated_by = $user->username; // Asignar el usuario que hizo la edición
+        $detalleContrato->save(); // Guardar cambios
         return response()->json($detalleContrato);
     }
 

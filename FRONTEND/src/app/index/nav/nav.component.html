@@ -15,7 +15,7 @@
           </a>
 
           <!-- Si el ítem tiene submenús, mostrarlo como desplegable -->
-          <a *ngIf="!item.route" href="#" (click)="toggleDropdown(item)">
+          <a *ngIf="!item.route" href="#" (click)="$event.preventDefault(); toggleDropdown(item)">
             <img *ngIf="item.img" [src]="item.img" width="40" height="40" alt="{{ item.title }}" />
             <i *ngIf="item.icon" [class]="item.icon"></i>
             <span class="menu-text">{{ item.title }}</span>

@@ -20,6 +20,22 @@ class SiembraRebroteController extends Controller
             ->get();
         return response()->json($siembraRebrotes);
     }
+
+    // public function index()
+    // {
+    //     $siembraRebrotes = SiembraRebrote::with(['bosque', 'tipo', 'tipoArbol'])
+    //         ->where('estado', 'A')
+    //         ->get();
+    //     $totals = [
+    //         'hectarea_usada' => $siembraRebrotes->sum('hectarea_usada'),
+    //         'arb_iniciales'  => $siembraRebrotes->sum('arb_iniciales'),
+    //         'arb_raleados'   => $siembraRebrotes->sum('arb_raleados'),
+    //         'arb_cortados'   => $siembraRebrotes->sum('arb_cortados'),
+    //     ];
+    //     return response()
+    //         ->json(['data' => $siembraRebrotes, 'totals' => $totals]);
+    // }
+    
     public function show($id)
     {
         $siembraRebrote = SiembraRebrote::with(['bosque', 'tipo', 'tipoArbol'])
@@ -68,7 +84,7 @@ class SiembraRebroteController extends Controller
         $user = $request->user();
 
         $siembraRebrote = SiembraRebrote::create([
-            ...$request->only(['bosque_id', 'tipo_id', 'tipo_arbol_id', 'fecha', 'anio', 'hectarea_usada', 'arb_iniciales', 'arb_cortados', 'dist_siembra', 'usuario_creacion']),
+            ...$request->only(['bosque_id', 'tipo_id', 'tipo_arbol_id', 'fecha', 'anio', 'hectarea_usada', 'arb_iniciales', 'arb_raleados', 'arb_muertNat', 'arb_cortados', 'dist_siembra', 'usuario_creacion']),
             'usuario_creacion' => $user->username,
             'estado' => 'A',
         ]);
@@ -88,14 +104,15 @@ class SiembraRebroteController extends Controller
             'anio' => 'required|integer|min:1',
             'hectarea_usada' => 'required|numeric|min:0',
             'arb_iniciales' => 'required|integer|min:0',
+            'arb_raleados'     => 'required|integer|min:0',
+            'arb_muertNat'     => 'required|integer|min:0',
             'arb_cortados' => 'required|integer|min:0',
             'dist_siembra' => 'required|string|max:30',
             //'saldo' => 'required|integer|min:1',
-            'usuario_creacion' => 'required|string|max:200',
         ]);
 
         // Recalcula el saldo
-        $data['saldo'] = $data['arb_iniciales'] - $data['arb_cortados'];
+        $data['saldo'] = $data['arb_iniciales'] - ($data['arb_cortados'] + $data['arb_raleados'] + $data['arb_muertNat']);
 
         // 1) Capacidad del bosque
         $bosque = \App\Models\Bosque::findOrFail($data['bosque_id']);
@@ -119,7 +136,10 @@ class SiembraRebroteController extends Controller
         }
 
         // 4) Actualizar
-        $siembraRebrote->update($data);
+        $siembraRebrote->fill($data);
+        $user = $request->user();
+        $siembraRebrote->updated_by = $user->username; // Asignar el usuario que hizo la edición
+        $siembraRebrote->save();
         return response()->json($siembraRebrote);
     }
     public function destroy($id)

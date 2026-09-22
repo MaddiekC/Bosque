@@ -36,6 +36,36 @@ export const routes: Routes = [
         loadComponent: () => import('./component/contrato/contrato.component').then(m => m.ContratoComponent),
         data: { title: 'Contratos' }
       },
+      {
+        path: 'corte',
+        loadComponent: () => import('./component/corte/corte.component').then(m => m.CorteComponent),
+        data: { title: 'Corte' }
+      },
+      {
+        path: 'corte/:idSiembraRebrote/:bosqueId',
+        loadComponent: () => import('./component/corte/corte.component').then(m => m.CorteComponent),
+        data: { title: 'Corte filtrado' }
+      },
+      {
+        path: 'corte/:contratoId',
+        loadComponent: () => import('./component/corte/corte.component').then(m => m.CorteComponent),
+        data: { title: 'Corte filtrado2' }
+      },
+      {
+        path: 'reporte',
+        loadComponent: () => import('./component/reporte/reporte.component').then(m => m.ReporteComponent),
+        data: { title: 'Reporte' }
+      },
+      {
+        path: 'raleo',
+        loadComponent: () => import('./component/raleo/raleo.component').then(m => m.RaleoComponent),
+        data: { title: 'Raleo' }
+      },
+      {
+        path: 'usuario',
+        loadComponent: () => import('./component/usuario/usuario.component').then(m => m.UsuarioComponent),
+        data: { title: 'Usuarios' }
+      }
     ]
   },
   {

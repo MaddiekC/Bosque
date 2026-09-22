@@ -1,0 +1,119 @@
+.btnAngosto {
+    border: none;
+    color: white;
+    padding: 1px 2px;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+    font-size: 16px;
+    margin: 3px 4px;
+    cursor: pointer;
+    border-radius: 4px;
+}
+
+.btnSaveEdit {
+    background-color: #33b444;
+    border: none;
+    color: white;
+    padding: 1px 2px;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+    font-size: 16px;
+    margin: 3px 4px;
+    cursor: pointer;
+    border-radius: 4px;
+    width: 70px;
+}
+
+.btnCancelEdit {
+    background-color: #706e6f;
+    border: none;
+    color: white;
+    padding: 1px 2px;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+    font-size: 16px;
+    margin: 3px 4px;
+    cursor: pointer;
+    border-radius: 4px;
+    width: 70px;
+}
+
+
+.btnSiembra-Rebrote {
+    border: none;
+    color: rgb(0, 0, 0);
+    padding: 1px 2px;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+    font-size: 16px;
+    margin: 3px 4px;
+    cursor: pointer;
+    border-radius: 4px;
+}
+
+
+/* .BtnFiltro {
+    background-color: #33b444;
+    margin-left: 10px;
+    width: 100px;
+    height: 40px;
+} */
+
+.input-contenedor {
+  position: relative;
+  border: 1px solid #ced4da;
+  border-radius: 5px;
+  padding: 20px 8px 3px 8px;
+  margin-bottom: 6px;
+ 
+}
+
+.input-contenedor label {
+  font-size: 12px;
+  color: #6c757d;
+  position: absolute;
+  top: -1px;
+  padding: 0 4px;
+}
+
+/* en contrato.component.css */
+.tr-estado-c {
+  background-color: rgb(235, 212, 169) !important;
+}
+
+.table-scroll {
+  max-height: 50vh;        /* altura visible del área de la tabla dentro del modal */
+  overflow: auto;          /* aquí se hace el scroll del body de la tabla */
+  -webkit-overflow-scrolling: touch;
+  border: 1px solid #e9ecef; /* opcional, bordear el área */
+}
+
+.table-scroll table thead th {
+  position: sticky;
+  z-index: 5;
+  background: #f8f9fa; /* color del encabezado (misma paleta de .table-light) */
+  border-bottom: 1px solid rgba(0,0,0,0.08);
+}
+
+/* si tienes dos filas en thead, ajustar top por fila */
+.table-scroll table thead tr:first-child th {
+  top: 0;          /* fila superior */
+}
+.table-scroll table thead tr:nth-child(2) th {
+  top: 36px;       /* fila inferior — AJUSTA este valor si la altura de la primera fila cambia */
+}
+
+/* mejor lectura para números */
+.table-scroll table td,
+.table-scroll table th {
+  vertical-align: middle;
+}
+
+/* opcional: sombra bajo el header para que destaque */
+.table-scroll table thead th {
+  box-shadow: 0 2px 4px rgba(0,0,0,0.03);
+}

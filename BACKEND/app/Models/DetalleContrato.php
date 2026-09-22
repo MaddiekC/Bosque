@@ -12,9 +12,10 @@ class DetalleContrato extends Model
     protected $dates = ['created_at', 'updated_at'];
     protected $fillable = [
         'contrato_id',
-        'circuferencia',
-        'valor',
-        'rango', 
+        'circunferencia',
+        'precioM3',
+        'largo', 
+        'caracteristica',
         'estado', 
         'usuario_creacion'
     ];

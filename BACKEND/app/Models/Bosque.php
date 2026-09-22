@@ -1,8 +1,10 @@
-<?php 
+<?php
+
 namespace App\Models;
+
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use App\Models\Parametro;
+//use App\Models\Parametro;
 
 class Bosque extends Model
 {
@@ -22,16 +24,21 @@ class Bosque extends Model
 
     public function seccion()
     {
-        return $this->belongsTo(Parametro::class, 'seccion_id')
-                    ->where('categoria', 'seccion');
+        return $this->belongsTo(Seccion::class, 'seccion_id');
     }
+
     public function siembraRebrote()
     {
         return $this->hasMany(SiembraRebrote::class, 'bosque_id');
     }
 
-    public function cabeceraCortes()
+    public function detalleCortes()
     {
-        return $this->hasMany(CabeceraCorte::class, 'bosque_id');
+        return $this->hasMany(DetalleCorte::class, 'bosque_id');
+    }
+
+    public function cortes()
+    {
+        return $this->hasMany(Corte::class, 'bosque_id');
     }
 }

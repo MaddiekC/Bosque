@@ -19,8 +19,9 @@ import { NavComponent } from '../nav/nav.component';
 export class MainComponent implements OnInit {
   username: string = '';
   menuItems: MenuItem[] = [];
-  userRole = 0;
-  userGroup = 0;
+  //userRole = 0;
+  //userGroup = 0;
+  id = 0;
   isSidebarVisible = true;
   constructor(
     public userService: UserService,
@@ -32,12 +33,15 @@ export class MainComponent implements OnInit {
   ngOnInit() {
     const u = this.authService.getUserInfo();      // string | null
     this.username = u ?? 'Invitado';
+    
+    const i = this.authService.getUserId();      // string | null
+    this.id = i ?? 0;
     console.log('Usuario:', this.username);
-    this.userRole = Number(this.userService.getRolId()) || 1;
-    this.userGroup = Number(this.userService.getGroupId()) || 1;
-    this.menuItems = this.menuService.getMenuByUser(this.userRole, this.userGroup);
+    console.log('Id:', this.id);
+    //this.userRole = Number(this.userService.getRolId()) || 1;
+    //this.userGroup = Number(this.userService.getGroupId()) || 1;
+    this.menuItems = this.menuService.getMenuByUser();
     this.updateSidebarVisibility();
-    console.log('rol:', this.userRole, 'grupo:', this.userGroup);
     console.log(this.menuItems)
   }
 

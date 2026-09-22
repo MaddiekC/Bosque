@@ -6,8 +6,9 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
-//use Tymon\JWTAuth\Exceptions\JWTException;
+use Tymon\JWTAuth\Exceptions\JWTException;
 use Tymon\JWTAuth\Facades\JWTAuth;
+use Illuminate\Http\JsonResponse;
 
 class AuthController extends Controller
 {
@@ -41,6 +42,7 @@ class AuthController extends Controller
             'message' => 'Login exitoso',
             'expires_in'   => $ttl * 60,
             'username' => $user->username,
+            'id' => $user->id,
             'email' => $user->email
         ]);
     }
@@ -70,4 +72,39 @@ class AuthController extends Controller
     {
         return response()->json(auth()->user());
     }
+
+    public function permissions(): JsonResponse
+    {
+        /** @var \App\Models\User $user */
+        $user = auth()->user();
+
+        // Asumiendo relación many-to-many user↔transacciones
+        $perms = $user->transacciones->pluck('id');
+
+        return response()->json($perms);
+    }
+
+    // public function refresh(Request $request)
+    // {
+    //     // toma el token del header Authorization
+    //     $token = JWTAuth::getToken();
+
+    //     if (! $token) {
+    //         return response()->json(['error' => 'Token no proporcionado'], 400);
+    //     }
+
+    //     try {
+    //         // refresca el token (devuelve uno nuevo)
+    //         $newToken = JWTAuth::refresh($token);
+    //         $ttl = JWTAuth::factory()->getTTL(); // minutos
+
+    //         return response()->json([
+    //             'access_token' => $newToken,
+    //             'expires_in' => $ttl * 60
+    //         ]);
+    //     } catch (JWTException $e) {
+    //         // puede fallar si se pasó el refresh_ttl o token inválido
+    //         return response()->json(['error' => 'No se pudo refrescar el token'], 401);
+    //     }
+    // }
 }

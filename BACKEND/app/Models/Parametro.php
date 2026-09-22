@@ -18,20 +18,15 @@ class Parametro extends Model
         'usuario_creacion'
     ];
 
-    public function bosques()
-    {
-        return $this->hasMany(Bosque::class, 'seccion_id');
-    }
-
     public function siembraRebrotes()
     {
         return $this->hasMany(SiembraRebrote::class, 'tipo_id');
     }
 
-    public function sellos()
-    {
-        return $this->hasMany(CabeceraCorte::class, 'sello_id');
-    }
+    // public function sellos()
+    // {
+    //     return $this->hasMany(CabeceraCorte::class, 'sello_id');
+    // }
 
     public function raleoTipos()
     {

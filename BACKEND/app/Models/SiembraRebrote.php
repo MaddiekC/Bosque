@@ -22,6 +22,7 @@ class SiembraRebrote extends Model
         'anio',
         'hectarea_usada',
         'arb_iniciales',
+        'arb_muertNat',
         'arb_cortados',
         'dist_siembra',
         'saldo',
@@ -43,8 +44,12 @@ class SiembraRebrote extends Model
         return $this->belongsTo(Parametro::class, 'tipo_arbol_id')
             ->where('categoria', 'tipoArbol');
     }
-    public function cabeceraCortes()
+    public function detalleCortes()
     {
-        return $this->hasMany(CabeceraCorte::class, 'siembra_rebrote_id');
+        return $this->hasMany(DetalleCorte::class, 'siembra_rebrote_id');
+    }
+    public function cortes()
+    {
+        return $this->hasMany(Corte::class, 'siembra_rebrote_id');
     }
 }

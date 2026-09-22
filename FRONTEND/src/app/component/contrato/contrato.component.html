@@ -1,177 +1,739 @@
-<h4 style="color: rgb(1, 1, 199);">Contrato</h4>
-<!-- Fila de filtros -->
-<table class="table table-striped table-hover table-sm" style="width: 1100px; margin-top: 30px;">
-    <tr>
-        <div class="input-contenedor">
-            <th style="width: 100px;">
-                <label for="cliente">Cliente:</label>
-                <select class="form-select form-select-sm" [(ngModel)]="filtroCliente">
-                    <option [ngValue]="null">Todo</option>
-                    <option *ngFor="let b of clientes" [ngValue]="b.id">
-                        {{ b.nombre }}
-                    </option>
-                </select>
-            </th>
-            <th style="width: 110px;">
-                <label for="anio">Año:</label>
-                <input type="number" min="0" step="1" class="form-control form-control-sm" placeholder="Filtrar Año"
-                    [(ngModel)]="filtroAnio">
-            </th>
-            <th>
-                <label for="Fecha">Fecha:</label>
-                <input type="date" class="form-control form-control-sm" placeholder="Filtrar Fecha"
-                    [(ngModel)]="filtroFecha">
-            </th>
-            <th>
-                <button (click)="getContratosFiltrados()" style="border:none; background:none">
-                    <img src="/assets/images/filtrar.png" width="22" height="26" ata-bs-toggle="tooltip"
-                        title="Filtrar registro">
-                </button>
-            </th>
-        </div>
-    </tr>
-</table>
-
+<h4 style="color: rgb(1, 1, 199);">Listado de Acuerdos</h4>
 <div style="display: flex; align-items: start; gap: 15px;">
-
-    <table class="table table-striped table-bordered table-hover table-sm" style="min-width: 1000px; margin-left:30px">
-        <thead class="table-success" style="text-align: center;">
+    <div style="white-space: nowrap;">
+        <!-- Fila de filtros -->
+        <table class="table table-striped table-hover table-sm w-100%" style="table-layout: fixed;">
+            <colgroup>
+                <col style="width: 1%;"> <!-- # -->
+                <col style="width: 8%;"> <!-- Cerrar -->
+                <col style="width: 1%;"> <!-- Cliente -->
+                <col style="width: 23%;"> <!-- Año -->
+                <col style="width: 5%;"> <!-- Fecha -->
+                <col style="width: 9%;"> <!-- Anticipo -->
+                <col> <!-- Saldo -->
+                <col> <!-- Detalles -->
+                <col> <!-- ... -->
+                <col>
+                <col>
+                <col>
+            </colgroup>
             <tr>
-                <th>Cliente</th>
-                <th>Año</th>
-                <th>Fecha</th>
-                <th>Detalles</th>
-                <th>...</th>
-            </tr>
-
-        </thead>
-        <!-- Visualizar -->
-        <tbody>
-            <tr *ngFor="let contrato of contratosFiltrados| paginate: { itemsPerPage: itemsPorPagina, currentPage: paginaActual }
-">
-                <!-- Columna Cliente-->
-                <td>
-                    {{ getClienteId(contrato.cliente_id) }}
-                </td>
-                <!-- Columna Año -->
-                <td>
-                    {{ contrato.anio}}
-                </td>
-                <!-- Columna Fecha -->
-                <td>
-                    {{ contrato.fecha | date: 'dd/MM/yyyy' }}
-                </td>
-                <!-- Columna Ver -->
-                <td class="text-center">
-                    <a class="btnSiembra-Rebrote" [routerLink]="['/contrato', contrato.id]">
-                        <img src="/assets/images/archivoDetalles.png" width="24" height="24">
-                    </a>
-                </td>
-                <!-- Acciones -->
-                <td class="d-flex justify-content-center align-items-center">
-                    <button class="btn btnAngosto" ata-bs-toggle="tooltip" title="Editar registro"
-                        style="background-color:#e7bd35 ;" (click)="startEdit(contrato.id)">
-                        <i class="bi bi-pencil"></i>
-                    </button>
-                    <button class="btn btnAngosto " ata-bs-toggle="tooltip" title="Eliminar registro"
-                        style="background-color:#e7354d ;" (click)="eliminarContrato(contrato.id)">
-                        <i class="bi bi-trash"></i>
-                    </button>
-                </td>
-            </tr>
-        </tbody>
-        <tfoot>
-            <tr>
-                <!-- Ajusta el colspan al número de columnas de tu tabla -->
-                <td [attr.colspan]="5" class="text-center">
-                    <pagination-controls (pageChange)="paginaActual = $event" [autoHide]="true" [maxSize]="15"
-                        previousLabel="«" nextLabel="»">
-                    </pagination-controls>
-                </td>
-            </tr>
-        </tfoot>
-    </table>
-
-    <button data-bs-toggle="modal" data-bs-target="#miModal" ata-bs-toggle="tooltip"
-        style="border:none; background:none; " title="Agregar registro"> <img src="/assets/images/nuevo.png" width="29"
-            height="29" ata-bs-toggle="tooltip" title="Agregar registro"></button>
-</div>
-
-<!-- Modal para registrar un nuevo contrato -->
-<div class="modal fade" id="miModal" tabindex="-1" aria-labelledby="miModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h4 class="modal-title" id="miModalLabel">Registro de Contrato</h4>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
-            </div>
-            <form #fForm="ngForm" class="modal-body">
-                <label>Nombre del Cliente</label>
-                <div style="margin-bottom: 15px;">
-                    <select class="form-select form-select-sm" [(ngModel)]="nuevoContrato.cliente_id" name="cliente_id"
-                        required class="form-select form-select-sm">
-                        <option [ngValue]="null">-- Seleccione --</option>
-                        <option *ngFor="let b of clientes" [ngValue]="b.id">
-                            {{ b.nombre }}
+                <th class="p-1 flex-fill"></th>
+                <th class="p-1 flex-fill">
+                    <label for="estado" style="background-color: transparent">Estado:</label>
+                    <select class="form-select form-select-sm" [(ngModel)]="filtroEstado"
+                        (ngModelChange)="getContratosFiltrados()">
+                        <option [ngValue]="null">Todo</option>
+                        <option *ngFor="let e of estados" [ngValue]="e.value">
+                            {{ e.label }}
                         </option>
                     </select>
-                </div>
-                <div class="d-flex flex-wrap gap-2" style="margin-top: 15px; margin-bottom: 15px;">
-                    <div>
-                        <label>Fecha</label>
-                        <input type="date" class="form-control form-control-sm" [(ngModel)]="nuevoContrato.fecha" (ngModelChange)="onFechaChange($event)"
-                            name="fecha" required>
+                </th>
+                <th class="p-1 flex-fill"></th>
+                <th class="p-1 flex-fill">
+                    <label for="cliente" style="background-color: transparent">Cliente:</label>
+                    <select class="form-select form-select-sm" [(ngModel)]="filtroCliente"
+                        (ngModelChange)="getContratosFiltrados()">
+                        <option [ngValue]="null">Todo</option>
+                        <option *ngFor="let b of clientes" [ngValue]="b.idcliente">
+                            {{ b.NombreComercial }}
+                        </option>
+                    </select>
+                </th>
+                <th class="p-1 flex-fill">
+                    <label for="anio" style="background-color: transparent">Año:</label>
+                    <input type="number" min="0" step="1" class="form-control form-control-sm" placeholder="Todo"
+                        [(ngModel)]="filtroAnio" (ngModelChange)="getContratosFiltrados()">
+                </th>
+                <th class="p-1 flex-fill">
+                    <label for="Fecha" style="background-color: transparent">Fecha:</label>
+                    <input type="date" class="form-control form-control-sm" placeholder="Filtrar Fecha"
+                        [(ngModel)]="filtroFecha" (ngModelChange)="getContratosFiltrados()">
+                </th>
+                <th class="p-1 flex-fill"></th>
+                <th class="p-1 flex-fill"></th>
+                <th class="p-1 flex-fill"></th>
+
+                <!-- Celda con botones alineados a la derecha -->
+                <th class="p-3 align-middle text-end" style="white-space: nowrap;">
+                    <div style="margin: 14px; margin-left: 100px; background-color: transparent; height: 28px;"
+                        class="d-inline-flex align-items-center gap-2">
+                        <button *hasPermission="33" data-bs-toggle="modal" data-bs-target="#miModal"
+                            title="Agregar registro" class="btn btn-link p-0" style="border:none; background:none;">
+                            <img src="/assets/images/nuevo.png" width="30" height="31" alt="Agregar"
+                                title="Agregar registro">
+                        </button>
+
+                        <button *hasPermission="34" class="btn btn-link p-0" (click)="exportToPDF()"
+                            title="Descargar registro" style="color: green;">
+                            <i class="bi bi-file-earmark-pdf-fill fs-4"></i>
+                        </button>
                     </div>
+                </th>
+            </tr>
+        </table>
+
+        <div style="display: flex; align-items: start; gap: 15px;">
+
+            <table class="table table-striped table-bordered table-hover table-sm w-100">
+                <colgroup>
+                    <col> <!-- # -->
+                    <col> <!-- Cerrar -->
+                    <col> <!-- Cliente -->
+                    <col> <!-- Año -->
+                    <col> <!-- Fecha -->
+                    <col> <!-- Anticipo -->
+                    <col> <!-- Saldo -->
+                    <col> <!-- Detalles -->
+                    <col> <!-- ... -->
+                    <col>
+                    <col>
+                </colgroup>
+                <thead class="table-success" style="text-align: center;">
+                    <tr>
+                        <th class="">#</th>
+                        <th *hasPermission="24">Cerrar</th>
+                        <th>Id</th>
+                        <th>Cliente</th>
+                        <th>Año</th>
+                        <th>Fecha</th>
+                        <th *hasPermission="25">Anticipo</th>
+                        <th *hasPermission="26">Embarcado</th>
+                        <th *hasPermission="27">Saldo</th>
+                        <th *hasPermission="28">Detalles</th>
+                        <th *hasPermission="29">Corte</th>
+                        <th *hasPermission="30">...</th>
+                    </tr>
+                </thead>
+                <!-- Visualizar -->
+                <tbody>
+                    <tr *ngFor="let contrato of contratosFiltrados| paginate: { itemsPerPage: itemsPorPagina, currentPage: paginaContratos, id: 'contratos' }; let i = index"
+                        [ngClass]="{'table-warning': contrato.estado === 'C'}">
+                        <td class="text-center">
+                            {{ (paginaContratos - 1) * itemsPorPagina + (i + 1) }}
+                        </td>
+                        <td *hasPermission="24" class="d-flex justify-content-center align-items-center">
+                            <button class="btn btnAngosto "
+                                *ngIf="contrato.estado === 'A' && contrato.detalles_count > 0  && (totalAnticipo[contrato.id] || 0) > 0"
+                                ata-bs-toggle="tooltip" title="Cerrar contrato" style="background-color:#35e782 ;"
+                                (click)="openCloseAModal(contrato.id)">
+                                <i class="bi bi-check-circle"></i>
+                            </button>
+                            <button class="btn btnAngosto " *ngIf="contrato.estado === 'C'" ata-bs-toggle="tooltip"
+                                style="color:#555e5993 ;">
+                                <i class="bi bi-check-lg"></i>
+                            </button>
+                        </td>
+                        <td class="text-center">
+                            {{ contrato.id}}
+                        </td>
+                        <!-- Columna Cliente-->
+                        <td>
+                            {{ getClienteId(contrato.cliente_id) }}
+                        </td>
+                        <!-- Columna Año -->
+                        <td class="text-center">
+                            {{ contrato.anio}}
+                        </td>
+                        <!-- Columna Fecha -->
+                        <td>
+                            {{ contrato.fecha | date: 'dd/MM/yyyy' }}
+                        </td>
+                        <td *hasPermission="25" class="text-end">
+                            <a class="btnSiembra-Rebrote" title="Anticipo"
+                                (click)="openAnticipoModal(contrato.id, contrato.estado)">
+                                <span class="badge bg-info"
+                                    style="background-color: #357ce7 !important; min-width: 80px; text-align: right;">
+                                    {{ totalAnticipo[contrato.id] || 0 | currency }}
+                                </span></a>
+                        </td>
+                        <td *hasPermission="26" class="text-end">
+                            <a class="btnSiembra-Rebrote" title="Embarque" (click)="openEmbarqueModal(contrato.id)">
+                                <span class="badge bg-success"
+                                    style="background-color: #e7a035 !important; min-width: 80px; text-align: right;">
+                                    {{ (contratoValorTroza[contrato.id] || 0) | currency }}
+                                </span>
+                            </a>
+                        </td>
+                        <td *hasPermission="27" class="text-end">
+                            <a class="btnSiembra-Rebrote" title="Saldo">
+                                <span class="badge " style="min-width: 80px; text-align: right;" [ngClass]="{
+    'bg-success': (contratoSaldos[contrato.id]?.saldo ?? 0) >= 0,
+    'bg-danger': (contratoSaldos[contrato.id]?.saldo ?? 0) < 0
+  }">
+                                    {{ contratoSaldos[contrato.id]?.saldo ?? 0 | currency }}
+                                </span>
+                            </a>
+                        </td>
+                        <!-- Columna Ver -->
+                        <td class="text-center">
+                            <div *hasPermission="44">
+                                <a *ngIf=" contrato.detalles_count <= 0 && contrato.estado === 'A'"
+                                    class="btnSiembra-Rebrote" title="Agregar detalles"
+                                    (click)="openDetailModal2(contrato.id)">
+                                    <img src="/assets/images/agregarArchivo.png" width="24" height="24">
+                                </a>
+                            </div>
+                            <div *hasPermission="45">
+                                <a *ngIf="contrato.detalles_count > 0" class="btnSiembra-Rebrote" title="Ver detalles"
+                                    (click)="openDetailModal(contrato.id)">
+                                    <img src="/assets/images/archivoDetalles.png" width="24" height="24">
+                                </a>
+                            </div>
+
+                        </td>
+                        <!-- Columna Corte -->
+                        <td *hasPermission="29" class="text-center">
+                            <a class="btnSiembra-Rebrote" [routerLink]="['/corte', contrato.id]">
+                                <img src="/assets/images/corteWhite.png" width="24" height="24">
+                            </a>
+                        </td>
+                        <!-- Acciones -->
+                        <div *hasPermission="30">
+                            <td class="d-flex justify-content-center align-items-center"
+                                *ngIf="contrato.estado === 'A'">
+                                <button *hasPermission="31" class="btn btnAngosto" ata-bs-toggle="tooltip"
+                                    title="Editar registro" style="background-color:#e7bd35 ;"
+                                    (click)="startEdit(contrato.id)">
+                                    <i class="bi bi-pencil"></i>
+                                </button>
+                                <button *hasPermission="32" class="btn btnAngosto " ata-bs-toggle="tooltip"
+                                    title="Eliminar registro" style="background-color:#e7354d ;"
+                                    (click)="openConfirmModal(contrato.id)">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </td>
+                        </div>
+                    </tr>
+                </tbody>
+                <tfoot>
+                    <tr>
+                        <!-- Ajusta el colspan al número de columnas de tu tabla -->
+                        <td [attr.colspan]="12" class="text-center">
+                            <pagination-controls id="contratos" (pageChange)="paginaContratos = $event"
+                                [autoHide]="true" [maxSize]="15" previousLabel="«" nextLabel="»">
+                            </pagination-controls>
+                        </td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+    <!-- <button *hasPermission="1" data-bs-toggle="modal" data-bs-target="#miModal" ata-bs-toggle="tooltip"
+    style="border:none; background:none;" title="Agregar registro"> <img src="/assets/images/nuevo.png"
+        width="30" height="30" ata-bs-toggle="tooltip" title="Agregar registro"></button> -->
+
+    <!-- Confirm Modal -->
+    <div class="modal fade" tabindex="-1" aria-labelledby="confirmModalLabel" #confirmModal>
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="confirmModalLabel">Confirmar eliminación</h5>
+                    <button type="button" class="btn-close" aria-label="Cerrar" (click)="cancelDelete()"></button>
                 </div>
-            </form>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-primary" (click)="onSave()"
-                    [disabled]="fForm.form.invalid">Guardar</button>
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"
-                    (click)="cancelEdit()">Cerrar</button>
+                <div class="modal-body">
+                    ¿Estás seguro de que deseas eliminar este registro?
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-danger" (click)="confirmDelete()">Sí</button>
+                    <button type="button" class="btn btn-secondary" (click)="cancelDelete()">No</button>
+                </div>
             </div>
         </div>
     </div>
-</div>
 
-<!-- Editar -->
-<!-- Modal para edición -->
-<div class="modal fade" id="editarModal" tabindex="-1" aria-labelledby="editarModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content" *ngIf="contratoEditando">
+    <!-- Confirm Close Modal  -->
+    <div class="modal fade" tabindex="-1" aria-labelledby="confirmModalLabelA" #confirmModalAgreem>
+        <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title">Editar Contrato</h5>
+                    <h5 class="modal-title" id="confirmModalLabel">Confirmar cierre</h5>
+                    <button type="button" class="btn-close" aria-label="Cerrar" (click)="cancelCloseA()"></button>
                 </div>
                 <div class="modal-body">
-                    <form>
-                        <div class="row">
-                            <div class="col-md-6">
-                                <label>Nombre del Cliente</label>
-                                <select class="form-select form-select-sm" [(ngModel)]="contratoEditando!.cliente_id"
-                                    name="cliente_id">
-                                    <option [ngValue]="null">-- Seleccione --</option>
-                                    <option *ngFor="let b of clientes" [ngValue]="b.id">
-                                        {{ b.nombre }}
-                                    </option>
-                                </select>
+                    ¿Estás seguro de que deseas cerrar este contrato?
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-success" (click)="confirmCloseA()">Sí</button>
+                    <button type="button" class="btn btn-secondary" (click)="cancelCloseA()">No</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal para registrar un nuevo contrato -->
+    <div class="modal fade" id="miModal" tabindex="-1" aria-labelledby="miModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h4 class="modal-title" id="miModalLabel">Registro de Contrato</h4>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                </div>
+                <form #fForm="ngForm" class="modal-body">
+                    <label>Nombre del Cliente</label>
+                    <div style="margin-bottom: 15px;">
+                        <select class="form-select form-select-sm" [(ngModel)]="nuevoContrato.cliente_id"
+                            name="cliente_id" required class="form-select form-select-sm">
+                            <option [ngValue]="null">-- Seleccione --</option>
+                            <option *ngFor="let b of clientes" [ngValue]="b.idcliente">
+                                {{ b.NombreComercial }}
+                            </option>
+                        </select>
+                    </div>
+                    <div class="d-flex flex-wrap gap-2" style="margin-top: 15px; margin-bottom: 15px;">
+                        <div>
+                            <label>Fecha</label>
+                            <input type="date" class="form-control form-control-sm" [(ngModel)]="nuevoContrato.fecha"
+                                (ngModelChange)="onFechaChange($event)" name="fecha" required>
+                        </div>
+                    </div>
+                </form>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-primary" (click)="onSave()"
+                        [disabled]="fForm.form.invalid">Guardar</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"
+                        (click)="cancelEdit()">Cerrar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Editar -->
+    <!-- Modal para edición -->
+    <div class="modal fade" id="editarModal" tabindex="-1" aria-labelledby="editarModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content" *ngIf="contratoEditando">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Editar Contrato</h5>
+                    </div>
+                    <div class="modal-body">
+                        <form>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <label>Nombre del Cliente</label>
+                                    <select class="form-select form-select-sm"
+                                        [(ngModel)]="contratoEditando!.cliente_id" name="cliente_id">
+                                        <option [ngValue]="null">-- Seleccione --</option>
+                                        <option *ngFor="let b of clientes" [ngValue]="b.idcliente">
+                                            {{ b.NombreComercial }}
+                                        </option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6 mt-2">
+                                    <label>Fecha</label>
+                                    <input type="date" class="form-control form-control-sm"
+                                        [(ngModel)]="contratoEditando!.fecha" name="fecha">
+                                </div>
                             </div>
-                            <div class="col-md-6 mt-2">
-                                <label>Fecha</label>
-                                <input type="date" class="form-control form-control-sm"
-                                    [(ngModel)]="contratoEditando!.fecha" name="fecha">
+                        </form>
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btnSaveEdit" (click)="saveEdit()">
+                            <i class="bbi bi-save2"></i>Guardar
+                        </button>
+                        <button type="button" class="btnCancelEdit" data-bs-dismiss="modal"><i
+                                class="bi bi-x-lg"></i>Cancelar</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+
+    <div class="modal fade" id="verdetModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Detalles del Contrato</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <!-- Bloque info cabecera -->
+                    <div *ngIf="selectedContrato" class="mb-3">
+                        <div class="row g-2">
+                            <div class="col-sm-3">
+                                <small class="text-muted">Contrato</small>
+                                <div><strong>{{ selectedContrato.id}}</strong></div>
                             </div>
+                            <div class="col-sm-3">
+                                <small class="text-muted">Cliente</small>
+                                <div><strong>{{ getClienteId(selectedContrato.cliente_id) }}</strong></div>
+                            </div>
+                            <div class="col-sm-3">
+                                <small class="text-muted">Fecha</small>
+                                <div><strong>{{ selectedContrato.fecha}}</strong></div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Tu tabla de detalle -->
+                    <div class="table-scroll">
+                        <table class="table table-bordered table-sm">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>CIRCUNFERENCIA NETA</th>
+                                    <th>PRECIO / m³</th>
+                                    <th>LARGO (m)</th>
+                                    <th>CARACTERÍSTICA</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr *ngFor="let d of listDetContrato">
+                                    <td>
+                                        {{d.circunferencia}}
+                                    </td>
+                                    <td>
+                                        {{d.precioM3}}
+                                    </td>
+                                    <td>
+                                        {{d.largo | number:'1.2-2' }}
+                                    </td>
+                                    <td>
+                                        {{d.caracteristica}}
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <!-- Botón PDF -->
+                    <div class="col-sm-3" style="margin-right: auto;">
+                        <button class="btn btn-success mb-3" style="background: none; color: green; border: none;"
+                            (click)="exportToPDF2()" title="Descargar registro">
+                            <i class="bi bi-file-earmark-pdf-fill fs-4"></i>
+                        </button>
+                    </div>
+                    <div>
+                        <button class="btn btn-secondary" data-bs-dismiss="modal"
+                            (click)="closeDetailModal()">Cerrar</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- 
+ -->
+    <div class="modal fade" id="detModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Agregar detalles del Contrato</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div *ngIf="saveDetError" class="alert alert-danger d-flex align-items-start" role="alert"
+                        aria-live="assertive">
+                        <i class="bi bi-exclamation-triangle-fill me-2 fs-5" aria-hidden="true"></i>
+                        <div>
+                            <strong>¡Error!</strong> {{ saveDetError }}
+                        </div>
+                    </div>
+                    <!-- Bloque info cabecera -->
+                    <div *ngIf="selectedContrato" class="mb-3">
+                        <div class="row g-2">
+                            <div class="col-sm-3">
+                                <small class="text-muted">Contrato</small>
+                                <div><strong>{{ selectedContrato.id}}</strong></div>
+                            </div>
+                            <div class="col-sm-3">
+                                <small class="text-muted">Cliente</small>
+                                <div><strong>{{ getClienteId(selectedContrato.cliente_id) }}</strong></div>
+                            </div>
+                            <div class="col-sm-3">
+                                <small class="text-muted">Fecha</small>
+                                <div><strong>{{ selectedContrato.fecha}}</strong></div>
+                            </div>
+                        </div>
+                    </div>
+                    <form #fForm="ngForm" class="modal-body">
+                        <!-- Tu tabla de detalle -->
+                        <table class="table table-bordered table-sm">
+                            <thead class="table-light text-center">
+                                <tr>
+                                    <!-- <th>Rango</th> -->
+                                    <th colspan="2">CIRCUNFERENCIA</th>
+                                    <!-- <th>CIRCUNFERENCIA NETA</th> -->
+                                    <th rowspan="2">PRECIO / m³</th>
+                                    <th rowspan="2">LARGO (m)</th>
+                                    <th rowspan="2">CARACTERÍSTICA (obligatorio)</th>
+                                </tr>
+                                <tr class="text-center">
+                                    <th>Desde</th>
+                                    <th>Hasta</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr *ngFor="let d of nuevoDetContrato; let i = index">
+                                    <!-- <td class="text-center">
+                                        <input type="checkbox" [(ngModel)]="d.useRange" name="useRange{{i}}"
+                                            title="Usar rango">
+                                    </td> -->
+                                    <td>
+                                        <!-- <div *ngIf="!d.useRange">
+                                            <input type="number" class="form-control form-control-sm"
+                                                [(ngModel)]="d.circunferencia" name="circunferencia{{i}}" required>
+                                        </div> -->
+                                        <input type="number" min="0" step="1" class="form-control form-control-sm"
+                                            [(ngModel)]="d.desde" name="desde{{i}}" placeholder="Desde" required>
+                                    </td>
+                                    <td>
+                                        <input type="number" min="0" step="1" class="form-control form-control-sm"
+                                            [(ngModel)]="d.hasta" name="hasta{{i}}" placeholder="Hasta" required>
+                                    </td>
+                                    <td>
+                                        <input type="number" class="form-control form-control-sm"
+                                            [(ngModel)]="d.precioM3" name="precioM3{{i}}" required>
+                                    </td>
+                                    <td>
+                                        <input type="number" class="form-control form-control-sm" [(ngModel)]="d.largo"
+                                            name="largo{{i}}" required>
+                                    </td>
+                                    <td>
+                                        <input class="form-control form-control-sm" [(ngModel)]="d.caracteristica"
+                                            name="caracteristica{{i}}" required>
+                                    </td>
+                                    <td class="text-center">
+                                        <button class="btn btn-sm btn-danger" (click)="removeRow(i)">
+                                            &times;
+                                        </button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                        <div class="text-center">
+                            <button class="btn btn-outline-primary btn-sm " (click)="addRow()">
+                                + Agregar fila
+                            </button>
                         </div>
                     </form>
                 </div>
                 <div class="modal-footer">
-                    <button class="btnSaveEdit" (click)="saveEdit()">
-                        <i class="bi bi-check-lg"></i>Guardar
+                    <button class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button class="btn btn-primary" (click)="onSaveDet()">
+                        Aceptar
                     </button>
-                    <button type="button" class="btnCancelEdit" data-bs-dismiss="modal"><i
-                            class="bi bi-x-lg"></i>Cancelar</button>
                 </div>
             </div>
         </div>
     </div>
-</div>
+
+    <!-- Modal de EmbarqueEmbarque -->
+    <div class="modal fade" id="embarqueModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Historial de Embarques</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <!-- Bloque info cabecera -->
+                    <div *ngIf="selectedContrato" class="mb-3">
+                        <div class="row g-2">
+                            <div class="col-sm-3">
+                                <small class="text-muted">Contrato</small>
+                                <div><strong>{{ selectedContrato.id}}</strong></div>
+                            </div>
+                            <div class="col-sm-3">
+                                <small class="text-muted">Cliente</small>
+                                <div><strong>{{ getClienteId(selectedContrato.cliente_id) }}</strong></div>
+                            </div>
+                            <div class="col-sm-3">
+                                <small class="text-muted">Fecha</small>
+                                <div><strong>{{ selectedContrato.fecha}}</strong></div>
+                            </div>
+                            <!-- Botón PDF -->
+                            <div class="col-sm-3" style="margin-right: auto;">
+                                <button class="btn btn-success mb-3"
+                                    style="background: none; color: green; border: none;" (click)="expToPdfEmb()"
+                                    title="Descargar registro">
+                                    <i class="bi bi-file-earmark-pdf-fill fs-4"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <div style="display: flex; align-items: start; gap: 15px;">
+                        <table class="table table-striped table-bordered table-hover table-sm w-100">
+                            <colgroup>
+                                <col> <!--  -->
+                                <col> <!--  -->
+                                <col> <!--  -->
+                                <col> <!--  -->
+                                <col> <!--  -->
+                                <col> <!--  -->
+                                <col> <!--  -->
+                                <col> <!--  -->
+                                <col> <!--  -->
+                                <col> <!--  -->
+                            </colgroup>
+                            <thead class="table-warning" style="text-align: center;">
+                                <tr>
+                                    <th>Bosque</th>
+                                    <th>Siembra Rebrote</th>
+                                    <!-- <th>Sello</th> -->
+                                    <th>Fecha</th>
+                                    <th>Naviera</th>
+                                    <th>N. viaje</th>
+                                    <th>N. envío</th>
+                                    <th>Placa</th>
+                                    <th>Contenedor</th>
+                                    <th>Supervisor</th>
+                                    <th>Trozas</th>
+                                    <th>Valor Troza</th>
+                                    <!-- <th>Detalles</th> -->
+                                </tr>
+                            </thead>
+                            <!-- Visualizar -->
+                            <tbody>
+                                <tr *ngFor="let corte of cortesFiltrados| paginate: { itemsPerPage: itemsPorPagina, currentPage: paginaCorte, id: 'embarques' }; let i = index"
+                                    [ngClass]="{'table-warning': corte.estado === 'C'}">
+                                    <!-- Columna Bosque-->
+                                    <td class="text-center">
+                                        {{ formatBosques(corte.bosque_id) }}
+                                    </td>
+                                    <!-- Columna Siembra rebrote -->
+                                    <td class="text-center">
+                                        {{ formatSiembras(corte.siembra_rebrote_id) }}
+                                    </td>
+                                    <!-- Columna Sello -->
+                                    <!-- <td class="text-center">
+                                        {{ getSelloTipoId(corte.sello_id) }}
+                                    </td> -->
+                                    <!-- Columna Fecha -->
+                                    <td class="text-center">
+                                        {{ corte.fecha_embarque | date: 'dd/MM/yyyy' }}
+                                    </td>
+                                    <!-- Columna Naviera -->
+                                    <td class="text-center">
+                                        {{ corte.naviera }}
+                                    </td>
+                                    <!-- Columna N. viaje -->
+                                    <td class="text-end">
+                                        {{ corte.numero_viaje }}
+                                    </td>
+                                    <td class="text-end">
+                                        {{ corte.numero_envio }}
+                                    </td>
+                                    <!-- Columna Placa carro -->
+                                    <td class="text-center">
+                                        {{ corte.placa_carro }}
+                                    </td>
+                                    <!-- Columna Contenedor -->
+                                    <td class="text-center">
+                                        {{ corte.contenedor }}
+                                    </td>
+                                    <!-- Columna Supervisor -->
+                                    <td class="text-center">
+                                        {{ corte.supervisor }}
+                                    </td>
+                                    <!-- Columna Cant -->
+                                    <td class="text-end">
+                                        {{ corte.cant_trozas | number: '1.0-0'}}
+                                    </td>
+                                    <!-- Columna ValorTroza -->
+                                    <td class="text-end">
+                                        {{ (corteValorTroza[corte.id] || 0) | currency }}
+                                    </td>
+                                </tr>
+                            </tbody>
+                            <tfoot>
+                                <tr>
+                                    <td colspan="10"><strong>Total:</strong></td>
+                                    <td><strong>{{ totalEmbarcado | currency }}</strong></td>
+                                </tr>
+                                <tr>
+                                    <td [attr.colspan]="11" class="text-center">
+                                        <pagination-controls id="embarques" (pageChange)="paginaCorte = $event"
+                                            [autoHide]="true" [maxSize]="15" previousLabel="«" nextLabel="»">
+                                        </pagination-controls>
+                                    </td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- Modal de Anticipo -->
+    <div class="modal fade" id="anticipoModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Historial de Anticipos</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <!-- Bloque info cabecera -->
+                    <div *ngIf="selectedContrato" class="mb-3">
+                        <div class="row g-2">
+                            <div class="col-sm-3">
+                                <small class="text-muted">Contrato</small>
+                                <div><strong>{{ selectedContrato.id}}</strong></div>
+                            </div>
+                            <div class="col-sm-3">
+                                <small class="text-muted">Cliente</small>
+                                <div><strong>{{ getClienteId(selectedContrato.cliente_id) }}</strong></div>
+                            </div>
+                            <div class="col-sm-3">
+                                <small class="text-muted">Fecha</small>
+                                <div><strong>{{ selectedContrato.fecha}}</strong></div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Tabla historial -->
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th class="text-center">Factura</th>
+                                <th class="text-center">Fecha</th>
+                                <th class="text-center">Monto</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr *ngFor="let a of listAnticipo">
+                                <td>{{ a.factura }}</td>
+                                <td>{{ a.fecha | date:'dd/MM/yyyy' }}</td>
+                                <td class="text-end pe-2">{{ a.cantidad| currency }}</td>
+                            </tr>
+                        </tbody>
+                        <tfoot>
+                            <tr>
+                                <td colspan="2"><strong>Total:</strong></td>
+                                <td class="text-end pe-2"><strong>{{ totalAnticipos | currency }}</strong></td>
+                            </tr>
+                        </tfoot>
+                    </table>
+
+                    <!-- Formulario rápido -->
+                    <div class="row g-2 align-items-end" *ngIf="selectedEstado === 'A'">
+                        <div class="col-auto">
+                            <label>Factura</label>
+                            <input type="text" class="form-control form-control-sm" [(ngModel)]="nuevoAnticipo.factura"
+                                name="factura">
+                        </div>
+                        <div class="col-auto">
+                            <label>Fecha</label>
+                            <input type="date" class="form-control form-control-sm" [(ngModel)]="nuevoAnticipo.fecha"
+                                name="fecha">
+                        </div>
+                        <div class="col-auto">
+                            <label>Monto</label>
+                            <input type="number" min="0.01" step="0.01" class="form-control form-control-sm"
+                                [(ngModel)]="nuevoAnticipo.cantidad" name="monto">
+                        </div>
+                        <div class="col-auto d-flex align-items-center gap-2" style="margin-left: 25px;">
+                            <button class="btn btn-primary btn-sm" (click)="addAnticipo()">
+                                Agregar
+                            </button>
+                            <button class="btn btn-secondary" data-bs-dismiss="modal"
+                                (click)="cancelEdit()">Cerrar</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
