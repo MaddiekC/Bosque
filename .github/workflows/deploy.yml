@@ -24,11 +24,11 @@ jobs:
           npm run build
         shell: powershell
 
-      - name: Sincronizar frontend (dist) y backend con WAMP
+      - name: Sincronizar frontend y backend en WAMP
         run: |
-          robocopy frontend\dist\frontend\browser C:\wamp64\www\Bosque\FRONTEND\dist\frontend /E /Y
+          robocopy frontend\dist\frontend\browser C:\wamp64\www\Bosque\FRONTEND\dist\frontend /E /R:3 /W:5
           if %errorlevel% lss 8 exit 0
           
-          robocopy backend C:\wamp64\www\Bosque\backend /E /Y
+          robocopy backend C:\wamp64\www\Bosque\backend /E /R:3 /W:5
           if %errorlevel% lss 8 exit 0
         shell: cmd
