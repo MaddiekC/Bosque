@@ -18,17 +18,21 @@ jobs:
           node-version: '20'
 
       - name: Instalar dependencias y compilar Angular
+        working-directory: FRONTEND
         run: |
-          cd frontend
           npm install
           npm run build
         shell: powershell
 
       - name: Sincronizar frontend y backend en WAMP
         run: |
+          # 1. Sincronizar Frontend compilado
           robocopy FRONTEND\dist\frontend\browser C:\wamp64\www\Bosque\FRONTEND\dist\frontend /E /R:3 /W:5
-          if %errorlevel% lss 8 exit 0
-          
-          robocopy BACKEND C:\wamp64\www\Bosque\BACKEND /E /R:3 /W:5
-          if %errorlevel% lss 8 exit 0
-        shell: cmd
+          if ($LASTEXITCODE -ge 8) { exit $LASTEXITCODE }
+
+          # 2. Sincronizar Backend (excluyendo .env local del servidor, logs y sesiones)
+          robocopy BACKEND C:\wamp64\www\Bosque\BACKEND /E /R:3 /W:5 /XF .env /XD BACKEND\storage\logs BACKEND\storage\framework\sessions BACKEND\node_modules
+          if ($LASTEXITCODE -ge 8) { exit $LASTEXITCODE }
+
+          exit 0
+        shell: powershell
